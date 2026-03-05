@@ -14,6 +14,8 @@ export function ProfileTab() {
   const { user, profile } = useAuth();
   const updateProfile = useUpdateProfile();
 
+  const isProtectedAdmin = profile?.email === "admin@admin.com";
+
   const [profileData, setProfileData] = useState({
     name: profile?.name || "",
     phone: profile?.phone || "",
@@ -200,7 +202,8 @@ export function ProfileTab() {
         </Button>
       </div>
 
-      {/* Change Email */}
+      {/* Change Email - hidden for protected admin */}
+      {!isProtectedAdmin && (
       <div className="bg-card rounded-lg p-6 space-y-6">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Mail className="w-5 h-5 text-primary" />
@@ -240,8 +243,10 @@ export function ProfileTab() {
           )}
         </Button>
       </div>
+      )}
 
-      {/* Password */}
+      {/* Password - hidden for protected admin */}
+      {!isProtectedAdmin && (
       <div className="bg-card rounded-lg p-6 space-y-6">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Lock className="w-5 h-5 text-primary" />
@@ -294,6 +299,7 @@ export function ProfileTab() {
           )}
         </Button>
       </div>
+      )}
     </div>
   );
 }
