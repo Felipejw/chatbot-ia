@@ -2,41 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Runtime config (para deploy self-hosted)
-declare global {
-  interface Window {
-    __SUPABASE_CONFIG__?: {
-      url: string;
-      anonKey: string;
-    };
-  }
-}
-
-// Usar runtime config se disponível, senão usar variáveis de ambiente
-const getRuntimeConfig = () => {
-  const envUrl = import.meta.env.VITE_SUPABASE_URL;
-  const envKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  
-  // Se as variáveis de ambiente são placeholders ou não existem, usar runtime config
-  if (!envUrl || envUrl.includes('placeholder') || envUrl === 'undefined') {
-    const runtimeConfig = window.__SUPABASE_CONFIG__;
-    if (runtimeConfig) {
-      return {
-        url: runtimeConfig.url,
-        key: runtimeConfig.anonKey
-      };
-    }
-  }
-  
-  return {
-    url: envUrl,
-    key: envKey
-  };
-};
-
-const config = getRuntimeConfig();
-const SUPABASE_URL = config.url;
-const SUPABASE_PUBLISHABLE_KEY = config.key;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
