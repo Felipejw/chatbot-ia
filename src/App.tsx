@@ -28,8 +28,7 @@ const FilasChatbot = lazy(() => import("./pages/FilasChatbot"));
 const Integracoes = lazy(() => import("./pages/Integracoes"));
 const Conexoes = lazy(() => import("./pages/Conexoes"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
-const Diagnostico = lazy(() => import("./pages/Diagnostico"));
-const ApiDocs = lazy(() => import("./pages/ApiDocs"));
+const Configuracoes2 = null; // placeholder line removed
 const RecuperarSenha = lazy(() => import("./pages/RecuperarSenha"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
