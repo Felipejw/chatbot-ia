@@ -116,10 +116,10 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome do fluxo</Label>
+                  <Label htmlFor="name">Nome do agente</Label>
                     <Input
                       id="name"
-                      placeholder="Ex: Boas-vindas"
+                      placeholder="Ex: Atendimento Vendas"
                       value={newFlowName}
                       onChange={(e) => setNewFlowName(e.target.value)}
                     />
@@ -128,7 +128,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                     <Label htmlFor="desc">Descrição (opcional)</Label>
                     <Textarea
                       id="desc"
-                      placeholder="Descreva o objetivo deste fluxo..."
+                      placeholder="Descreva o objetivo deste agente..."
                       value={newFlowDesc}
                       onChange={(e) => setNewFlowDesc(e.target.value)}
                     />
@@ -138,7 +138,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                     onClick={handleCreateFlow}
                     disabled={!newFlowName.trim() || createFlow.isPending}
                   >
-                    Criar Fluxo
+                    Criar Agente
                   </Button>
                 </div>
               </DialogContent>
