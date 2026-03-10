@@ -246,8 +246,6 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
       scheduled_at: scheduleEnabled && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
       message_variations: useVariations ? variations.filter(Boolean) : undefined,
       use_variations: useVariations,
-      use_buttons: useButtons,
-      buttons: useButtons ? buttons : undefined,
       min_interval: minInterval,
       max_interval: maxInterval,
       created_by: user?.id,
