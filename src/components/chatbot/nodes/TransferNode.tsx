@@ -1,17 +1,19 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { UserPlus, Users, Phone } from "lucide-react";
+import { UserPlus, Users, Phone, Brain } from "lucide-react";
 import { ValidationBadge, validateTransferNode } from "./ValidationBadge";
 
 interface TransferNodeData {
   label?: string;
-  transferType?: "queue" | "agent" | "whatsapp";
+  transferType?: "queue" | "agent" | "whatsapp" | "ai";
   queueId?: string;
   queueName?: string;
   agentId?: string;
   agentName?: string;
   connectionId?: string;
   connectionName?: string;
+  flowId?: string;
+  flowName?: string;
   message?: string;
   [key: string]: unknown;
 }
