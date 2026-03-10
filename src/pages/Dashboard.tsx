@@ -6,12 +6,14 @@ import {
   AlertCircle,
   RefreshCw,
   LayoutDashboard,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useFlows } from "@/hooks/useFlows";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonStatsCard } from "@/components/ui/SkeletonCard";
 
