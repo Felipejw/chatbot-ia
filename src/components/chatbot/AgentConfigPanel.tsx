@@ -47,6 +47,15 @@ interface AgentConfig {
   transferQueueId: string;
   transferAgentId: string;
   transferFlowId: string;
+  // Follow-up
+  followUpEnabled: boolean;
+  followUpSteps: number;
+  followUpIntervalMinutes: number;
+  followUpMode: "ai" | "fixed";
+  followUpMessages: string[];
+  followUpPrompt: string;
+  followUpFinalAction: "none" | "close" | "transfer";
+  followUpTransferQueueId: string;
   // End
   endMessage: string;
   markResolved: boolean;
