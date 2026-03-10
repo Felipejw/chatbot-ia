@@ -45,7 +45,7 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
   const { data: contact, isLoading: contactLoading } = useContactProfile(contactId);
   const { data: history, isLoading: historyLoading } = useContactConversationHistory(contactId);
   const { data: allTags } = useTags();
-  const { data: kanbanColumns = [] } = useKanbanColumns();
+  
   
   const updateNotes = useUpdateContactNotes();
   const updateContact = useUpdateContact();
