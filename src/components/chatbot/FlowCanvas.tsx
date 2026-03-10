@@ -146,10 +146,8 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
   const getDefaultLabel = (type: string): string => {
     const labels: Record<string, string> = {
       trigger: "Gatilho",
-      message: "Mensagem",
       whatsapp: "WhatsApp",
       delay: "Aguardar",
-      menu: "Menu",
       transfer: "Transferir",
       end: "Encerrar",
       ai: "IA",
