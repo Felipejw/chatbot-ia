@@ -357,12 +357,11 @@ export default function Atendimento() {
 
   // Tab counts
   const tabCounts = useMemo(() => {
-    if (!conversations) return { attending: 0, completed: 0, chatbot: 0, groups: 0 };
+    if (!conversations) return { attending: 0, completed: 0, chatbot: 0 };
     return {
       attending: conversations.filter(c => c.contact?.is_group !== true && !c.is_bot_active && (c.status === 'new' || c.status === 'in_progress')).length,
       completed: conversations.filter(c => c.contact?.is_group !== true && c.status === 'resolved').length,
       chatbot: conversations.filter(c => c.contact?.is_group !== true && c.is_bot_active && c.status !== 'resolved' && c.status !== 'archived').length,
-      groups: conversations.filter(c => c.contact?.is_group === true).length,
     };
   }, [conversations]);
 
