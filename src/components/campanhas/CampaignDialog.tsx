@@ -195,8 +195,6 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
     setSelectedFlowId("");
     setUseVariations(false);
     setVariations(["", ""]);
-    setUseButtons(false);
-    setButtons([]);
     setMediaType("none");
     setMediaUrl("");
     setMinInterval(30);
