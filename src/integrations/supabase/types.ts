@@ -304,6 +304,7 @@ export type Database = {
       }
       chatbot_flows: {
         Row: {
+          config: Json | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -315,6 +316,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          config?: Json | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -326,6 +328,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          config?: Json | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null

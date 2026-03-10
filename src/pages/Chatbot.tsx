@@ -1,79 +1,17 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { FlowSidebar } from "@/components/chatbot/FlowSidebar";
-import { FlowCanvas } from "@/components/chatbot/FlowCanvas";
-import { NodeConfigPanel } from "@/components/chatbot/NodeConfigPanel";
+import { AgentConfigPanel } from "@/components/chatbot/AgentConfigPanel";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { Node } from "@xyflow/react";
+import { Brain } from "lucide-react";
 
 export default function Chatbot() {
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [configPanelOpen, setConfigPanelOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nodeUpdateFn, setNodeUpdateFn] = useState<
-    ((nodeId: string, data: Record<string, unknown>) => void) | null
-  >(null);
-  const [nodeDeleteFn, setNodeDeleteFn] = useState<
-    ((nodeId: string) => void) | null
-  >(null);
-  const [saveFn, setSaveFn] = useState<(() => Promise<void>) | null>(null);
 
-  // Auto-collapse sidebar when a flow is selected
-  useEffect(() => {
-    if (selectedFlowId) {
-      setSidebarCollapsed(true);
-    }
-  }, [selectedFlowId]);
-
-  const handleNodeSelect = useCallback((node: Node | null) => {
-    setSelectedNode(node);
-    setConfigPanelOpen(!!node);
+  const handleSelectFlow = useCallback((id: string | null) => {
+    setSelectedFlowId(id);
+    if (id) setSidebarCollapsed(true);
   }, []);
-
-  const handleCloseConfig = useCallback(() => {
-    setConfigPanelOpen(false);
-    setSelectedNode(null);
-  }, []);
-
-  const handleNodeUpdate = useCallback(
-    (nodeId: string, data: Record<string, unknown>) => {
-      if (nodeUpdateFn) {
-        nodeUpdateFn(nodeId, data);
-      }
-    },
-    [nodeUpdateFn]
-  );
-
-  const handleNodeDelete = useCallback(
-    (nodeId: string) => {
-      if (nodeDeleteFn) {
-        nodeDeleteFn(nodeId);
-      }
-    },
-    [nodeDeleteFn]
-  );
-
-  const handleRegisterDeleteFn = useCallback((fn: (nodeId: string) => void) => {
-    setNodeDeleteFn(() => fn);
-  }, []);
-
-  const handleRegisterUpdateFn = useCallback(
-    (fn: (nodeId: string, data: Record<string, unknown>) => void) => {
-      setNodeUpdateFn(() => fn);
-    },
-    []
-  );
-
-  const handleRegisterSaveFn = useCallback((fn: () => Promise<void>) => {
-    setSaveFn(() => fn);
-  }, []);
-
-  const handleSaveFlow = useCallback(async () => {
-    if (saveFn) {
-      await saveFn();
-    }
-  }, [saveFn]);
 
   const handleToggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => !prev);
@@ -84,31 +22,21 @@ export default function Chatbot() {
       <div className="flex h-[calc(100vh-4rem)] -m-6">
         <FlowSidebar
           selectedFlowId={selectedFlowId}
-          onSelectFlow={(id) => {
-            setSelectedFlowId(id);
-            setSelectedNode(null);
-            setConfigPanelOpen(false);
-          }}
+          onSelectFlow={handleSelectFlow}
           collapsed={sidebarCollapsed}
           onToggleCollapse={handleToggleSidebar}
         />
-        <FlowCanvas
-          flowId={selectedFlowId}
-          onNodeSelect={handleNodeSelect}
-          onRegisterDeleteFn={handleRegisterDeleteFn}
-          onRegisterUpdateFn={handleRegisterUpdateFn}
-          onRegisterSaveFn={handleRegisterSaveFn}
-          onSavingChange={setIsSaving}
-        />
-        <NodeConfigPanel
-          node={selectedNode}
-          open={configPanelOpen}
-          onClose={handleCloseConfig}
-          onUpdate={handleNodeUpdate}
-          onDelete={handleNodeDelete}
-          onSaveFlow={handleSaveFlow}
-          isSaving={isSaving}
-        />
+        {selectedFlowId ? (
+          <AgentConfigPanel flowId={selectedFlowId} />
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-muted/20">
+            <div className="text-center text-muted-foreground">
+              <Brain className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-medium">Selecione um agente</p>
+              <p className="text-sm">ou crie um novo para configurar</p>
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
