@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
-import { TeamPerformance } from "@/components/dashboard/TeamPerformance";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonStatsCard } from "@/components/ui/SkeletonCard";
