@@ -418,6 +418,7 @@ export default function Atendimento() {
                         <ChatConnectionIndicator connectionId={s.selectedConversation.connection_id} />
                       </div>
                     )}
+                    <FollowUpIndicator conversationId={s.selectedConversation.id} />
                   </div>
                 </div>
               </div>
