@@ -163,7 +163,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <h3 className="font-semibold">Fluxos</h3>
+            <h3 className="font-semibold">Agentes de IA</h3>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
