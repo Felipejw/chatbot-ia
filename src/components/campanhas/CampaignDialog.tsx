@@ -129,9 +129,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
   const [useVariations, setUseVariations] = useState(false);
   const [variations, setVariations] = useState<string[]>(["", ""]);
   
-  // Buttons
-  const [useButtons, setUseButtons] = useState(false);
-  const [buttons, setButtons] = useState<Array<{ id: string; text: string }>>([]);
+  
   
   // Media
   const [mediaType, setMediaType] = useState<"none" | "image" | "video" | "document">("none");
