@@ -11,7 +11,8 @@ export function formatPhoneForDisplay(phone: string): string {
 export function useContactDisplayName() {
   return {
     getDisplayName: (contact: { name?: string | null; phone?: string | null }) => contact?.name || contact?.phone || 'Contato',
-    getInitials: (name?: string | null) => {
+    getInitials: (nameOrContact?: string | { name?: string | null; phone?: string | null } | null) => {
+      const name = typeof nameOrContact === 'string' ? nameOrContact : nameOrContact?.name || nameOrContact?.phone;
       if (!name) return '?';
       return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     },
