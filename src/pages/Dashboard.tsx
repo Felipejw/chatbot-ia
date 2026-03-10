@@ -83,6 +83,14 @@ export default function Dashboard() {
               icon={CheckCircle}
               iconColor="bg-info/10 text-info"
             />
+            <StatsCard
+              title="Agentes de IA"
+              value={activeAgents}
+              change={`${totalAgents} total`}
+              changeType="neutral"
+              icon={Bot}
+              iconColor="bg-accent/10 text-accent"
+            />
           </>
         )}
       </div>
