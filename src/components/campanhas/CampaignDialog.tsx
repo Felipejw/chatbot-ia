@@ -194,6 +194,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
     setDescription("");
     setMessage("");
     setSelectedTemplateId("");
+    setSelectedFlowId("");
     setUseVariations(false);
     setVariations(["", ""]);
     setUseButtons(false);
