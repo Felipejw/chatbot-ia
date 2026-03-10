@@ -742,6 +742,108 @@ export type Database = {
           },
         ]
       }
+      follow_ups: {
+        Row: {
+          connection_id: string | null
+          contact_id: string
+          conversation_id: string
+          created_at: string
+          final_action: string | null
+          fixed_messages: Json | null
+          flow_id: string | null
+          follow_up_prompt: string | null
+          id: string
+          interval_minutes: number
+          max_steps: number
+          message_content: string | null
+          mode: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          step: number
+          transfer_queue_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          connection_id?: string | null
+          contact_id: string
+          conversation_id: string
+          created_at?: string
+          final_action?: string | null
+          fixed_messages?: Json | null
+          flow_id?: string | null
+          follow_up_prompt?: string | null
+          id?: string
+          interval_minutes?: number
+          max_steps?: number
+          message_content?: string | null
+          mode?: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          step?: number
+          transfer_queue_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          connection_id?: string | null
+          contact_id?: string
+          conversation_id?: string
+          created_at?: string
+          final_action?: string | null
+          fixed_messages?: Json | null
+          flow_id?: string | null
+          follow_up_prompt?: string | null
+          id?: string
+          interval_minutes?: number
+          max_steps?: number
+          message_content?: string | null
+          mode?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          step?: number
+          transfer_queue_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_transfer_queue_id_fkey"
+            columns: ["transfer_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_events: {
         Row: {
           contact_id: string | null

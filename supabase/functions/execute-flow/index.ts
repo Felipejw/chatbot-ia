@@ -1112,6 +1112,42 @@ const handler = async (req: Request): Promise<Response> => {
         await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
+        // Cancel existing pending follow-ups and schedule new one if enabled
+        await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
+
+        // Check if flow has follow-up enabled in config
+        try {
+          const { data: flowConfig } = await supabase
+            .from("chatbot_flows")
+            .select("config")
+            .eq("id", flowState.flowId)
+            .single();
+
+          const cfg = flowConfig?.config as any;
+          if (cfg?.followUpEnabled && cfg.followUpIntervalMinutes > 0) {
+            const scheduledAt = new Date(Date.now() + cfg.followUpIntervalMinutes * 60 * 1000);
+            await supabase.from("follow_ups").insert({
+              conversation_id: conversationId,
+              contact_id: contactId || contact.id,
+              connection_id: effectiveConnectionId || null,
+              flow_id: flowState.flowId,
+              step: 1,
+              max_steps: cfg.followUpSteps || 3,
+              interval_minutes: cfg.followUpIntervalMinutes,
+              mode: cfg.followUpMode || "ai",
+              status: "pending",
+              follow_up_prompt: cfg.followUpPrompt || null,
+              fixed_messages: cfg.followUpMessages || [],
+              final_action: cfg.followUpFinalAction || "none",
+              transfer_queue_id: cfg.followUpTransferQueueId || null,
+              scheduled_at: scheduledAt.toISOString(),
+            });
+            console.log(`[FlowExecutor] Follow-up scheduled for ${scheduledAt.toISOString()}`);
+          }
+        } catch (fuErr) {
+          console.error("[FlowExecutor] Error scheduling follow-up:", fuErr);
+        }
+
         // AI stays in loop (no next node), keep state
         return new Response(JSON.stringify({ success: true, action: "ai_response" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

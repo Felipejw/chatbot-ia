@@ -699,6 +699,20 @@ const handler = async (req: Request): Promise<Response> => {
         .update({ last_contact_at: new Date().toISOString() })
         .eq("id", contact.id);
 
+      // Cancel pending follow-ups when contact replies
+      if (!isFromMe) {
+        try {
+          await supabaseClient
+            .from("follow_ups")
+            .update({ status: "replied", updated_at: new Date().toISOString() })
+            .eq("conversation_id", conversation.id)
+            .eq("status", "pending");
+          console.log(`[Baileys Webhook] Cancelled pending follow-ups for conversation ${conversation.id}`);
+        } catch (fuError) {
+          console.error("[Baileys Webhook] Error cancelling follow-ups:", fuError);
+        }
+      }
+
       // ---- Trigger chatbot flow (only for incoming messages, not fromMe) ----
       if (!isFromMe && conversation.is_bot_active) {
         try {

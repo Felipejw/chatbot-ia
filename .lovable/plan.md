@@ -1,106 +1,33 @@
 
 
-# Sistema de Follow-up Integrado com IA
+# Corrigir Bug "Acesso Negado" ao Logar
 
-## Conceito
+## Causa Raiz
 
-Follow-up automático: quando uma conversa fica sem resposta do contato por X tempo, a IA envia uma mensagem de acompanhamento automaticamente. Configurável por agente, com múltiplas etapas, intervalos personalizados e mensagens geradas pela IA ou predefinidas.
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-```text
-Conversa sem resposta → Tempo passa → IA envia follow-up 1
-                         → Mais tempo → IA envia follow-up 2
-                         → Mais tempo → IA envia follow-up 3 (último)
-                         → Sem resposta → Encerra/Transfere
-```
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-## Alterações
+## Plano
 
-### 1. Migração SQL - Tabela `follow_ups`
-
-Criar tabela para armazenar follow-ups pendentes e executados:
-
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
 ```sql
-CREATE TABLE follow_ups (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL,
-  contact_id UUID NOT NULL,
-  flow_id UUID,                    -- agente de IA associado
-  step INTEGER DEFAULT 1,          -- etapa atual (1, 2, 3...)
-  max_steps INTEGER DEFAULT 3,
-  interval_minutes INTEGER DEFAULT 60,
-  status TEXT DEFAULT 'pending',   -- pending, sent, replied, cancelled
-  message_content TEXT,
-  scheduled_at TIMESTAMPTZ NOT NULL,
-  sent_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
 ```
 
-Com RLS para usuários autenticados e realtime habilitado.
-
-### 2. Adicionar seção "Follow-up" no `AgentConfigPanel.tsx`
-
-Nova seção no accordion entre "Transferência" e "Encerramento":
-
-- **Toggle** habilitar follow-up
-- **Número de etapas** (1-5)
-- **Intervalo entre etapas** (em minutos/horas)
-- **Modo da mensagem**: "IA gera automaticamente" ou "Mensagem fixa"
-- **Mensagens fixas** por etapa (se modo fixo)
-- **Prompt de follow-up** para IA (se modo IA) - ex: "Gere uma mensagem de acompanhamento amigável"
-- **Ação após último follow-up**: encerrar conversa, transferir para fila, ou nada
-
-Campos adicionados ao `AgentConfig`:
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
 ```typescript
-followUpEnabled: boolean;
-followUpSteps: number;
-followUpIntervalMinutes: number;
-followUpMode: "ai" | "fixed";
-followUpMessages: string[];        // mensagens fixas por etapa
-followUpPrompt: string;            // prompt para IA gerar
-followUpFinalAction: "none" | "close" | "transfer";
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
 ```
 
-### 3. Edge Function `process-follow-ups`
-
-Nova edge function que:
-1. Busca follow-ups com `status = 'pending'` e `scheduled_at <= now()`
-2. Para cada follow-up:
-   - Se modo "fixed": usa mensagem da etapa correspondente
-   - Se modo "ai": chama Lovable AI Gateway com o prompt de follow-up + contexto da conversa
-3. Envia via `send-whatsapp`
-4. Se ainda há etapas, cria próximo follow-up agendado
-5. Se foi a última etapa, executa ação final (encerrar/transferir)
-
-### 4. Criar follow-ups automaticamente
-
-Modificar o `execute-flow/index.ts` (ou `baileys-webhook`): quando o bot envia uma mensagem e o agente tem follow-up habilitado, criar registro em `follow_ups` com `scheduled_at = now() + intervalo`.
-
-### 5. Cancelar follow-ups quando contato responde
-
-Adicionar lógica no webhook de mensagem recebida: ao receber mensagem do contato, cancelar todos os follow-ups pendentes daquela conversa (`UPDATE follow_ups SET status = 'cancelled'`).
-
-### 6. Hook `useFollowUps.ts`
-
-Hook para visualizar follow-ups na UI do atendimento:
-- Listar follow-ups pendentes de uma conversa
-- Cancelar manualmente um follow-up
-- Ver histórico de follow-ups enviados
-
-### 7. Indicador visual no Atendimento
-
-No painel de chat, mostrar badge/indicador quando há follow-up agendado para aquela conversa, com countdown e opção de cancelar.
-
----
-
-## Arquivos
-
-- **Novo**: `supabase/functions/process-follow-ups/index.ts`
-- **Novo**: `src/hooks/useFollowUps.ts`
-- **Editado**: `src/components/chatbot/AgentConfigPanel.tsx` (nova seção)
-- **Editado**: `supabase/functions/execute-flow/index.ts` (criar follow-up após envio)
-- **Editado**: `supabase/functions/baileys-webhook/index.ts` (cancelar follow-ups ao receber msg)
-- **Editado**: `src/pages/Atendimento.tsx` (indicador visual)
-- **1 migração SQL** (tabela `follow_ups`)
+### Arquivos alterados
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 
