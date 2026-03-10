@@ -365,19 +365,6 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
     );
   };
 
-  const addButton = () => {
-    if (buttons.length < 3) {
-      setButtons([...buttons, { id: crypto.randomUUID(), text: "" }]);
-    }
-  };
-
-  const removeButton = (id: string) => {
-    setButtons(buttons.filter(b => b.id !== id));
-  };
-
-  const updateButton = (id: string, text: string) => {
-    setButtons(buttons.map(b => b.id === id ? { ...b, text } : b));
-  };
 
   const updateVariation = (index: number, text: string) => {
     const newVariations = [...variations];
