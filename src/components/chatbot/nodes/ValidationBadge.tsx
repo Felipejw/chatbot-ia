@@ -34,16 +34,6 @@ export function validateTriggerNode(data: Record<string, unknown>): string | nul
   return null;
 }
 
-export function validateMessageNode(data: Record<string, unknown>): string | null {
-  const messageType = (data.messageType as string) || "text";
-  if (messageType === "text" && !data.content) {
-    return "Digite o conteúdo da mensagem";
-  }
-  if (["image", "video", "document"].includes(messageType) && !data.mediaUrl) {
-    return "Adicione o arquivo de mídia";
-  }
-  return null;
-}
 
 export function validateWhatsAppNode(data: Record<string, unknown>): string | null {
   if (!data.connectionId) return "Selecione o número de WhatsApp";

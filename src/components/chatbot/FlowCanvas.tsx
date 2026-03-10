@@ -324,10 +324,8 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
               nodeColor={(node) => {
                 const colors: Record<string, string> = {
                   trigger: "hsl(var(--primary))",
-                  message: "hsl(var(--success))",
                   whatsapp: "#22c55e",
                   delay: "hsl(var(--info))",
-                  menu: "#f97316",
                   transfer: "hsl(var(--destructive))",
                   end: "#ec4899",
                   ai: "#8b5cf6",

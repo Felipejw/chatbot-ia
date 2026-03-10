@@ -28,6 +28,8 @@ function TransferNode({ data, selected }: NodeProps) {
         return nodeData.agentName || "Selecione o atendente";
       case "whatsapp":
         return nodeData.connectionName || "Selecione o número";
+      case "ai":
+        return nodeData.flowName || "Selecione o agente de IA";
       case "queue":
       default:
         return nodeData.queueName || "Selecione o setor";
@@ -40,6 +42,8 @@ function TransferNode({ data, selected }: NodeProps) {
         return <Users className="w-4 h-4 text-destructive-foreground" />;
       case "whatsapp":
         return <Phone className="w-4 h-4 text-destructive-foreground" />;
+      case "ai":
+        return <Brain className="w-4 h-4 text-destructive-foreground" />;
       default:
         return <UserPlus className="w-4 h-4 text-destructive-foreground" />;
     }
