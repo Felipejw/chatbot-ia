@@ -55,19 +55,12 @@ export function validateDelayNode(data: Record<string, unknown>): string | null 
   return null;
 }
 
-export function validateMenuNode(data: Record<string, unknown>): string | null {
-  const options = (data.options as Array<{ id: string; text: string }>) || [];
-  if (options.length === 0) return "Adicione pelo menos uma opção";
-  const emptyOptions = options.filter(o => !o.text?.trim());
-  if (emptyOptions.length > 0) return "Preencha todas as opções do menu";
-  return null;
-}
-
 export function validateTransferNode(data: Record<string, unknown>): string | null {
   const transferType = (data.transferType as string) || "queue";
   if (transferType === "queue" && !data.queueId) return "Selecione o setor";
   if (transferType === "agent" && !data.agentId) return "Selecione o atendente";
   if (transferType === "whatsapp" && !data.connectionId) return "Selecione o número";
+  if (transferType === "ai" && !data.flowId) return "Selecione o agente de IA";
   return null;
 }
 
