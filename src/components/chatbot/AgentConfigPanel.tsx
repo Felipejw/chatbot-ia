@@ -185,7 +185,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
       <ScrollArea className="flex-1">
         <div className="p-6 max-w-3xl mx-auto space-y-4">
-          <Accordion type="multiple" defaultValue={["general", "trigger", "ai", "transfer", "end"]} className="space-y-4">
+          <Accordion type="multiple" defaultValue={["general", "trigger", "ai", "followup", "transfer", "end"]} className="space-y-4">
             {/* === GERAL === */}
             <AccordionItem value="general" className="border rounded-lg bg-card px-4">
               <AccordionTrigger className="hover:no-underline">
