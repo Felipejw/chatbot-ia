@@ -39,8 +39,6 @@ const nodeTypes: NodeTypes = {
   transfer: TransferNode,
   end: EndNode,
   ai: AINode,
-  crm: CRMNode,
-  schedule: ScheduleNode,
 };
 
 interface FlowCanvasProps {
