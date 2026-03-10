@@ -332,11 +332,9 @@ export default function Atendimento() {
       
       const isGroup = c.contact?.is_group === true;
       
-      // Tab filter
+      // Tab filter (groups are always hidden)
       let matchesTab = false;
-      if (activeTab === 'groups') {
-        matchesTab = isGroup;
-      } else if (activeTab === 'attending') {
+      if (activeTab === 'attending') {
         matchesTab = !isGroup && !c.is_bot_active && (c.status === 'new' || c.status === 'in_progress');
       } else if (activeTab === 'completed') {
         matchesTab = !isGroup && c.status === 'resolved';
