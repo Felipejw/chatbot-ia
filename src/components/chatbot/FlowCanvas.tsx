@@ -339,8 +339,6 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
                   transfer: "hsl(var(--destructive))",
                   end: "#ec4899",
                   ai: "#8b5cf6",
-                  crm: "#0ea5e9",
-                  schedule: "#3b82f6",
                 };
                 return colors[node.type || ""] || "#6b7280";
               }}
