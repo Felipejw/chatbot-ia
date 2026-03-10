@@ -228,7 +228,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
             </div>
           ) : filteredFlows?.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              {search ? "Nenhum fluxo encontrado" : "Nenhum fluxo criado"}
+              {search ? "Nenhum agente encontrado" : "Nenhum agente criado"}
             </div>
           ) : (
             filteredFlows?.map((flow) => (
