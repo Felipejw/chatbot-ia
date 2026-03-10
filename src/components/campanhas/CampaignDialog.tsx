@@ -123,6 +123,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedFlowId, setSelectedFlowId] = useState<string>("");
   
   // Variations
   const [useVariations, setUseVariations] = useState(false);
