@@ -25,6 +25,7 @@ export interface Campaign {
   min_interval: number | null;
   max_interval: number | null;
   template_id: string | null;
+  flow_id: string | null;
 }
 
 export interface CampaignContact {
