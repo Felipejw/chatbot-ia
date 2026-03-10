@@ -436,7 +436,128 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
               </AccordionContent>
             </AccordionItem>
 
-            {/* === ENCERRAMENTO === */}
+            {/* === FOLLOW-UP === */}
+            <AccordionItem value="followup" className="border rounded-lg bg-card px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4 text-amber-500" />
+                  <span className="font-medium">Follow-up Automático</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Habilitar follow-up</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Envia mensagens automáticas quando o contato não responde
+                    </p>
+                  </div>
+                  <Switch
+                    checked={config.followUpEnabled}
+                    onCheckedChange={(v) => updateConfig({ followUpEnabled: v })}
+                  />
+                </div>
+                {config.followUpEnabled && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Número de etapas (1-5)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={config.followUpSteps}
+                        onChange={(e) => {
+                          const steps = Math.max(1, Math.min(5, parseInt(e.target.value) || 3));
+                          const msgs = [...config.followUpMessages];
+                          while (msgs.length < steps) msgs.push("");
+                          updateConfig({ followUpSteps: steps, followUpMessages: msgs.slice(0, steps) });
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Intervalo entre etapas (minutos)</Label>
+                      <Input
+                        type="number"
+                        min={5}
+                        value={config.followUpIntervalMinutes}
+                        onChange={(e) => updateConfig({ followUpIntervalMinutes: Math.max(5, parseInt(e.target.value) || 60) })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {config.followUpIntervalMinutes >= 60
+                          ? `${Math.floor(config.followUpIntervalMinutes / 60)}h${config.followUpIntervalMinutes % 60 > 0 ? ` ${config.followUpIntervalMinutes % 60}min` : ""}`
+                          : `${config.followUpIntervalMinutes} minutos`}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modo da mensagem</Label>
+                      <Select value={config.followUpMode} onValueChange={(v) => updateConfig({ followUpMode: v as "ai" | "fixed" })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ai">IA gera automaticamente</SelectItem>
+                          <SelectItem value="fixed">Mensagens fixas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {config.followUpMode === "ai" ? (
+                      <div className="space-y-2">
+                        <Label>Prompt para a IA</Label>
+                        <Textarea
+                          value={config.followUpPrompt}
+                          onChange={(e) => updateConfig({ followUpPrompt: e.target.value })}
+                          placeholder="Ex: Gere uma mensagem amigável de acompanhamento..."
+                          rows={3}
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Label>Mensagens por etapa</Label>
+                        {Array.from({ length: config.followUpSteps }).map((_, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Etapa {idx + 1}</Label>
+                            <Textarea
+                              value={config.followUpMessages[idx] || ""}
+                              onChange={(e) => {
+                                const msgs = [...config.followUpMessages];
+                                msgs[idx] = e.target.value;
+                                updateConfig({ followUpMessages: msgs });
+                              }}
+                              placeholder={`Mensagem da etapa ${idx + 1}...`}
+                              rows={2}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Ação após último follow-up</Label>
+                      <Select value={config.followUpFinalAction} onValueChange={(v) => updateConfig({ followUpFinalAction: v as "none" | "close" | "transfer" })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma ação</SelectItem>
+                          <SelectItem value="close">Encerrar conversa</SelectItem>
+                          <SelectItem value="transfer">Transferir para fila</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {config.followUpFinalAction === "transfer" && (
+                      <div className="space-y-2">
+                        <Label>Fila de destino</Label>
+                        <Select value={config.followUpTransferQueueId || "none"} onValueChange={(v) => updateConfig({ followUpTransferQueueId: v === "none" ? "" : v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione a fila" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Selecione...</SelectItem>
+                            {queues?.map((q) => (
+                              <SelectItem key={q.id} value={q.id}>{q.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="end" className="border rounded-lg bg-card px-4">
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex items-center gap-2">
