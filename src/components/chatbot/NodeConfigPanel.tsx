@@ -233,58 +233,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
           </>
         );
 
-      case "menu":
-        const options = (formData.options as Array<{ id: string; text: string }>) || [];
-        return (
-          <>
-            <div className="space-y-2">
-              <Label>Nome do bloco</Label>
-              <Input
-                value={(formData.label as string) || ""}
-                onChange={(e) => handleChange("label", e.target.value)}
-                placeholder="Menu"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Título do menu</Label>
-              <Input
-                value={(formData.title as string) || ""}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="Escolha uma opção:"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Opções</Label>
-                <Button variant="ghost" size="sm" onClick={handleAddOption}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Adicionar
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {options.map((option, index) => (
-                  <div key={option.id} className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                    <Input
-                      value={option.text}
-                      onChange={(e) => handleOptionChange(option.id, e.target.value)}
-                      placeholder={`Opção ${index + 1}`}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleRemoveOption(option.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        );
+
 
       case "ai":
         const useOwnApiKey = (formData.useOwnApiKey as boolean) ?? false;
