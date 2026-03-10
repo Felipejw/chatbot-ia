@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import ContactProfilePanel from "@/components/atendimento/ContactProfilePanel";
 import { ChatConnectionIndicator } from "@/components/atendimento/ChatConnectionIndicator";
+import { FollowUpIndicator } from "@/components/atendimento/FollowUpIndicator";
 import LidContactIndicator, { isLidOnlyContact } from "@/components/atendimento/LidContactIndicator";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
