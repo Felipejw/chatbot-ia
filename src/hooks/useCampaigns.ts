@@ -25,6 +25,7 @@ export interface Campaign {
   min_interval: number | null;
   max_interval: number | null;
   template_id: string | null;
+  flow_id: string | null;
 }
 
 export interface CampaignContact {
@@ -144,7 +145,7 @@ export function useCreateCampaign() {
       name: string; description?: string; message: string; media_url?: string; media_type?: string;
       scheduled_at?: string; created_by?: string; message_variations?: string[]; use_variations?: boolean;
       use_buttons?: boolean; buttons?: Array<{ id: string; text: string }>; min_interval?: number;
-      max_interval?: number; template_id?: string;
+      max_interval?: number; template_id?: string; flow_id?: string;
     }) => {
       const { data, error } = await supabase.from('campaigns').insert(input).select().single();
       if (error) throw error;

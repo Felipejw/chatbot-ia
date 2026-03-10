@@ -1,4 +1,4 @@
-import { Zap, MessageSquare, Clock, List, UserPlus, XCircle, Brain, LayoutList, MessageCircle, Calendar } from "lucide-react";
+import { Zap, MessageSquare, Clock, List, UserPlus, XCircle, Brain, MessageCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const sidebarNodeTypes = [
@@ -8,8 +8,6 @@ const sidebarNodeTypes = [
   { type: "ai", icon: Brain, label: "IA", color: "bg-violet-500" },
   { type: "delay", icon: Clock, label: "Aguardar", color: "bg-info" },
   { type: "menu", icon: List, label: "Menu", color: "bg-orange-500" },
-  { type: "schedule", icon: Calendar, label: "Agendar", color: "bg-blue-500" },
-  { type: "crm", icon: LayoutList, label: "CRM", color: "bg-sky-500" },
   { type: "transfer", icon: UserPlus, label: "Transferir", color: "bg-destructive" },
   { type: "end", icon: XCircle, label: "Encerrar", color: "bg-pink-500" },
 ];

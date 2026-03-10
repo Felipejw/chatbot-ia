@@ -97,7 +97,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
               <ChevronRight className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">Expandir fluxos</TooltipContent>
+          <TooltipContent side="right">Expandir agentes</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -109,17 +109,17 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Novo Fluxo</DialogTitle>
-                  <DialogDescription>
-                    Crie um novo fluxo de automação para seu chatbot.
-                  </DialogDescription>
+                <DialogTitle>Novo Agente de IA</DialogTitle>
+                <DialogDescription>
+                  Crie um novo agente de IA para automação.
+                </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome do fluxo</Label>
+                  <Label htmlFor="name">Nome do agente</Label>
                     <Input
                       id="name"
-                      placeholder="Ex: Boas-vindas"
+                      placeholder="Ex: Atendimento Vendas"
                       value={newFlowName}
                       onChange={(e) => setNewFlowName(e.target.value)}
                     />
@@ -128,7 +128,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                     <Label htmlFor="desc">Descrição (opcional)</Label>
                     <Textarea
                       id="desc"
-                      placeholder="Descreva o objetivo deste fluxo..."
+                      placeholder="Descreva o objetivo deste agente..."
                       value={newFlowDesc}
                       onChange={(e) => setNewFlowDesc(e.target.value)}
                     />
@@ -138,7 +138,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                     onClick={handleCreateFlow}
                     disabled={!newFlowName.trim() || createFlow.isPending}
                   >
-                    Criar Fluxo
+                    Criar Agente
                   </Button>
                 </div>
               </DialogContent>
@@ -163,7 +163,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <h3 className="font-semibold">Fluxos</h3>
+            <h3 className="font-semibold">Agentes de IA</h3>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -174,36 +174,36 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Novo Fluxo</DialogTitle>
+                <DialogTitle>Novo Agente de IA</DialogTitle>
                 <DialogDescription>
-                  Crie um novo fluxo de automação para seu chatbot.
+                  Crie um novo agente de IA para automação.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome do fluxo</Label>
-                  <Input
-                    id="name"
-                    placeholder="Ex: Boas-vindas"
-                    value={newFlowName}
-                    onChange={(e) => setNewFlowName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="desc">Descrição (opcional)</Label>
-                  <Textarea
-                    id="desc"
-                    placeholder="Descreva o objetivo deste fluxo..."
-                    value={newFlowDesc}
-                    onChange={(e) => setNewFlowDesc(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={handleCreateFlow}
-                  disabled={!newFlowName.trim() || createFlow.isPending}
-                >
-                  Criar Fluxo
+                  <Label htmlFor="name">Nome do agente</Label>
+                    <Input
+                      id="name"
+                      placeholder="Ex: Atendimento Vendas"
+                      value={newFlowName}
+                      onChange={(e) => setNewFlowName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="desc">Descrição (opcional)</Label>
+                    <Textarea
+                      id="desc"
+                      placeholder="Descreva o objetivo deste agente..."
+                      value={newFlowDesc}
+                      onChange={(e) => setNewFlowDesc(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={handleCreateFlow}
+                    disabled={!newFlowName.trim() || createFlow.isPending}
+                  >
+                    Criar Agente
                 </Button>
               </div>
             </DialogContent>
@@ -228,7 +228,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
             </div>
           ) : filteredFlows?.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              {search ? "Nenhum fluxo encontrado" : "Nenhum fluxo criado"}
+              {search ? "Nenhum agente encontrado" : "Nenhum agente criado"}
             </div>
           ) : (
             filteredFlows?.map((flow) => (
@@ -271,9 +271,9 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir fluxo?</AlertDialogTitle>
+                          <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. O fluxo "{flow.name}" será excluído permanentemente.
+                            Esta ação não pode ser desfeita. O agente "{flow.name}" será excluído permanentemente.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

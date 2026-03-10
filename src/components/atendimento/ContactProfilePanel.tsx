@@ -23,7 +23,7 @@ import {
 } from '@/hooks/useContactProfile';
 import { useTags, useAddTagToContact, useRemoveTagFromContact } from '@/hooks/useTags';
 import { useUpdateContact } from '@/hooks/useContacts';
-import { useKanbanColumns } from '@/hooks/useKanbanColumns';
+
 import { useUpdateConversation } from '@/hooks/useConversations';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -45,7 +45,7 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
   const { data: contact, isLoading: contactLoading } = useContactProfile(contactId);
   const { data: history, isLoading: historyLoading } = useContactConversationHistory(contactId);
   const { data: allTags } = useTags();
-  const { data: kanbanColumns = [] } = useKanbanColumns();
+  
   
   const updateNotes = useUpdateContactNotes();
   const updateContact = useUpdateContact();
@@ -79,18 +79,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
     await fetchProfilePicture.mutateAsync({ contactId: contact.id });
   };
 
-  // Get current kanban column from conversation history
-  const currentConversation = history?.find(c => c.id === conversationId);
-  const currentKanbanColumnId = currentConversation?.kanban_column_id;
-  const currentKanbanColumn = kanbanColumns.find(c => c.id === currentKanbanColumnId);
-
-  const handleKanbanChange = async (columnId: string) => {
-    if (!conversationId) return;
-    await updateConversation.mutateAsync({ 
-      id: conversationId, 
-      kanban_column_id: columnId === 'none' ? null : columnId
-    });
-  };
 
   const handleAddTag = async (tagId: string) => {
     if (!contact) return;
@@ -232,11 +220,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
               )}
             </div>
             
-            {currentKanbanColumn && (
-              <Badge style={{ backgroundColor: `${currentKanbanColumn.color}20`, color: currentKanbanColumn.color }}>
-                {currentKanbanColumn.name}
-              </Badge>
-            )}
           </div>
 
           {/* Contact Info */}
@@ -261,35 +244,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
             )}
           </div>
 
-          <Separator />
-
-          {/* Kanban Stage */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Etapa do Kanban</label>
-            <Select 
-              value={currentKanbanColumnId || 'none'} 
-              onValueChange={handleKanbanChange}
-              disabled={updateConversation.isPending || !conversationId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma etapa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma etapa</SelectItem>
-                {kanbanColumns.map((column) => (
-                  <SelectItem key={column.id} value={column.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: column.color || '#3B82F6' }}
-                      />
-                      {column.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <Separator />
 

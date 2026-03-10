@@ -190,6 +190,7 @@ export type Database = {
           delivered_count: number | null
           description: string | null
           failed_count: number | null
+          flow_id: string | null
           id: string
           max_interval: number | null
           media_type: string | null
@@ -214,6 +215,7 @@ export type Database = {
           delivered_count?: number | null
           description?: string | null
           failed_count?: number | null
+          flow_id?: string | null
           id?: string
           max_interval?: number | null
           media_type?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           delivered_count?: number | null
           description?: string | null
           failed_count?: number | null
+          flow_id?: string | null
           id?: string
           max_interval?: number | null
           media_type?: string | null
@@ -256,6 +259,13 @@ export type Database = {
           use_variations?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_flows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_template_id_fkey"
             columns: ["template_id"]

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, MessageSquare, Users, Calendar, Tags, Zap, Settings,
-  ChevronDown, ChevronRight, FileText, Activity, HeartPulse, Send, UserCog,
-  Bot, Plug, QrCode, Kanban, MessagesSquare, ChevronsLeft, ChevronsRight, Building2, LogOut,
+  LayoutDashboard, MessageSquare, Tags, Settings,
+  ChevronDown, ChevronRight, Send,
+  Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
   Sun, Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -31,17 +31,20 @@ const navSections: NavSection[] = [
     title: "Atendimento",
     items: [
       { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
-      { title: "CRM", href: "/kanban", icon: Kanban, module: "kanban" },
-      { title: "Agendamentos", href: "/agendamentos", icon: Calendar, module: "agendamentos" },
       { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
     ],
   },
   {
-    title: "Administração",
+    title: "Agentes de IA",
     items: [
+      { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
       { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
-      { title: "Chatbot", href: "/chatbot", icon: Bot, module: "chatbot" },
       { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
       { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
       { title: "Conexões", href: "/conexoes", icon: QrCode, module: "conexoes" },
     ],

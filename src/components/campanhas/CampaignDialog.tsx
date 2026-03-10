@@ -45,6 +45,7 @@ import {
 } from "@/hooks/useCampaigns";
 import { useContacts, useCreateContact } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
+import { useFlows } from "@/hooks/useFlows";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Helper to extract phone numbers from text
@@ -122,6 +123,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedFlowId, setSelectedFlowId] = useState<string>("");
   
   // Variations
   const [useVariations, setUseVariations] = useState(false);
@@ -158,10 +160,13 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
   const { data: contacts = [] } = useContacts();
   const { data: tags = [] } = useTags();
   const { data: templates = [] } = useMessageTemplates();
+  const { data: flows = [] } = useFlows();
   const createCampaign = useCreateCampaign();
   const addContacts = useAddContactsToCampaign();
   const createContact = useCreateContact();
   const createTemplate = useCreateMessageTemplate();
+  
+  const activeFlows = flows.filter(f => f.is_active);
 
   // Filter contacts by selected tags
   const filteredContacts = selectedTagIds.length > 0
@@ -189,6 +194,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
     setDescription("");
     setMessage("");
     setSelectedTemplateId("");
+    setSelectedFlowId("");
     setUseVariations(false);
     setVariations(["", ""]);
     setUseButtons(false);
@@ -249,6 +255,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
       min_interval: minInterval,
       max_interval: maxInterval,
       created_by: user?.id,
+      flow_id: selectedFlowId && selectedFlowId !== 'none' ? selectedFlowId : undefined,
     });
 
     let contactIdsToAdd = [...selectedContactIds];
@@ -871,6 +878,30 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 pt-4">
+            {/* AI Agent Selection */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <Label className="font-medium">Agente de IA</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Selecione um agente de IA para processar as respostas dos contatos após o disparo.
+              </p>
+              <Select value={selectedFlowId} onValueChange={setSelectedFlowId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um agente (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum agente</SelectItem>
+                  {activeFlows.map((flow) => (
+                    <SelectItem key={flow.id} value={flow.id}>
+                      {flow.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Security Settings */}
             <div className="border rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">

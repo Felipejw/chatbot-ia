@@ -24,9 +24,7 @@ import MenuNode from "./nodes/MenuNode";
 import TransferNode from "./nodes/TransferNode";
 import EndNode from "./nodes/EndNode";
 import AINode from "./nodes/AINode";
-import CRMNode from "./nodes/CRMNode";
 import WhatsAppNode from "./nodes/WhatsAppNode";
-import ScheduleNode from "./nodes/ScheduleNode";
 import { useFlow, useSaveFlowData } from "@/hooks/useFlows";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
@@ -41,8 +39,6 @@ const nodeTypes: NodeTypes = {
   transfer: TransferNode,
   end: EndNode,
   ai: AINode,
-  crm: CRMNode,
-  schedule: ScheduleNode,
 };
 
 interface FlowCanvasProps {
@@ -161,8 +157,6 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
       transfer: "Transferir",
       end: "Encerrar",
       ai: "IA",
-      crm: "CRM",
-      schedule: "Agendar",
     };
     return labels[type] || "Bloco";
   };
@@ -343,8 +337,6 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
                   transfer: "hsl(var(--destructive))",
                   end: "#ec4899",
                   ai: "#8b5cf6",
-                  crm: "#0ea5e9",
-                  schedule: "#3b82f6",
                 };
                 return colors[node.type || ""] || "#6b7280";
               }}

@@ -71,11 +71,6 @@ export function validateTransferNode(data: Record<string, unknown>): string | nu
   return null;
 }
 
-export function validateCRMNode(data: Record<string, unknown>): string | null {
-  if (!data.kanbanColumnId) return "Selecione a etapa do CRM";
-  return null;
-}
-
 export function validateAINode(data: Record<string, unknown>): string | null {
   if (data.isEnabled !== false && !data.systemPrompt) {
     return "Configure o prompt do sistema";

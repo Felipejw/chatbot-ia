@@ -63,7 +63,7 @@ import { useQuickReplies, QuickReply } from "@/hooks/useQuickReplies";
 import { useTags } from "@/hooks/useTags";
 import { useConversationTags, useAddTagToConversation, useRemoveTagFromConversation } from "@/hooks/useConversationTags";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useCreateSchedule } from "@/hooks/useSchedules";
+
 import { useFlows } from "@/hooks/useFlows";
 import { useQueues } from "@/hooks/useQueues";
 import { useBulkDeleteConversations, useBulkUpdateConversations, useBulkAddTagsToConversations, useBulkRemoveTagsFromConversations, useExportConversations } from "@/hooks/useBulkConversationActions";
@@ -131,7 +131,7 @@ const normalizePhone = (phone: string) => {
 };
 
 export default function Atendimento() {
-  const [activeTab, setActiveTab] = useState<'attending' | 'completed' | 'chatbot' | 'groups'>('attending');
+  const [activeTab, setActiveTab] = useState<'attending' | 'completed' | 'chatbot'>('attending');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,7 +227,7 @@ export default function Atendimento() {
   const addTagToConversation = useAddTagToConversation();
   const removeTagFromConversation = useRemoveTagFromConversation();
   const { requestPermission, showNotification, permission } = useNotifications();
-  const createSchedule = useCreateSchedule();
+  
   const { data: flows } = useFlows();
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
@@ -332,11 +332,9 @@ export default function Atendimento() {
       
       const isGroup = c.contact?.is_group === true;
       
-      // Tab filter
+      // Tab filter (groups are always hidden)
       let matchesTab = false;
-      if (activeTab === 'groups') {
-        matchesTab = isGroup;
-      } else if (activeTab === 'attending') {
+      if (activeTab === 'attending') {
         matchesTab = !isGroup && !c.is_bot_active && (c.status === 'new' || c.status === 'in_progress');
       } else if (activeTab === 'completed') {
         matchesTab = !isGroup && c.status === 'resolved';
@@ -359,12 +357,11 @@ export default function Atendimento() {
 
   // Tab counts
   const tabCounts = useMemo(() => {
-    if (!conversations) return { attending: 0, completed: 0, chatbot: 0, groups: 0 };
+    if (!conversations) return { attending: 0, completed: 0, chatbot: 0 };
     return {
       attending: conversations.filter(c => c.contact?.is_group !== true && !c.is_bot_active && (c.status === 'new' || c.status === 'in_progress')).length,
       completed: conversations.filter(c => c.contact?.is_group !== true && c.status === 'resolved').length,
       chatbot: conversations.filter(c => c.contact?.is_group !== true && c.is_bot_active && c.status !== 'resolved' && c.status !== 'archived').length,
-      groups: conversations.filter(c => c.contact?.is_group === true).length,
     };
   }, [conversations]);
 
@@ -1332,8 +1329,8 @@ export default function Atendimento() {
           )}
           
           {/* Tabs - Moved below filter */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'attending' | 'completed' | 'chatbot' | 'groups')} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-9">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'attending' | 'completed' | 'chatbot')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 h-9">
               <TabsTrigger value="attending" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-1">
                 <UserCheck className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Atendendo</span>
@@ -1353,13 +1350,6 @@ export default function Atendimento() {
                 <span className="hidden sm:inline">Chatbot</span>
                 <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px] h-4 min-w-[18px]">
                   {tabCounts.chatbot}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="groups" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-1">
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Grupos</span>
-                <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px] h-4 min-w-[18px]">
-                  {tabCounts.groups}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -2260,23 +2250,13 @@ export default function Atendimento() {
         scheduleTime={scheduleTime}
         setScheduleTime={setScheduleTime}
         onCreateSchedule={() => {
-          if (!selectedConversation || !user) return;
-          const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`);
-          createSchedule.mutate({
-            title: scheduleTitle,
-            description: scheduleDescription || undefined,
-            scheduled_at: scheduledAt.toISOString(),
-            user_id: user.id,
-            contact_id: selectedConversation.contact?.id,
-            conversation_id: selectedConversation.id,
-          });
           setScheduleTitle("");
           setScheduleDescription("");
           setScheduleDate("");
           setScheduleTime("");
           setShowScheduleDialog(false);
         }}
-        scheduleLoading={createSchedule.isPending}
+        scheduleLoading={false}
         showBotFlowDialog={showBotFlowDialog}
         setShowBotFlowDialog={setShowBotFlowDialog}
         selectedFlowId={selectedFlowId}
