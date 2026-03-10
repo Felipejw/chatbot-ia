@@ -79,18 +79,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
     await fetchProfilePicture.mutateAsync({ contactId: contact.id });
   };
 
-  // Get current kanban column from conversation history
-  const currentConversation = history?.find(c => c.id === conversationId);
-  const currentKanbanColumnId = currentConversation?.kanban_column_id;
-  const currentKanbanColumn = kanbanColumns.find(c => c.id === currentKanbanColumnId);
-
-  const handleKanbanChange = async (columnId: string) => {
-    if (!conversationId) return;
-    await updateConversation.mutateAsync({ 
-      id: conversationId, 
-      kanban_column_id: columnId === 'none' ? null : columnId
-    });
-  };
 
   const handleAddTag = async (tagId: string) => {
     if (!contact) return;
