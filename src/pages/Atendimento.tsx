@@ -131,7 +131,7 @@ const normalizePhone = (phone: string) => {
 };
 
 export default function Atendimento() {
-  const [activeTab, setActiveTab] = useState<'attending' | 'completed' | 'chatbot' | 'groups'>('attending');
+  const [activeTab, setActiveTab] = useState<'attending' | 'completed' | 'chatbot'>('attending');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
