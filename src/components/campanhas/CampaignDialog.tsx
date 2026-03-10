@@ -255,6 +255,7 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
       min_interval: minInterval,
       max_interval: maxInterval,
       created_by: user?.id,
+      flow_id: selectedFlowId && selectedFlowId !== 'none' ? selectedFlowId : undefined,
     });
 
     let contactIdsToAdd = [...selectedContactIds];
