@@ -2250,23 +2250,13 @@ export default function Atendimento() {
         scheduleTime={scheduleTime}
         setScheduleTime={setScheduleTime}
         onCreateSchedule={() => {
-          if (!selectedConversation || !user) return;
-          const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`);
-          createSchedule.mutate({
-            title: scheduleTitle,
-            description: scheduleDescription || undefined,
-            scheduled_at: scheduledAt.toISOString(),
-            user_id: user.id,
-            contact_id: selectedConversation.contact?.id,
-            conversation_id: selectedConversation.id,
-          });
           setScheduleTitle("");
           setScheduleDescription("");
           setScheduleDate("");
           setScheduleTime("");
           setShowScheduleDialog(false);
         }}
-        scheduleLoading={createSchedule.isPending}
+        scheduleLoading={false}
         showBotFlowDialog={showBotFlowDialog}
         setShowBotFlowDialog={setShowBotFlowDialog}
         selectedFlowId={selectedFlowId}
