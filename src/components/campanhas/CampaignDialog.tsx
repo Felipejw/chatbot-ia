@@ -160,10 +160,13 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
   const { data: contacts = [] } = useContacts();
   const { data: tags = [] } = useTags();
   const { data: templates = [] } = useMessageTemplates();
+  const { data: flows = [] } = useFlows();
   const createCampaign = useCreateCampaign();
   const addContacts = useAddContactsToCampaign();
   const createContact = useCreateContact();
   const createTemplate = useCreateMessageTemplate();
+  
+  const activeFlows = flows.filter(f => f.is_active);
 
   // Filter contacts by selected tags
   const filteredContacts = selectedTagIds.length > 0
