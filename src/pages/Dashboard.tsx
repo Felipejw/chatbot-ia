@@ -6,17 +6,22 @@ import {
   AlertCircle,
   RefreshCw,
   LayoutDashboard,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useFlows } from "@/hooks/useFlows";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonStatsCard } from "@/components/ui/SkeletonCard";
 
 export default function Dashboard() {
   const { data: stats, isLoading, isError, error, refetch } = useDashboardStats();
+  const { data: flows } = useFlows();
+  const activeAgents = flows?.filter(f => f.is_active).length || 0;
+  const totalAgents = flows?.length || 0;
 
   if (isError) {
     return (
@@ -41,7 +46,7 @@ export default function Dashboard() {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonStatsCard key={i} />)
         ) : (
@@ -77,6 +82,14 @@ export default function Dashboard() {
               changeType="positive"
               icon={CheckCircle}
               iconColor="bg-info/10 text-info"
+            />
+            <StatsCard
+              title="Agentes de IA"
+              value={activeAgents}
+              change={`${totalAgents} total`}
+              changeType="neutral"
+              icon={Bot}
+              iconColor="bg-accent/10 text-accent"
             />
           </>
         )}

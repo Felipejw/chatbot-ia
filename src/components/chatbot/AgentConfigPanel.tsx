@@ -375,9 +375,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     {config.transferType === "queue" && (
                       <div className="space-y-2">
                         <Label>Fila de destino</Label>
-                        <Select value={config.transferQueueId} onValueChange={(v) => updateConfig({ transferQueueId: v })}>
+                        <Select value={config.transferQueueId || "none"} onValueChange={(v) => updateConfig({ transferQueueId: v === "none" ? "" : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione a fila" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">Selecione...</SelectItem>
                             {queues?.map((q) => (
                               <SelectItem key={q.id} value={q.id}>{q.name}</SelectItem>
                             ))}
@@ -388,9 +389,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     {config.transferType === "agent" && (
                       <div className="space-y-2">
                         <Label>Atendente</Label>
-                        <Select value={config.transferAgentId} onValueChange={(v) => updateConfig({ transferAgentId: v })}>
+                        <Select value={config.transferAgentId || "none"} onValueChange={(v) => updateConfig({ transferAgentId: v === "none" ? "" : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione o atendente" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">Selecione...</SelectItem>
                             {users?.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>{u.name}</SelectItem>
                             ))}
@@ -401,9 +403,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     {config.transferType === "ai" && (
                       <div className="space-y-2">
                         <Label>Agente de IA</Label>
-                        <Select value={config.transferFlowId} onValueChange={(v) => updateConfig({ transferFlowId: v })}>
+                        <Select value={config.transferFlowId || "none"} onValueChange={(v) => updateConfig({ transferFlowId: v === "none" ? "" : v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione o agente" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">Selecione...</SelectItem>
                             {otherFlows.map((f) => (
                               <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                             ))}
