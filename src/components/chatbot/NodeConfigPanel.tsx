@@ -661,53 +661,6 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
           </>
         );
 
-      case "crm":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label>Nome do bloco</Label>
-              <Input
-                value={(formData.label as string) || ""}
-                onChange={(e) => handleChange("label", e.target.value)}
-                placeholder="CRM"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Etapa do Kanban</Label>
-              <Select
-                value={(formData.kanbanColumnId as string) || ""}
-                onValueChange={(v) => {
-                  const column = kanbanColumns?.find((c) => c.id === v);
-                  handleChange("kanbanColumnId", v);
-                  handleChange("kanbanColumnName", column?.name || "");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a etapa..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {kanbanColumns?.map((column) => (
-                    <SelectItem key={column.id} value={column.id}>
-                      <div className="flex items-center gap-2">
-                        {column.color && (
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: column.color }}
-                          />
-                        )}
-                        {column.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                O contato será movido para esta etapa do CRM
-              </p>
-            </div>
-          </>
-        );
-
       case "whatsapp":
         return (
           <>
