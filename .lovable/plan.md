@@ -1,64 +1,33 @@
 
 
-# Refatoração: Foco em Chatbot de IA
+# Corrigir Bug "Acesso Negado" ao Logar
 
-## Resumo
+## Causa Raiz
 
-Remover telas e funcionalidades não relacionadas ao foco de IA/Chatbot, limpar referências à Evolution API, e garantir login padrão com `admin@admin.com` / `123456`.
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-## 1. Remover telas e páginas
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-**Páginas a excluir (arquivos):**
-- `src/pages/Painel.tsx`
-- `src/pages/Relatorios.tsx`
-- `src/pages/RespostasRapidas.tsx`
-- `src/pages/Contatos.tsx`
-- `src/pages/ChatInterno.tsx`
-- `src/pages/Usuarios.tsx`
+## Plano
 
-**Hooks associados a remover:**
-- `src/hooks/usePanelStats.ts`
-- `src/hooks/useReportStats.ts`
-- `src/hooks/useQuickReplies.ts`
-- `src/hooks/useContacts.ts`
-- `src/hooks/useChatInterno.ts`
-- `src/hooks/useUsers.ts`
-- `src/hooks/useContactProfile.ts`
-- `src/hooks/useContactDisplayName.ts`
-- `src/hooks/useContactOnlineStatus.ts`
-- `src/hooks/useSyncContacts.ts`
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
+```sql
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```
 
-**Componentes associados a remover:**
-- `src/components/usuarios/PermissionsModal.tsx`
-- `src/components/usuarios/PermissionsPanel.tsx`
-- `src/components/dashboard/TeamPerformance.tsx` (se referencia Atendentes)
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
+```typescript
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
 
-## 2. Atualizar App.tsx
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+```
 
-Remover imports e rotas para: Painel, Relatorios, RespostasRapidas, Contatos, ChatInterno, Usuarios.
-
-## 3. Atualizar Sidebar (AppSidebar.tsx)
-
-Remover itens de navegação:
-- Seção "Gerência": remover "Relatórios" e "Painel"
-- Seção "Atendimento": remover "Respostas Rápidas", "Contatos" e "Chat Interno"
-- Seção "Administração": remover "Atendentes"
-
-## 4. Atualizar módulos de permissões (usePermissions.ts)
-
-Remover dos arrays `MODULES` e `ROUTE_TO_MODULE` as entradas: `relatorios`, `painel`, `respostas_rapidas`, `contatos`, `chat_interno`, `usuarios`.
-
-## 5. Remover referências Evolution API
-
-A busca no código fonte (excluindo `deploy/`) não encontrou referências diretas à "Evolution API" ou "EVOLUTION_API". As referências de WhatsApp usam **Baileys**, não Evolution. Os secrets `EVOLUTION_API_KEY` e `EVOLUTION_API_URL` existem no ambiente mas não são usados no código. Nenhuma alteração de código necessária aqui -- apenas remover os secrets do ambiente.
-
-## 6. Login padrão admin@admin.com / 123456
-
-O login já foi resetado via `bootstrap-admin` em iteração anterior. O formulário de login em `Login.tsx` já funciona corretamente. Nenhuma alteração necessária.
-
-## Arquivos alterados
-- `src/App.tsx` -- remover rotas
-- `src/components/layout/AppSidebar.tsx` -- remover itens do menu
-- `src/hooks/usePermissions.ts` -- remover módulos
-- Deletar ~16 arquivos de páginas, hooks e componentes não mais necessários
+### Arquivos alterados
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 

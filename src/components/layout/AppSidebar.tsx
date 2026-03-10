@@ -25,20 +25,15 @@ const navSections: NavSection[] = [
     title: "Gerência",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
-      { title: "Relatórios", href: "/relatorios", icon: FileText, module: "relatorios" },
-      { title: "Painel", href: "/painel", icon: Activity, module: "painel" },
     ],
   },
   {
     title: "Atendimento",
     items: [
       { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
-      { title: "Respostas Rápidas", href: "/respostas-rapidas", icon: Zap, module: "respostas_rapidas" },
       { title: "CRM", href: "/kanban", icon: Kanban, module: "kanban" },
-      { title: "Contatos", href: "/contatos", icon: Users, module: "contatos" },
       { title: "Agendamentos", href: "/agendamentos", icon: Calendar, module: "agendamentos" },
       { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
-      { title: "Chat Interno", href: "/chat-interno", icon: MessagesSquare, module: "chat_interno" },
     ],
   },
   {
@@ -46,11 +41,9 @@ const navSections: NavSection[] = [
     items: [
       { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
       { title: "Chatbot", href: "/chatbot", icon: Bot, module: "chatbot" },
-      { title: "Atendentes", href: "/usuarios", icon: UserCog, module: "usuarios" },
       { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
       { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
       { title: "Conexões", href: "/conexoes", icon: QrCode, module: "conexoes" },
-      { title: "API Docs", href: "/api-docs", icon: FileText, module: "integracoes" },
     ],
   },
 ];
