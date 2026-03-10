@@ -2,8 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquare, Tags, Settings,
-  ChevronDown, ChevronRight, Send,
-  Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
+  Send, Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
   Sun, Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -18,37 +17,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem { title: string; href: string; icon: React.ElementType; module?: ModuleKey; }
-interface NavSection { title: string; items: NavItem[]; }
 
-const navSections: NavSection[] = [
-  {
-    title: "Gerência",
-    items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
-    ],
-  },
-  {
-    title: "Atendimento",
-    items: [
-      { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
-      { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
-    ],
-  },
-  {
-    title: "Agentes de IA",
-    items: [
-      { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
-      { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
-      { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
-    ],
-  },
-  {
-    title: "Sistema",
-    items: [
-      { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
-      { title: "Conexões", href: "/conexoes", icon: QrCode, module: "conexoes" },
-    ],
-  },
+const navItems: NavItem[] = [
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
+  { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
+  { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
+  { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
+  { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
+  { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
+  { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
+  { title: "Conexões", href: "/conexoes", icon: QrCode, module: "conexoes" },
 ];
 
 interface AppSidebarProps { onNavigate?: () => void; }
@@ -59,13 +37,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const { hasPermission, isAdmin, signOut, profile } = useAuth();
   const { getSetting } = useSystemSettings();
   const { theme, setTheme } = useTheme();
-  const [expandedSections, setExpandedSections] = useState<string[]>(["Gerência", "Atendimento", "Administração"]);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const platformName = getSetting("platform_name") || "TalkFlow";
   const platformLogo = getSetting("platform_logo");
 
-  // Unread conversations count for badge
   const { data: unreadCount } = useQuery({
     queryKey: ["sidebar-unread-count"],
     queryFn: async () => {
@@ -80,22 +56,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
     staleTime: 10000,
   });
 
-  const toggleSection = (title: string) => {
-    setExpandedSections((prev) => prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]);
-  };
-
   const isActive = (href: string) => location.pathname === href;
 
-  const getFilteredItems = (items: NavItem[]) => {
-    if (isAdmin) return items;
-    return items.filter(item => { if (!item.module) return true; return hasPermission(item.module, 'view'); });
-  };
-
-  const getVisibleSections = () => {
-    return navSections.map(section => ({ ...section, items: getFilteredItems(section.items) })).filter(section => section.items.length > 0);
-  };
-
-  const visibleSections = getVisibleSections();
+  const visibleItems = isAdmin
+    ? navItems
+    : navItems.filter(item => !item.module || hasPermission(item.module, 'view'));
 
   return (
     <aside className={cn("h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 border-r border-sidebar-border", isCollapsed ? "w-16" : "w-64")}>
@@ -118,36 +83,24 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
-        {visibleSections.map((section) => (
-          <div key={section.title} className="mb-4">
-            {!isCollapsed && (
-              <button onClick={() => toggleSection(section.title)} className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground transition-colors">
-                {section.title}
-                {expandedSections.includes(section.title) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
-            )}
-            {(isCollapsed || expandedSections.includes(section.title)) && (
-              <ul className="space-y-1 mt-1">
-                {section.items.map((item) => (
-                  <li key={item.href}>
-                    <NavLink to={item.href} onClick={onNavigate} className={cn("sidebar-link relative", isActive(item.href) && "sidebar-link-active", isCollapsed && "justify-center px-2")} title={isCollapsed ? item.title : undefined}>
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {!isCollapsed && <span className="truncate">{item.title}</span>}
-                      {item.href === "/atendimento" && unreadCount && unreadCount > 0 ? (
-                        <span className={cn(
-                          "bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center",
-                          isCollapsed ? "absolute -top-1 -right-1 w-4 h-4" : "ml-auto w-5 h-5"
-                        )}>
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </span>
-                      ) : null}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+        <ul className="space-y-1">
+          {visibleItems.map((item) => (
+            <li key={item.href}>
+              <NavLink to={item.href} onClick={onNavigate} className={cn("sidebar-link relative", isActive(item.href) && "sidebar-link-active", isCollapsed && "justify-center px-2")} title={isCollapsed ? item.title : undefined}>
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!isCollapsed && <span className="truncate">{item.title}</span>}
+                {item.href === "/atendimento" && unreadCount && unreadCount > 0 ? (
+                  <span className={cn(
+                    "bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center",
+                    isCollapsed ? "absolute -top-1 -right-1 w-4 h-4" : "ml-auto w-5 h-5"
+                  )}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       <div className="border-t border-sidebar-border">

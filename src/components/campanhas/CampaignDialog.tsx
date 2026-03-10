@@ -542,44 +542,6 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
               )}
             </div>
 
-            {/* Buttons Section */}
-            <div className="border rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="font-medium">Botões da Mensagem</Label>
-                <Switch checked={useButtons} onCheckedChange={setUseButtons} />
-              </div>
-              
-              {useButtons && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Adicione botões de resposta rápida (máx. 3).
-                  </p>
-                  {buttons.map((button) => (
-                    <div key={button.id} className="flex gap-2">
-                      <Input 
-                        placeholder="Texto do botão..."
-                        value={button.text}
-                        onChange={(e) => updateButton(button.id, e.target.value)}
-                        className="flex-1"
-                        maxLength={20}
-                      />
-                      <Button variant="ghost" size="icon" onClick={() => removeButton(button.id)}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addButton}
-                    disabled={buttons.length >= 3}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar Botão
-                  </Button>
-                </div>
-              )}
-            </div>
           </TabsContent>
 
           {/* Media Tab */}
