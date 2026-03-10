@@ -1,0 +1,1 @@
+ALTER TABLE public.chatbot_flows ADD COLUMN IF NOT EXISTS config jsonb DEFAULT '{}'::jsonb;
