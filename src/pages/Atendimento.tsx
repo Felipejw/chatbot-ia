@@ -1329,8 +1329,8 @@ export default function Atendimento() {
           )}
           
           {/* Tabs - Moved below filter */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'attending' | 'completed' | 'chatbot' | 'groups')} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-9">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'attending' | 'completed' | 'chatbot')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 h-9">
               <TabsTrigger value="attending" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-1">
                 <UserCheck className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Atendendo</span>

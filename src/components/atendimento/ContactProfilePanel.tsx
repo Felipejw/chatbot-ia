@@ -244,35 +244,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
             )}
           </div>
 
-          <Separator />
-
-          {/* Kanban Stage */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Etapa do Kanban</label>
-            <Select 
-              value={currentKanbanColumnId || 'none'} 
-              onValueChange={handleKanbanChange}
-              disabled={updateConversation.isPending || !conversationId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma etapa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma etapa</SelectItem>
-                {kanbanColumns.map((column) => (
-                  <SelectItem key={column.id} value={column.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: column.color || '#3B82F6' }}
-                      />
-                      {column.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <Separator />
 
