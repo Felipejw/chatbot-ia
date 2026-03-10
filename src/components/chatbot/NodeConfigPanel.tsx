@@ -505,6 +505,8 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
                   handleChange("agentName", "");
                   handleChange("connectionId", "");
                   handleChange("connectionName", "");
+                  handleChange("flowId", "");
+                  handleChange("flowName", "");
                 }}
               >
                 <SelectTrigger>
@@ -514,6 +516,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
                   <SelectItem value="queue">Setor/Fila</SelectItem>
                   <SelectItem value="agent">Atendente específico</SelectItem>
                   <SelectItem value="whatsapp">Número de WhatsApp</SelectItem>
+                  <SelectItem value="ai">Outro Agente de IA</SelectItem>
                 </SelectContent>
               </Select>
             </div>
