@@ -23,7 +23,7 @@ import {
 } from '@/hooks/useContactProfile';
 import { useTags, useAddTagToContact, useRemoveTagFromContact } from '@/hooks/useTags';
 import { useUpdateContact } from '@/hooks/useContacts';
-import { useKanbanColumns } from '@/hooks/useKanbanColumns';
+
 import { useUpdateConversation } from '@/hooks/useConversations';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
