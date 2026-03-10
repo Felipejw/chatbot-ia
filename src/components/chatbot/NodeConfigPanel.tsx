@@ -881,11 +881,8 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
       delay: "Configurar Aguardar",
       menu: "Configurar Menu",
       ai: "Configurar IA",
-      condition: "Configurar Condição",
-      crm: "Configurar CRM",
       transfer: "Configurar Transferência",
       end: "Configurar Encerramento",
-      schedule: "Configurar Agendamento",
     };
     return titles[node.type || ""] || "Configurar Bloco";
   };

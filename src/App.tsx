@@ -66,8 +66,6 @@ const App = () => (
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><Dashboard /></ProtectedRoute>} />
                 <Route path="/atendimento" element={<ProtectedRoute module="atendimento"><Atendimento /></ProtectedRoute>} />
-                <Route path="/kanban" element={<ProtectedRoute module="kanban"><Kanban /></ProtectedRoute>} />
-                <Route path="/agendamentos" element={<ProtectedRoute module="agendamentos"><Agendamentos /></ProtectedRoute>} />
                 <Route path="/tags" element={<ProtectedRoute module="tags"><Tags /></ProtectedRoute>} />
                 <Route path="/campanhas" element={<ProtectedRoute module="campanhas"><Campanhas /></ProtectedRoute>} />
                 <Route path="/chatbot" element={<ProtectedRoute module="chatbot"><Chatbot /></ProtectedRoute>} />

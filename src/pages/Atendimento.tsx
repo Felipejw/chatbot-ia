@@ -1352,13 +1352,6 @@ export default function Atendimento() {
                   {tabCounts.chatbot}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="groups" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-1">
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Grupos</span>
-                <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px] h-4 min-w-[18px]">
-                  {tabCounts.groups}
-                </Badge>
-              </TabsTrigger>
             </TabsList>
           </Tabs>
           

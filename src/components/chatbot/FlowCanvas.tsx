@@ -157,8 +157,6 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
       transfer: "Transferir",
       end: "Encerrar",
       ai: "IA",
-      crm: "CRM",
-      schedule: "Agendar",
     };
     return labels[type] || "Bloco";
   };

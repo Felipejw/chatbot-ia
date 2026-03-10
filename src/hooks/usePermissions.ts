@@ -27,8 +27,6 @@ export type ModuleKey = typeof MODULES[number]['key'];
 export const ROUTE_TO_MODULE: Record<string, ModuleKey> = {
   '/dashboard': 'dashboard',
   '/atendimento': 'atendimento',
-  '/kanban': 'kanban',
-  '/agendamentos': 'agendamentos',
   '/tags': 'tags',
   '/campanhas': 'campanhas',
   '/chatbot': 'chatbot',

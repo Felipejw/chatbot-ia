@@ -1,0 +1,1 @@
+ALTER TABLE public.campaigns ADD COLUMN flow_id UUID REFERENCES public.chatbot_flows(id) ON DELETE SET NULL;

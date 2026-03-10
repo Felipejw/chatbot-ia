@@ -271,9 +271,9 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir fluxo?</AlertDialogTitle>
+                          <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. O fluxo "{flow.name}" será excluído permanentemente.
+                            Esta ação não pode ser desfeita. O agente "{flow.name}" será excluído permanentemente.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

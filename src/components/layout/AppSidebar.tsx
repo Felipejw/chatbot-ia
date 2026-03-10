@@ -31,17 +31,20 @@ const navSections: NavSection[] = [
     title: "Atendimento",
     items: [
       { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
-      { title: "CRM", href: "/kanban", icon: Kanban, module: "kanban" },
-      { title: "Agendamentos", href: "/agendamentos", icon: Calendar, module: "agendamentos" },
       { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
     ],
   },
   {
-    title: "Administração",
+    title: "Agentes de IA",
     items: [
+      { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
       { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
-      { title: "Chatbot", href: "/chatbot", icon: Bot, module: "chatbot" },
       { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
       { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
       { title: "Conexões", href: "/conexoes", icon: QrCode, module: "conexoes" },
     ],
