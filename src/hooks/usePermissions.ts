@@ -13,11 +13,9 @@ export interface UserPermission {
 export const MODULES = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'atendimento', label: 'Atendimento' },
-  { key: 'kanban', label: 'Kanban' },
-  { key: 'agendamentos', label: 'Agendamentos' },
   { key: 'tags', label: 'Tags' },
   { key: 'campanhas', label: 'Disparo em Massa' },
-  { key: 'chatbot', label: 'Chatbot' },
+  { key: 'chatbot', label: 'Agentes de IA' },
   { key: 'setores', label: 'Setores' },
   { key: 'integracoes', label: 'Integrações' },
   { key: 'conexoes', label: 'Conexões' },
