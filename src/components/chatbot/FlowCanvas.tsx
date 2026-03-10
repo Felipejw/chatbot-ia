@@ -18,9 +18,7 @@ import "@xyflow/react/dist/style.css";
 
 import { NodePaletteTopBar, NodePaletteSidebar } from "./NodePalette";
 import TriggerNode from "./nodes/TriggerNode";
-import MessageNode from "./nodes/MessageNode";
 import DelayNode from "./nodes/DelayNode";
-import MenuNode from "./nodes/MenuNode";
 import TransferNode from "./nodes/TransferNode";
 import EndNode from "./nodes/EndNode";
 import AINode from "./nodes/AINode";
@@ -32,10 +30,8 @@ import { Button } from "@/components/ui/button";
 
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
-  message: MessageNode,
   whatsapp: WhatsAppNode,
   delay: DelayNode,
-  menu: MenuNode,
   transfer: TransferNode,
   end: EndNode,
   ai: AINode,
