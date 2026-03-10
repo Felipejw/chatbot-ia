@@ -181,29 +181,29 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome do fluxo</Label>
-                  <Input
-                    id="name"
-                    placeholder="Ex: Boas-vindas"
-                    value={newFlowName}
-                    onChange={(e) => setNewFlowName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="desc">Descrição (opcional)</Label>
-                  <Textarea
-                    id="desc"
-                    placeholder="Descreva o objetivo deste fluxo..."
-                    value={newFlowDesc}
-                    onChange={(e) => setNewFlowDesc(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={handleCreateFlow}
-                  disabled={!newFlowName.trim() || createFlow.isPending}
-                >
-                  Criar Fluxo
+                  <Label htmlFor="name">Nome do agente</Label>
+                    <Input
+                      id="name"
+                      placeholder="Ex: Atendimento Vendas"
+                      value={newFlowName}
+                      onChange={(e) => setNewFlowName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="desc">Descrição (opcional)</Label>
+                    <Textarea
+                      id="desc"
+                      placeholder="Descreva o objetivo deste agente..."
+                      value={newFlowDesc}
+                      onChange={(e) => setNewFlowDesc(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={handleCreateFlow}
+                    disabled={!newFlowName.trim() || createFlow.isPending}
+                  >
+                    Criar Agente
                 </Button>
               </div>
             </DialogContent>
