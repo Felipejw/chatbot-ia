@@ -45,6 +45,7 @@ import {
 } from "@/hooks/useCampaigns";
 import { useContacts, useCreateContact } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
+import { useFlows } from "@/hooks/useFlows";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Helper to extract phone numbers from text
