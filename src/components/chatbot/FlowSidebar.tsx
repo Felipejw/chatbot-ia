@@ -97,7 +97,7 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
               <ChevronRight className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">Expandir fluxos</TooltipContent>
+          <TooltipContent side="right">Expandir agentes</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
