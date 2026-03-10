@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, MessageSquare, Users, Calendar, Tags, Zap, Settings,
-  ChevronDown, ChevronRight, FileText, Activity, HeartPulse, Send, UserCog,
-  Bot, Plug, QrCode, Kanban, MessagesSquare, ChevronsLeft, ChevronsRight, Building2, LogOut,
+  LayoutDashboard, MessageSquare, Tags, Settings,
+  ChevronDown, ChevronRight, Send,
+  Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
   Sun, Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
