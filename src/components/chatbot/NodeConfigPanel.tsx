@@ -23,6 +23,7 @@ import {
 import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
+import { useFlows } from "@/hooks/useFlows";
 
 import { useTags } from "@/hooks/useTags";
 import { supabase } from "@/integrations/supabase/client";
