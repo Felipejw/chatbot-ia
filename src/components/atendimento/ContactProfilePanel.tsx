@@ -220,11 +220,6 @@ export default function ContactProfilePanel({ contactId, conversationId, onClose
               )}
             </div>
             
-            {currentKanbanColumn && (
-              <Badge style={{ backgroundColor: `${currentKanbanColumn.color}20`, color: currentKanbanColumn.color }}>
-                {currentKanbanColumn.name}
-              </Badge>
-            )}
           </div>
 
           {/* Contact Info */}
