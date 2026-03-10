@@ -47,8 +47,6 @@ export function useFlow(id: string | null) {
 
       return {
         flow: flow as unknown as ChatbotFlow,
-        nodes: [] as any[],
-        edges: [] as any[],
       };
     },
     enabled: !!id,
