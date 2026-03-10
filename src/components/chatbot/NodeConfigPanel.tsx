@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Trash2, Save, Upload, Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Trash2, Save, Upload, Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ import {
 import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
+import { useFlows } from "@/hooks/useFlows";
 
 import { useTags } from "@/hooks/useTags";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +64,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
   const { connections } = useWhatsAppConnections();
-  
+  const { data: flows } = useFlows();
   const { data: tags } = useTags();
 
   // Função para validar API key do Google AI
@@ -132,24 +133,6 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
     onUpdate(node.id, newData);
   };
 
-  const handleAddOption = () => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    const newOption = { id: `opt_${Date.now()}`, text: "" };
-    handleChange("options", [...options, newOption]);
-  };
-
-  const handleRemoveOption = (optionId: string) => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    handleChange("options", options.filter((o) => o.id !== optionId));
-  };
-
-  const handleOptionChange = (optionId: string, text: string) => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    handleChange(
-      "options",
-      options.map((o) => (o.id === optionId ? { ...o, text } : o))
-    );
-  };
 
   const renderFields = () => {
     switch (node.type) {
@@ -206,165 +189,9 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
           </>
         );
 
-      case "message":
-        const messageType = (formData.messageType as string) || "text";
-        return (
-          <>
-            <div className="space-y-2">
-              <Label>Nome do bloco</Label>
-              <Input
-                value={(formData.label as string) || ""}
-                onChange={(e) => handleChange("label", e.target.value)}
-                placeholder="Mensagem"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de mensagem</Label>
-              <Select
-                value={messageType}
-                onValueChange={(v) => handleChange("messageType", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Texto</SelectItem>
-                  <SelectItem value="image">Imagem</SelectItem>
-                  <SelectItem value="video">Vídeo</SelectItem>
-                  <SelectItem value="document">Documento</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {messageType === "text" && (
-              <div className="space-y-2">
-                <Label>Conteúdo da mensagem</Label>
-                <Textarea
-                  value={(formData.content as string) || ""}
-                  onChange={(e) => handleChange("content", e.target.value)}
-                  placeholder="Digite a mensagem que será enviada..."
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use {"{{nome}}"} para inserir variáveis
-                </p>
-              </div>
-            )}
-            {(messageType === "image" || messageType === "video" || messageType === "document") && (
-              <>
-                <div className="space-y-2">
-                  <Label>Arquivo de mídia</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={(formData.mediaUrl as string) || ""}
-                      onChange={(e) => handleChange("mediaUrl", e.target.value)}
-                      placeholder={`https://exemplo.com/${messageType === "image" ? "imagem.jpg" : messageType === "video" ? "video.mp4" : "documento.pdf"}`}
-                      className="flex-1"
-                    />
-                    {formData.mediaUrl && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleChange("mediaUrl", "")}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept={
-                      messageType === "image" 
-                        ? "image/*" 
-                        : messageType === "video" 
-                        ? "video/*" 
-                        : "*/*"
-                    }
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      
-                      setIsUploading(true);
-                      try {
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-                        const filePath = `chatbot/${fileName}`;
-                        
-                        const { error: uploadError } = await supabase.storage
-                          .from('whatsapp-media')
-                          .upload(filePath, file);
-                          
-                        if (uploadError) throw uploadError;
-                        
-                        const { data: { publicUrl } } = supabase.storage
-                          .from('whatsapp-media')
-                          .getPublicUrl(filePath);
-                          
-                        handleChange("mediaUrl", publicUrl);
-                        toast.success("Arquivo enviado com sucesso!");
-                      } catch (error) {
-                        console.error("Upload error:", error);
-                        toast.error("Erro ao enviar arquivo");
-                      } finally {
-                        setIsUploading(false);
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = "";
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        Fazer upload
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Envie um arquivo ou cole a URL direta
-                  </p>
-                  {messageType === "image" && formData.mediaUrl && (
-                    <div className="mt-2 rounded-lg overflow-hidden border border-border">
-                      <img 
-                        src={formData.mediaUrl as string} 
-                        alt="Preview" 
-                        className="w-full h-32 object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Legenda (opcional)</Label>
-                  <Textarea
-                    value={(formData.caption as string) || ""}
-                    onChange={(e) => handleChange("caption", e.target.value)}
-                    placeholder="Digite uma legenda para a mídia..."
-                    rows={2}
-                  />
-                </div>
-              </>
-            )}
-          </>
-        );
 
 
 
-      case "delay":
         return (
           <>
             <div className="space-y-2">
@@ -406,58 +233,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
           </>
         );
 
-      case "menu":
-        const options = (formData.options as Array<{ id: string; text: string }>) || [];
-        return (
-          <>
-            <div className="space-y-2">
-              <Label>Nome do bloco</Label>
-              <Input
-                value={(formData.label as string) || ""}
-                onChange={(e) => handleChange("label", e.target.value)}
-                placeholder="Menu"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Título do menu</Label>
-              <Input
-                value={(formData.title as string) || ""}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="Escolha uma opção:"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Opções</Label>
-                <Button variant="ghost" size="sm" onClick={handleAddOption}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Adicionar
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {options.map((option, index) => (
-                  <div key={option.id} className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                    <Input
-                      value={option.text}
-                      onChange={(e) => handleOptionChange(option.id, e.target.value)}
-                      placeholder={`Opção ${index + 1}`}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleRemoveOption(option.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        );
+
 
       case "ai":
         const useOwnApiKey = (formData.useOwnApiKey as boolean) ?? false;
@@ -729,6 +505,8 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
                   handleChange("agentName", "");
                   handleChange("connectionId", "");
                   handleChange("connectionName", "");
+                  handleChange("flowId", "");
+                  handleChange("flowName", "");
                 }}
               >
                 <SelectTrigger>
@@ -738,6 +516,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
                   <SelectItem value="queue">Setor/Fila</SelectItem>
                   <SelectItem value="agent">Atendente específico</SelectItem>
                   <SelectItem value="whatsapp">Número de WhatsApp</SelectItem>
+                  <SelectItem value="ai">Outro Agente de IA</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -823,6 +602,31 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
               </div>
             )}
 
+            {transferType === "ai" && (
+              <div className="space-y-2">
+                <Label>Agente de IA</Label>
+                <Select
+                  value={(formData.flowId as string) || ""}
+                  onValueChange={(v) => {
+                    const flow = flows?.find((f) => f.id === v);
+                    handleChange("flowId", v);
+                    handleChange("flowName", flow?.name || "");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o agente..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5}>
+                    {flows?.filter(f => f.id !== node?.data?.currentFlowId).map((flow) => (
+                      <SelectItem key={flow.id} value={flow.id}>
+                        {flow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Mensagem de transferência</Label>
               <Textarea
@@ -876,10 +680,8 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
   const getTitle = () => {
     const titles: Record<string, string> = {
       trigger: "Configurar Gatilho",
-      message: "Configurar Mensagem",
       whatsapp: "Configurar WhatsApp",
       delay: "Configurar Aguardar",
-      menu: "Configurar Menu",
       ai: "Configurar IA",
       transfer: "Configurar Transferência",
       end: "Configurar Encerramento",

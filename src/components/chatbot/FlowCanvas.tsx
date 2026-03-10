@@ -18,9 +18,7 @@ import "@xyflow/react/dist/style.css";
 
 import { NodePaletteTopBar, NodePaletteSidebar } from "./NodePalette";
 import TriggerNode from "./nodes/TriggerNode";
-import MessageNode from "./nodes/MessageNode";
 import DelayNode from "./nodes/DelayNode";
-import MenuNode from "./nodes/MenuNode";
 import TransferNode from "./nodes/TransferNode";
 import EndNode from "./nodes/EndNode";
 import AINode from "./nodes/AINode";
@@ -32,10 +30,8 @@ import { Button } from "@/components/ui/button";
 
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
-  message: MessageNode,
   whatsapp: WhatsAppNode,
   delay: DelayNode,
-  menu: MenuNode,
   transfer: TransferNode,
   end: EndNode,
   ai: AINode,
@@ -150,10 +146,8 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
   const getDefaultLabel = (type: string): string => {
     const labels: Record<string, string> = {
       trigger: "Gatilho",
-      message: "Mensagem",
       whatsapp: "WhatsApp",
       delay: "Aguardar",
-      menu: "Menu",
       transfer: "Transferir",
       end: "Encerrar",
       ai: "IA",
@@ -330,10 +324,8 @@ function FlowCanvasInner({ flowId, onNodeSelect, onRegisterDeleteFn, onRegisterS
               nodeColor={(node) => {
                 const colors: Record<string, string> = {
                   trigger: "hsl(var(--primary))",
-                  message: "hsl(var(--success))",
                   whatsapp: "#22c55e",
                   delay: "hsl(var(--info))",
-                  menu: "#f97316",
                   transfer: "hsl(var(--destructive))",
                   end: "#ec4899",
                   ai: "#8b5cf6",
