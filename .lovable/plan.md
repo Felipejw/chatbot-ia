@@ -1,28 +1,33 @@
 
 
-# Melhorias e Ajustes
+# Corrigir Bug "Acesso Negado" ao Logar
 
-## 1. Sidebar — Menu plano sem submenus
+## Causa Raiz
 
-**Arquivo:** `src/components/layout/AppSidebar.tsx`
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-Remover o sistema de seções colapsáveis (section titles com chevron). Todos os itens de navegação ficam listados em sequência, um abaixo do outro, sem agrupamento nem botão de expandir/recolher seção.
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-- Flatten `navSections` em um array simples de `NavItem[]`
-- Remover `expandedSections`, `toggleSection`, e os headers de seção do render
-- Remover imports `ChevronDown`, `ChevronRight`
-- Manter collapse/expand do sidebar inteiro (ícone `ChevronsLeft`/`ChevronsRight`)
+## Plano
 
-## 2. Remover "Botões da Mensagem" do Disparo em Massa
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
+```sql
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```
 
-**Arquivo:** `src/components/campanhas/CampaignDialog.tsx`
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
+```typescript
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
 
-- Remover o bloco de UI "Botões da Mensagem" (linhas ~564-601)
-- Remover estados `useButtons`, `buttons` e funções `addButton`, `removeButton`, `updateButton`
-- Remover `use_buttons` e `buttons` do payload em `handleCreateCampaign`
-- Limpar `resetForm` dos campos removidos
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+```
 
-## Arquivos alterados
-- `src/components/layout/AppSidebar.tsx`
-- `src/components/campanhas/CampaignDialog.tsx`
+### Arquivos alterados
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 
