@@ -6,9 +6,12 @@ export function useContacts() {
   return useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('contacts').select('*').order('name');
+      const { data, error } = await supabase.from('contacts').select('*, contact_tags(tag_id, tags(*))').order('name');
       if (error) throw error;
-      return data;
+      return (data || []).map((c: any) => ({
+        ...c,
+        tags: (c.contact_tags || []).map((ct: any) => ct.tags).filter(Boolean),
+      }));
     },
   });
 }

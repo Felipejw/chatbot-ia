@@ -9,7 +9,13 @@ export function formatPhoneForDisplay(phone: string): string {
 }
 
 export function useContactDisplayName() {
-  return { getDisplayName: (contact: { name?: string | null; phone?: string | null }) => contact?.name || contact?.phone || 'Contato' };
+  return {
+    getDisplayName: (contact: { name?: string | null; phone?: string | null }) => contact?.name || contact?.phone || 'Contato',
+    getInitials: (name?: string | null) => {
+      if (!name) return '?';
+      return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    },
+  };
 }
 
 export function getContactSecondaryName(contact: { name?: string | null; phone?: string | null }) {
