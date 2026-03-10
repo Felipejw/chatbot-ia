@@ -602,6 +602,31 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
               </div>
             )}
 
+            {transferType === "ai" && (
+              <div className="space-y-2">
+                <Label>Agente de IA</Label>
+                <Select
+                  value={(formData.flowId as string) || ""}
+                  onValueChange={(v) => {
+                    const flow = flows?.find((f) => f.id === v);
+                    handleChange("flowId", v);
+                    handleChange("flowName", flow?.name || "");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o agente..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5}>
+                    {flows?.filter(f => f.id !== node?.data?.currentFlowId).map((flow) => (
+                      <SelectItem key={flow.id} value={flow.id}>
+                        {flow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Mensagem de transferência</Label>
               <Textarea
