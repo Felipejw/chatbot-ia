@@ -877,6 +877,30 @@ export function CampaignDialog({ open, onOpenChange }: CampaignDialogProps) {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 pt-4">
+            {/* AI Agent Selection */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <Label className="font-medium">Agente de IA</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Selecione um agente de IA para processar as respostas dos contatos após o disparo.
+              </p>
+              <Select value={selectedFlowId} onValueChange={setSelectedFlowId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um agente (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum agente</SelectItem>
+                  {activeFlows.map((flow) => (
+                    <SelectItem key={flow.id} value={flow.id}>
+                      {flow.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Security Settings */}
             <div className="border rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">
