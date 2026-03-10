@@ -19,6 +19,9 @@ import { SkeletonStatsCard } from "@/components/ui/SkeletonCard";
 
 export default function Dashboard() {
   const { data: stats, isLoading, isError, error, refetch } = useDashboardStats();
+  const { data: flows } = useFlows();
+  const activeAgents = flows?.filter(f => f.is_active).length || 0;
+  const totalAgents = flows?.length || 0;
 
   if (isError) {
     return (
