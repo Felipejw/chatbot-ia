@@ -63,7 +63,7 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
   const { connections } = useWhatsAppConnections();
-  const { data: kanbanColumns } = useKanbanColumns();
+  
   const { data: tags } = useTags();
 
   // Função para validar API key do Google AI
