@@ -80,7 +80,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
   const { data: allFlows } = useFlows();
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
-  const { data: connections } = useWhatsAppConnections();
+  const { connections } = useWhatsAppConnections();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
