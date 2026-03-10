@@ -109,10 +109,10 @@ export function FlowSidebar({ selectedFlowId, onSelectFlow, collapsed = false, o
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Novo Fluxo</DialogTitle>
-                  <DialogDescription>
-                    Crie um novo fluxo de automação para seu chatbot.
-                  </DialogDescription>
+                <DialogTitle>Novo Agente de IA</DialogTitle>
+                <DialogDescription>
+                  Crie um novo agente de IA para automação.
+                </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
