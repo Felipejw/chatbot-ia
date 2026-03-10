@@ -133,24 +133,6 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
     onUpdate(node.id, newData);
   };
 
-  const handleAddOption = () => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    const newOption = { id: `opt_${Date.now()}`, text: "" };
-    handleChange("options", [...options, newOption]);
-  };
-
-  const handleRemoveOption = (optionId: string) => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    handleChange("options", options.filter((o) => o.id !== optionId));
-  };
-
-  const handleOptionChange = (optionId: string, text: string) => {
-    const options = (formData.options as Array<{ id: string; text: string }>) || [];
-    handleChange(
-      "options",
-      options.map((o) => (o.id === optionId ? { ...o, text } : o))
-    );
-  };
 
   const renderFields = () => {
     switch (node.type) {
