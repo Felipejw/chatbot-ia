@@ -680,10 +680,8 @@ export function NodeConfigPanel({ node, open, onClose, onUpdate, onDelete, onSav
   const getTitle = () => {
     const titles: Record<string, string> = {
       trigger: "Configurar Gatilho",
-      message: "Configurar Mensagem",
       whatsapp: "Configurar WhatsApp",
       delay: "Configurar Aguardar",
-      menu: "Configurar Menu",
       ai: "Configurar IA",
       transfer: "Configurar Transferência",
       end: "Configurar Encerramento",
