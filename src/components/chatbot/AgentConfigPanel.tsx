@@ -325,10 +325,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
               <AccordionContent className="space-y-4 pb-4">
                 <div className="space-y-2">
                   <Label>Conexão / Número</Label>
-                  <Select value={config.connectionId} onValueChange={(v) => updateConfig({ connectionId: v })}>
+                  <Select value={config.connectionId || "all"} onValueChange={(v) => updateConfig({ connectionId: v === "all" ? "" : v })}>
                     <SelectTrigger><SelectValue placeholder="Todas as conexões" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as conexões</SelectItem>
+                      <SelectItem value="all">Todas as conexões</SelectItem>
                       {connections?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name} {c.phone_number ? `(${c.phone_number})` : ""}
