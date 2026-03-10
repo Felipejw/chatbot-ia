@@ -227,7 +227,7 @@ export default function Atendimento() {
   const addTagToConversation = useAddTagToConversation();
   const removeTagFromConversation = useRemoveTagFromConversation();
   const { requestPermission, showNotification, permission } = useNotifications();
-  const createSchedule = useCreateSchedule();
+  
   const { data: flows } = useFlows();
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
