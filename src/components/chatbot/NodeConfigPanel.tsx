@@ -23,7 +23,7 @@ import {
 import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
-import { useKanbanColumns } from "@/hooks/useKanbanColumns";
+
 import { useTags } from "@/hooks/useTags";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
