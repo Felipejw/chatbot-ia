@@ -13,6 +13,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { TeamPerformance } from "@/components/dashboard/TeamPerformance";
+import { ChannelChart } from "@/components/dashboard/ChannelChart";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useFlows } from "@/hooks/useFlows";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -102,8 +103,11 @@ export default function Dashboard() {
         <TeamPerformance />
       </div>
 
-      {/* Recent Conversations */}
-      <RecentConversations />
+      {/* Channel Chart + Recent Conversations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChannelChart />
+        <RecentConversations />
+      </div>
     </div>
   );
 }
