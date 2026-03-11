@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, Image, Video, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
