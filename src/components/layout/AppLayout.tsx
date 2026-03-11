@@ -16,7 +16,7 @@ export function AppLayout() {
   const { theme, setTheme } = useTheme();
   usePresence();
   
-  const platformName = getSetting("platform_name") || "TalkFlow";
+  const platformName = getSetting("platform_name") || "WhatzApp IA";
 
   if (isMobile) {
     return (

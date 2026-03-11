@@ -89,7 +89,7 @@ export default function ApiDocs() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h2 className="text-2xl font-bold">Documentação da API</h2>
-        <p className="text-muted-foreground">Integre sistemas externos com o TalkFlow via API REST.</p>
+        <p className="text-muted-foreground">Integre sistemas externos com o WhatzApp IA via API REST.</p>
       </div>
 
       {/* Status indicator */}

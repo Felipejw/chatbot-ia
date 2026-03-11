@@ -8,7 +8,7 @@ const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { getSetting } = useSystemSettings();
-  const platformName = getSetting("platform_name") || "TalkFlow";
+  const platformName = getSetting("platform_name") || "WhatzApp IA";
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);

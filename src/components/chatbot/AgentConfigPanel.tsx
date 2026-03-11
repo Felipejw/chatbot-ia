@@ -20,13 +20,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
 import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface FollowUpStep {
+  interval: number;
+  unit: "minutes" | "hours" | "days";
+  message: string;
+  mode: "ai" | "fixed";
+}
 
 interface AgentConfig {
   // Trigger
@@ -56,6 +65,15 @@ interface AgentConfig {
   followUpPrompt: string;
   followUpFinalAction: "none" | "close" | "transfer";
   followUpTransferQueueId: string;
+  // Follow-up advanced
+  followUpStepConfigs: FollowUpStep[];
+  followUpAllowedHoursStart: string;
+  followUpAllowedHoursEnd: string;
+  followUpAllowedDays: string[];
+  followUpModel: string;
+  followUpTemperature: number;
+  followUpClosingMessage: string;
+  followUpStopOnHumanAssign: boolean;
   // End
   endMessage: string;
   markResolved: boolean;
@@ -84,9 +102,35 @@ const defaultConfig: AgentConfig = {
   followUpPrompt: "Gere uma mensagem de acompanhamento amigável e natural para o contato que não respondeu.",
   followUpFinalAction: "none",
   followUpTransferQueueId: "",
+  followUpStepConfigs: [
+    { interval: 30, unit: "minutes", message: "", mode: "ai" },
+    { interval: 2, unit: "hours", message: "", mode: "ai" },
+    { interval: 24, unit: "hours", message: "", mode: "ai" },
+  ],
+  followUpAllowedHoursStart: "08:00",
+  followUpAllowedHoursEnd: "20:00",
+  followUpAllowedDays: ["mon", "tue", "wed", "thu", "fri"],
+  followUpModel: "google/gemini-2.5-flash-lite",
+  followUpTemperature: 0.8,
+  followUpClosingMessage: "",
+  followUpStopOnHumanAssign: true,
   endMessage: "",
   markResolved: true,
 };
+
+function getTotalCycleTime(steps: FollowUpStep[]): string {
+  let totalMinutes = 0;
+  for (const s of steps) {
+    if (s.unit === "minutes") totalMinutes += s.interval;
+    else if (s.unit === "hours") totalMinutes += s.interval * 60;
+    else if (s.unit === "days") totalMinutes += s.interval * 1440;
+  }
+  if (totalMinutes < 60) return `${totalMinutes}min`;
+  if (totalMinutes < 1440) return `${Math.floor(totalMinutes / 60)}h${totalMinutes % 60 > 0 ? `${totalMinutes % 60}min` : ""}`;
+  const days = Math.floor(totalMinutes / 1440);
+  const remainHours = Math.floor((totalMinutes % 1440) / 60);
+  return `${days}d${remainHours > 0 ? `${remainHours}h` : ""}`;
+}
 
 interface AgentConfigPanelProps {
   flowId: string;
@@ -442,9 +486,14 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                 <div className="flex items-center gap-2">
                   <RotateCcw className="w-4 h-4 text-amber-500" />
                   <span className="font-medium">Follow-up Automático</span>
+                  {config.followUpEnabled && (
+                    <Badge variant="secondary" className="ml-2 text-[10px]">
+                      {config.followUpStepConfigs.length} etapa{config.followUpStepConfigs.length > 1 ? "s" : ""} · {getTotalCycleTime(config.followUpStepConfigs)}
+                    </Badge>
+                  )}
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              <AccordionContent className="space-y-5 pb-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Habilitar follow-up</Label>
@@ -459,75 +508,264 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                 </div>
                 {config.followUpEnabled && (
                   <>
-                    <div className="space-y-2">
-                      <Label>Número de etapas (1-5)</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={config.followUpSteps}
-                        onChange={(e) => {
-                          const steps = Math.max(1, Math.min(5, parseInt(e.target.value) || 3));
-                          const msgs = [...config.followUpMessages];
-                          while (msgs.length < steps) msgs.push("");
-                          updateConfig({ followUpSteps: steps, followUpMessages: msgs.slice(0, steps) });
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Intervalo entre etapas (minutos)</Label>
-                      <Input
-                        type="number"
-                        min={5}
-                        value={config.followUpIntervalMinutes}
-                        onChange={(e) => updateConfig({ followUpIntervalMinutes: Math.max(5, parseInt(e.target.value) || 60) })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {config.followUpIntervalMinutes >= 60
-                          ? `${Math.floor(config.followUpIntervalMinutes / 60)}h${config.followUpIntervalMinutes % 60 > 0 ? ` ${config.followUpIntervalMinutes % 60}min` : ""}`
-                          : `${config.followUpIntervalMinutes} minutos`}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Modo da mensagem</Label>
-                      <Select value={config.followUpMode} onValueChange={(v) => updateConfig({ followUpMode: v as "ai" | "fixed" })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ai">IA gera automaticamente</SelectItem>
-                          <SelectItem value="fixed">Mensagens fixas</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {config.followUpMode === "ai" ? (
-                      <div className="space-y-2">
-                        <Label>Prompt para a IA</Label>
-                        <Textarea
-                          value={config.followUpPrompt}
-                          onChange={(e) => updateConfig({ followUpPrompt: e.target.value })}
-                          placeholder="Ex: Gere uma mensagem amigável de acompanhamento..."
-                          rows={3}
-                        />
+                    {/* ── Etapas individuais ── */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          Etapas do Follow-up
+                        </Label>
+                        {config.followUpStepConfigs.length < 5 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newSteps = [...config.followUpStepConfigs, { interval: 1, unit: "hours" as const, message: "", mode: "ai" as const }];
+                              updateConfig({
+                                followUpStepConfigs: newSteps,
+                                followUpSteps: newSteps.length,
+                                followUpMessages: newSteps.map((s) => s.message),
+                              });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Etapa
+                          </Button>
+                        )}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Label>Mensagens por etapa</Label>
-                        {Array.from({ length: config.followUpSteps }).map((_, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Etapa {idx + 1}</Label>
-                            <Textarea
-                              value={config.followUpMessages[idx] || ""}
-                              onChange={(e) => {
-                                const msgs = [...config.followUpMessages];
-                                msgs[idx] = e.target.value;
-                                updateConfig({ followUpMessages: msgs });
+
+                      {config.followUpStepConfigs.map((step, idx) => (
+                        <div key={idx} className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-foreground">Etapa {idx + 1}</span>
+                            {config.followUpStepConfigs.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive"
+                                onClick={() => {
+                                  const newSteps = config.followUpStepConfigs.filter((_, i) => i !== idx);
+                                  updateConfig({
+                                    followUpStepConfigs: newSteps,
+                                    followUpSteps: newSteps.length,
+                                    followUpMessages: newSteps.map((s) => s.message),
+                                  });
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Intervalo</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={step.interval}
+                                onChange={(e) => {
+                                  const newSteps = [...config.followUpStepConfigs];
+                                  newSteps[idx] = { ...newSteps[idx], interval: Math.max(1, parseInt(e.target.value) || 1) };
+                                  updateConfig({ followUpStepConfigs: newSteps });
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Unidade</Label>
+                              <Select
+                                value={step.unit}
+                                onValueChange={(v) => {
+                                  const newSteps = [...config.followUpStepConfigs];
+                                  newSteps[idx] = { ...newSteps[idx], unit: v as "minutes" | "hours" | "days" };
+                                  updateConfig({ followUpStepConfigs: newSteps });
+                                }}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="minutes">Minutos</SelectItem>
+                                  <SelectItem value="hours">Horas</SelectItem>
+                                  <SelectItem value="days">Dias</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Tipo da mensagem</Label>
+                            <Select
+                              value={step.mode}
+                              onValueChange={(v) => {
+                                const newSteps = [...config.followUpStepConfigs];
+                                newSteps[idx] = { ...newSteps[idx], mode: v as "ai" | "fixed" };
+                                updateConfig({ followUpStepConfigs: newSteps });
                               }}
-                              placeholder={`Mensagem da etapa ${idx + 1}...`}
-                              rows={2}
-                            />
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ai">🤖 IA gera automaticamente</SelectItem>
+                                <SelectItem value="fixed">📝 Mensagem fixa</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {step.mode === "fixed" && (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Mensagem</Label>
+                              <Textarea
+                                value={step.message}
+                                onChange={(e) => {
+                                  const newSteps = [...config.followUpStepConfigs];
+                                  newSteps[idx] = { ...newSteps[idx], message: e.target.value };
+                                  updateConfig({
+                                    followUpStepConfigs: newSteps,
+                                    followUpMessages: newSteps.map((s) => s.message),
+                                  });
+                                }}
+                                placeholder={`Mensagem da etapa ${idx + 1}...`}
+                                rows={2}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Timeline preview ── */}
+                    <div className="border border-border rounded-lg p-4 bg-muted/20">
+                      <Label className="text-xs text-muted-foreground mb-3 block">Preview da timeline</Label>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="w-2 h-2 rounded-full bg-accent" />
+                          Início
+                        </div>
+                        {config.followUpStepConfigs.map((step, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <div className="w-8 h-px bg-border" />
+                            <div className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium whitespace-nowrap">
+                              {step.interval}{step.unit === "minutes" ? "min" : step.unit === "hours" ? "h" : "d"} → {step.mode === "ai" ? "🤖" : "📝"} #{idx + 1}
+                            </div>
                           </div>
                         ))}
+                        <div className="w-8 h-px bg-border" />
+                        <div className="text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground font-medium">
+                          {config.followUpFinalAction === "close" ? "🔒 Encerrar" : config.followUpFinalAction === "transfer" ? "↗️ Transferir" : "⏹ Fim"}
+                        </div>
                       </div>
-                    )}
+                    </div>
+
+                    {/* ── Prompt IA ── */}
+                    <div className="space-y-2">
+                      <Label>Prompt para IA (usado nas etapas com modo IA)</Label>
+                      <Textarea
+                        value={config.followUpPrompt}
+                        onChange={(e) => updateConfig({ followUpPrompt: e.target.value })}
+                        placeholder="Ex: Gere uma mensagem amigável de acompanhamento..."
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* ── Janela de horário ── */}
+                    <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/20">
+                      <Label className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        Janela de envio
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Horário início</Label>
+                          <Input
+                            type="time"
+                            value={config.followUpAllowedHoursStart}
+                            onChange={(e) => updateConfig({ followUpAllowedHoursStart: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Horário fim</Label>
+                          <Input
+                            type="time"
+                            value={config.followUpAllowedHoursEnd}
+                            onChange={(e) => updateConfig({ followUpAllowedHoursEnd: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Dias permitidos</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { key: "mon", label: "Seg" },
+                            { key: "tue", label: "Ter" },
+                            { key: "wed", label: "Qua" },
+                            { key: "thu", label: "Qui" },
+                            { key: "fri", label: "Sex" },
+                            { key: "sat", label: "Sáb" },
+                            { key: "sun", label: "Dom" },
+                          ].map((day) => (
+                            <label key={day.key} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                              <Checkbox
+                                checked={config.followUpAllowedDays.includes(day.key)}
+                                onCheckedChange={(checked) => {
+                                  const newDays = checked
+                                    ? [...config.followUpAllowedDays, day.key]
+                                    : config.followUpAllowedDays.filter((d) => d !== day.key);
+                                  updateConfig({ followUpAllowedDays: newDays });
+                                }}
+                              />
+                              {day.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Modelo IA do Follow-up ── */}
+                    <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/20">
+                      <Label className="flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-muted-foreground" />
+                        IA do Follow-up
+                      </Label>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Modelo (separado do agente principal)</Label>
+                        <Select value={config.followUpModel} onValueChange={(v) => updateConfig({ followUpModel: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="google/gemini-2.5-flash-lite">Gemini Flash Lite (mais rápido/barato)</SelectItem>
+                            <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                            <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                            <SelectItem value="openai/gpt-5-nano">GPT-5 Nano</SelectItem>
+                            <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs flex items-center gap-1">
+                          <Thermometer className="w-3 h-3" />
+                          Temperatura: {config.followUpTemperature}
+                        </Label>
+                        <Slider
+                          value={[config.followUpTemperature]}
+                          onValueChange={([v]) => updateConfig({ followUpTemperature: v })}
+                          min={0}
+                          max={1}
+                          step={0.1}
+                        />
+                      </div>
+                    </div>
+
+                    {/* ── Condições de parada ── */}
+                    <div className="space-y-3">
+                      <Label>Condições de parada</Label>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-muted-foreground">✅ Contato respondeu (sempre ativo)</p>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={config.followUpStopOnHumanAssign}
+                            onCheckedChange={(v) => updateConfig({ followUpStopOnHumanAssign: !!v })}
+                          />
+                          Parar se conversa for atribuída a um humano
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* ── Ação final ── */}
                     <div className="space-y-2">
                       <Label>Ação após último follow-up</Label>
                       <Select value={config.followUpFinalAction} onValueChange={(v) => updateConfig({ followUpFinalAction: v as "none" | "close" | "transfer" })}>
@@ -551,6 +789,17 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                    )}
+                    {config.followUpFinalAction === "close" && (
+                      <div className="space-y-2">
+                        <Label>Mensagem de encerramento do follow-up</Label>
+                        <Textarea
+                          value={config.followUpClosingMessage}
+                          onChange={(e) => updateConfig({ followUpClosingMessage: e.target.value })}
+                          placeholder="Ex: Como não obtivemos resposta, vou encerrar este atendimento. Fique à vontade para nos chamar novamente!"
+                          rows={3}
+                        />
                       </div>
                     )}
                   </>

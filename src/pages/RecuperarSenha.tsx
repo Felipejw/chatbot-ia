@@ -22,7 +22,7 @@ export default function RecuperarSenha() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  const platformName = getSetting("platform_name") || "TalkFlow";
+  const platformName = getSetting("platform_name") || "WhatzApp IA";
   const platformLogo = getSetting("platform_logo");
 
   const form = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { email: "" } });

@@ -18,7 +18,7 @@ interface BrandingSettings {
 }
 
 const DEFAULT_BRANDING: BrandingSettings = {
-  platform_name: "TalkFlow",
+  platform_name: "WhatzApp IA",
   platform_logo_url: "",
   primary_color: "#3B82F6",
   secondary_color: "#10B981",

@@ -133,7 +133,7 @@ export function ApiKeysTab() {
               <Key className="w-5 h-5" /> Chaves de API
             </CardTitle>
             <CardDescription>
-              Gerencie as chaves para acesso externo à API do TalkFlow
+              Gerencie as chaves para acesso externo à API do WhatzApp IA
             </CardDescription>
           </div>
           <Button onClick={() => setShowCreateDialog(true)}>
