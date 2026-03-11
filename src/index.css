@@ -6,117 +6,118 @@
 
 @layer base {
   :root {
-    --background: 200 25% 98%;
-    --foreground: 200 50% 10%;
+    /* Background — azul-gelo */
+    --background: 210 33% 96%;
+    --foreground: 215 50% 12%;
 
+    /* Cards — branco puro */
     --card: 0 0% 100%;
-    --card-foreground: 200 50% 10%;
+    --card-foreground: 215 50% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 50% 10%;
+    --popover-foreground: 215 50% 12%;
 
-    --primary: 199 89% 48%;
+    /* Primary — Azul vibrante #2B7FFF */
+    --primary: 217 100% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 20% 94%;
-    --secondary-foreground: 200 50% 15%;
+    /* Secondary */
+    --secondary: 214 25% 93%;
+    --secondary-foreground: 215 40% 20%;
 
-    --muted: 200 20% 96%;
-    --muted-foreground: 200 15% 45%;
+    /* Muted */
+    --muted: 214 25% 94%;
+    --muted-foreground: 215 15% 48%;
 
-    --accent: 160 84% 39%;
+    /* Accent — Verde WhatsApp #25D366 */
+    --accent: 145 69% 49%;
     --accent-foreground: 0 0% 100%;
 
+    /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 84% 39%;
+    /* Success — Verde WhatsApp */
+    --success: 145 69% 49%;
     --success-foreground: 0 0% 100%;
 
+    /* Warning */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 199 89% 48%;
+    /* Info — Primary */
+    --info: 217 100% 58%;
     --info-foreground: 0 0% 100%;
 
-    --border: 200 25% 88%;
-    --input: 200 25% 88%;
-    --ring: 199 89% 48%;
+    /* Border / Input */
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 217 100% 58%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    /* Sidebar - Azul escuro */
-    --sidebar-background: 200 50% 12%;
-    --sidebar-foreground: 200 15% 95%;
-    --sidebar-primary: 199 89% 55%;
+    /* Sidebar — Navy #0A1628 */
+    --sidebar-background: 218 55% 10%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 217 100% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 50% 18%;
-    --sidebar-accent-foreground: 200 15% 98%;
-    --sidebar-border: 200 40% 20%;
-    --sidebar-ring: 199 89% 48%;
-    --sidebar-muted: 200 15% 60%;
+    --sidebar-accent: 218 45% 16%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 218 40% 18%;
+    --sidebar-ring: 217 100% 58%;
+    --sidebar-muted: 215 15% 55%;
 
-    /* Chat - Verde para mensagens enviadas */
-    --chat-incoming: 200 20% 95%;
-    --chat-outgoing: 160 60% 92%;
-    --chat-bubble-foreground: 200 50% 10%;
+    /* Chat */
+    --chat-incoming: 214 25% 94%;
+    --chat-outgoing: 145 45% 90%;
+    --chat-bubble-foreground: 215 50% 12%;
 
     /* Status */
-    --status-online: 160 84% 39%;
+    --status-online: 145 69% 49%;
     --status-away: 38 92% 50%;
-    --status-offline: 200 10% 60%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(199 89% 38%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(160 84% 39%) 0%, hsl(160 84% 30%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(200 50% 12%) 0%, hsl(200 50% 8%) 100%);
-
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(200 50% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(200 50% 10% / 0.1), 0 2px 4px -2px hsl(200 50% 10% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(200 50% 10% / 0.1), 0 4px 6px -4px hsl(200 50% 10% / 0.1);
-    --shadow-glow: 0 0 20px hsl(199 89% 48% / 0.3);
+    --status-offline: 215 10% 60%;
   }
 
   .dark {
-    --background: 200 30% 8%;
-    --foreground: 200 15% 95%;
+    --background: 220 40% 7%;
+    --foreground: 210 20% 95%;
 
-    --card: 200 30% 10%;
-    --card-foreground: 200 15% 95%;
+    --card: 220 35% 11%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 200 30% 10%;
-    --popover-foreground: 200 15% 95%;
+    --popover: 220 35% 11%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 199 89% 55%;
+    --primary: 217 100% 67%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 25% 15%;
-    --secondary-foreground: 200 15% 90%;
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 15% 88%;
 
-    --muted: 200 25% 15%;
-    --muted-foreground: 200 15% 60%;
+    --muted: 220 30% 16%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 160 70% 45%;
+    --accent: 145 65% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 70% 45%;
+    --success: 145 65% 52%;
     --success-foreground: 0 0% 100%;
 
-    --border: 200 25% 18%;
-    --input: 200 25% 18%;
-    --ring: 199 89% 55%;
+    --border: 220 25% 18%;
+    --input: 220 25% 18%;
+    --ring: 217 100% 67%;
 
-    --sidebar-background: 200 40% 6%;
-    --sidebar-foreground: 200 15% 95%;
-    --sidebar-accent: 200 35% 12%;
-    --sidebar-border: 200 30% 15%;
+    --sidebar-background: 222 45% 5%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-accent: 220 35% 12%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-muted: 215 15% 50%;
 
-    --chat-incoming: 200 30% 15%;
-    --chat-outgoing: 160 30% 18%;
+    --chat-incoming: 220 30% 16%;
+    --chat-outgoing: 145 25% 18%;
   }
 }
 
@@ -137,23 +138,36 @@
 
 @layer components {
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground transition-all duration-200 relative;
+  }
+
+  .sidebar-link:hover {
+    background: hsl(var(--sidebar-accent) / 0.6);
   }
 
   .sidebar-link-active {
-    @apply bg-sidebar-accent text-sidebar-foreground;
+    @apply text-sidebar-foreground font-medium;
+    background: hsl(var(--sidebar-accent));
+    box-shadow: inset 3px 0 0 hsl(var(--sidebar-primary));
   }
 
   .card-stats {
-    @apply bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+    @apply bg-card rounded-2xl border border-border p-6 transition-all duration-300;
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04);
+  }
+
+  .card-stats:hover {
+    box-shadow: 0 8px 25px hsl(var(--primary) / 0.12);
+    transform: translateY(-2px);
   }
 
   .conversation-item {
-    @apply flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted;
+    @apply flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted;
   }
 
   .conversation-item-active {
-    @apply bg-primary/10 border-l-4 border-primary;
+    @apply bg-primary/10;
+    box-shadow: inset 3px 0 0 hsl(var(--primary));
   }
 
   .chat-bubble-incoming {
@@ -169,15 +183,21 @@
   }
 
   .kanban-column {
-    @apply bg-muted/50 rounded-xl p-4 min-h-[500px];
+    @apply bg-muted/50 rounded-2xl p-4 min-h-[500px];
   }
 
   .kanban-card {
-    @apply bg-card rounded-lg border border-border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer;
+    @apply bg-card rounded-xl border border-border p-4 transition-all duration-200 cursor-pointer;
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04);
+  }
+
+  .kanban-card:hover {
+    box-shadow: 0 4px 12px hsl(var(--foreground) / 0.08);
+    transform: translateY(-1px);
   }
 
   .table-container {
-    @apply bg-card rounded-xl border border-border overflow-hidden;
+    @apply bg-card rounded-2xl border border-border overflow-hidden;
   }
 
   .input-search {
@@ -185,17 +205,21 @@
   }
 
   .btn-action {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200;
   }
 
   .floating-action-btn {
     @apply fixed bottom-6 right-6 w-14 h-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center;
   }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl;
+  }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.4s ease-out;
   }
 
   .animate-slide-in {
@@ -206,40 +230,37 @@
     animation: scaleIn 0.2s ease-out;
   }
 
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
   }
 
   @keyframes slideIn {
-    from { 
-      opacity: 0; 
-      transform: translateX(-10px); 
-    }
-    to { 
-      opacity: 1; 
-      transform: translateX(0); 
-    }
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
   @keyframes scaleIn {
-    from { 
-      opacity: 0; 
-      transform: scale(0.95); 
-    }
-    to { 
-      opacity: 1; 
-      transform: scale(1); 
-    }
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -247,7 +268,7 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
+    background-color: hsl(var(--muted-foreground) / 0.2);
     border-radius: 3px;
   }
 }
