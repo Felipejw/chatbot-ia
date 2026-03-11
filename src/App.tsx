@@ -23,6 +23,7 @@ const Tags = lazy(() => import("./pages/Tags"));
 const Campanhas = lazy(() => import("./pages/Campanhas"));
 const Chatbot = lazy(() => import("./pages/Chatbot"));
 const FilasChatbot = lazy(() => import("./pages/FilasChatbot"));
+const FollowUp = lazy(() => import("./pages/FollowUp"));
 const Integracoes = lazy(() => import("./pages/Integracoes"));
 const Conexoes = lazy(() => import("./pages/Conexoes"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
