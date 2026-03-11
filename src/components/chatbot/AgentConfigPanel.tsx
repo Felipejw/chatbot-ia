@@ -608,6 +608,59 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
                 {config.aiEnabled && (
                   <>
+                    {/* Agent Profile Selector */}
+                    <FieldCard>
+                      <FieldLabel icon={Sparkles} description="Escolha um perfil para pré-configurar prompt, modelo e temperatura automaticamente (opcional)">
+                        Perfil do Agente
+                      </FieldLabel>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                        {AGENT_PROFILES.map((profile) => {
+                          const isSelected = (config.agentProfile || "custom") === profile.key;
+                          const ProfileIcon = profile.icon;
+                          return (
+                            <button
+                              key={profile.key}
+                              type="button"
+                              onClick={() => {
+                                if (profile.key === "custom") {
+                                  updateConfig({ agentProfile: "custom" });
+                                } else {
+                                  updateConfig({
+                                    agentProfile: profile.key,
+                                    model: profile.model,
+                                    temperature: profile.temperature,
+                                    systemPrompt: profile.systemPrompt,
+                                  });
+                                }
+                              }}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-left hover:shadow-md ${
+                                isSelected
+                                  ? `${profile.color} border-current shadow-sm`
+                                  : "border-border/50 bg-card hover:border-border"
+                              }`}
+                            >
+                              {profile.recommended && (
+                                <Badge className="absolute -top-2 -right-2 text-[9px] px-1.5 py-0 bg-warning text-warning-foreground shadow-sm">
+                                  Popular
+                                </Badge>
+                              )}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                isSelected ? profile.color : "bg-muted"
+                              } transition-colors`}>
+                                <ProfileIcon className="w-5 h-5" />
+                              </div>
+                              <div className="text-center">
+                                <span className="text-xs font-semibold block leading-tight">{profile.label}</span>
+                                <span className="text-[10px] text-muted-foreground leading-tight mt-0.5 block line-clamp-2">
+                                  {profile.description}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </FieldCard>
+
                     <FieldCard>
                       <div className="space-y-2">
                         <FieldLabel icon={Brain} description="Escolha o modelo de IA que melhor se adapta ao seu uso">
