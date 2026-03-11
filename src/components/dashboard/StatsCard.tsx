@@ -1,3 +1,4 @@
+import * as React from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,37 +11,33 @@ interface StatsCardProps {
   iconColor?: string;
 }
 
-export function StatsCard({
-  title,
-  value,
-  change,
-  changeType = "neutral",
-  icon: Icon,
-  iconColor = "bg-primary/10 text-primary",
-}: StatsCardProps) {
-  return (
-    <div className="card-stats animate-slide-up">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold text-foreground">{value}</p>
-          {change && (
-            <p
-              className={cn(
-                "text-sm font-medium",
-                changeType === "positive" && "text-success",
-                changeType === "negative" && "text-destructive",
-                changeType === "neutral" && "text-muted-foreground"
-              )}
-            >
-              {change}
-            </p>
-          )}
-        </div>
-        <div className={cn("p-3 rounded-xl", iconColor)}>
-          <Icon className="w-6 h-6" />
+export const StatsCard = React.forwardRef<HTMLDivElement, StatsCardProps>(
+  ({ title, value, change, changeType = "neutral", icon: Icon, iconColor = "bg-primary/10 text-primary" }, ref) => {
+    return (
+      <div ref={ref} className="card-stats animate-slide-up">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-foreground">{value}</p>
+            {change && (
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  changeType === "positive" && "text-success",
+                  changeType === "negative" && "text-destructive",
+                  changeType === "neutral" && "text-muted-foreground"
+                )}
+              >
+                {change}
+              </p>
+            )}
+          </div>
+          <div className={cn("p-3 rounded-xl", iconColor)}>
+            <Icon className="w-6 h-6" />
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+);
+StatsCard.displayName = "StatsCard";
