@@ -1204,6 +1204,9 @@ const handler = async (req: Request): Promise<Response> => {
         await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
+        // Auto-tag conversation based on AI interaction
+        autoTagConversation(supabase, conversationId, message, aiResponse).catch(() => {});
+
         // Cancel existing pending follow-ups and schedule new one if enabled
         await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
 
