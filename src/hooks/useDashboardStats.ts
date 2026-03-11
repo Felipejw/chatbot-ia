@@ -71,8 +71,7 @@ export function useRecentConversations(limit = 5) {
         .from('conversations')
         .select(`
           *,
-          contact:contacts (id, name, email, phone, avatar_url, whatsapp_lid, name_source),
-          assignee:profiles!conversations_assigned_to_fkey (id, name, avatar_url)
+          contact:contacts (id, name, email, phone, avatar_url, whatsapp_lid, name_source)
         `)
         .order('last_message_at', { ascending: false })
         .limit(limit);
