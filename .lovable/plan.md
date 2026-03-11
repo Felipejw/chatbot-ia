@@ -1,33 +1,50 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Plano: Follow-up Completo + Renomear Sistema para "WhatzApp IA"
 
-## Causa Raiz
+## 1. Renomear sistema de "TalkFlow" para "WhatzApp IA"
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+Trocar todas as referências ao nome antigo:
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+- **`index.html`** — title, meta tags og:title, author
+- **`src/pages/Login.tsx`** — fallback `"TalkFlow"` → `"WhatzApp IA"`
+- **`src/pages/RecuperarSenha.tsx`** — mesmo fallback
+- **`src/pages/NotFound.tsx`** — mesmo fallback
+- **`src/pages/ApiDocs.tsx`** — textos de documentação
+- **`src/components/layout/AppSidebar.tsx`** — fallback do platformName
+- **`src/components/layout/AppLayout.tsx`** — fallback do platformName
+- **`src/hooks/useApplyBranding.ts`** — DEFAULT_BRANDING.platform_name
+- **`src/components/configuracoes/ApiKeysTab.tsx`** — texto da descrição
+- **Migração SQL** — UPDATE system_settings SET value = 'WhatzApp IA' WHERE key = 'platform_name'
 
-## Plano
+## 2. Expandir configuração de Follow-up no AgentConfigPanel
 
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
-```
+Transformar a seção de Follow-up de básica para extremamente completa, adicionando:
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+### Novos campos de configuração
+- **Intervalo por etapa individual** — ao invés de um intervalo único, permitir configurar intervalo diferente para cada etapa (ex: etapa 1 = 30min, etapa 2 = 2h, etapa 3 = 24h)
+- **Unidade de tempo selecionável** — select de minutos/horas/dias ao lado do input de intervalo
+- **Horário permitido para envio** — início e fim (ex: 08:00 às 20:00), para não enviar follow-ups de madrugada
+- **Dias da semana permitidos** — checkboxes seg-dom
+- **Mensagem de encerramento** — mensagem final quando todos os follow-ups acabam e a ação é "encerrar"
+- **Preview da timeline** — visualização gráfica das etapas mostrando quando cada follow-up será enviado
+- **Condição de parada** — além de "contato respondeu", opção de parar se conversa foi atribuída a humano
+- **Modelo de IA específico para follow-up** — select de modelo separado do agente principal (para usar modelo mais barato)
+- **Temperatura da IA do follow-up** — controle separado
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+### Interface expandida
+- Cada etapa vira um card individual com: número, intervalo próprio, mensagem (fixa) ou indicação (IA), preview
+- Botão de adicionar/remover etapa dinâmico
+- Badge mostrando tempo total do ciclo de follow-up
+- Indicadores visuais de status por etapa na timeline
 
 ### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+- **`src/components/chatbot/AgentConfigPanel.tsx`** — seção Follow-up completamente refeita
+- **`src/hooks/useFollowUps.ts`** — atualizar interface para novos campos
+- **`supabase/functions/process-follow-ups/index.ts`** — suportar intervalos por etapa, horários permitidos, dias da semana
+- **Migração SQL** — adicionar colunas `allowed_hours_start`, `allowed_hours_end`, `allowed_days`, `follow_up_model`, `follow_up_temperature`, `closing_message`, `step_intervals` na tabela follow_ups
+
+### Arquivos para renomear sistema (10 arquivos)
+- `index.html`, `src/pages/Login.tsx`, `src/pages/RecuperarSenha.tsx`, `src/pages/NotFound.tsx`, `src/pages/ApiDocs.tsx`, `src/components/layout/AppSidebar.tsx`, `src/components/layout/AppLayout.tsx`, `src/hooks/useApplyBranding.ts`, `src/components/configuracoes/ApiKeysTab.tsx`
+- 1 migração SQL para atualizar o valor no banco
 
