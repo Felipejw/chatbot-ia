@@ -1,31 +1,33 @@
 
 
-# Simplificar campos técnicos da tab IA para leigos
+# Corrigir Bug "Acesso Negado" ao Logar
 
-## Mudanças em `src/components/chatbot/AgentConfigPanel.tsx`
+## Causa Raiz
 
-### 1. Temperatura → "Nível de Criatividade"
-- Renomear label para **"Criatividade das respostas"**
-- Trocar o slider por 3 opções visuais (cards clicáveis) ao invés de um número decimal:
-  - **Preciso** (0.3) — "Respostas objetivas e consistentes"
-  - **Equilibrado** (0.6) — "Mistura de precisão e naturalidade"
-  - **Criativo** (0.9) — "Respostas mais humanas e variadas"
-- Manter o slider abaixo como opção avançada colapsável ("Ajuste fino") para quem quiser controle manual
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-### 2. Máximo de tokens → "Tamanho das respostas"
-- Renomear label para **"Tamanho máximo das respostas"**
-- Trocar o input numérico por 3 opções visuais:
-  - **Curta** (250) — "Respostas diretas, 1-2 frases"
-  - **Média** (500) — "Respostas completas, 3-5 frases"
-  - **Longa** (1000) — "Respostas detalhadas e explicativas"
-- Opção "Personalizado" que exibe o input numérico caso o usuário queira controle total
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-### 3. Prompt do sistema → Área expandida
-- Aumentar o `rows` do Textarea de 5 para **12**
-- Adicionar botão **"Expandir"** que abre um Dialog/modal com o Textarea em tela quase cheia (mais confortável para prompts longos)
-- Adicionar contador de caracteres no canto inferior direito
-- Placeholder mais orientador: "Descreva como a IA deve se comportar, o tom de voz, regras específicas..."
+## Plano
 
-### Arquivo alterado
-- `src/components/chatbot/AgentConfigPanel.tsx` — apenas refatoração visual dos 3 campos acima
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
+```sql
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```
+
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
+```typescript
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+```
+
+### Arquivos alterados
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 

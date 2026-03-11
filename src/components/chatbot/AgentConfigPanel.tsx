@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, ShoppingCart, Headphones, CalendarCheck, Target, UserCheck, Pencil, Sparkles } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, ShoppingCart, Headphones, CalendarCheck, Target, UserCheck, Pencil, Sparkles, Expand, ChevronDown, Crosshair, Scale, Lightbulb, AlignLeft, AlignCenter, AlignJustify } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
@@ -682,46 +684,146 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
                     <FieldCard>
                       <div className="space-y-2">
-                        <FieldLabel description="Instruções que definem a personalidade e comportamento da IA">
-                          Prompt do sistema
-                        </FieldLabel>
+                        <div className="flex items-center justify-between">
+                          <FieldLabel description="Instruções que definem a personalidade e comportamento da IA">
+                            Prompt do sistema
+                          </FieldLabel>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                                <Expand className="w-3.5 h-3.5" />
+                                Expandir
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                              <DialogHeader>
+                                <DialogTitle>Prompt do sistema</DialogTitle>
+                              </DialogHeader>
+                              <Textarea
+                                value={config.systemPrompt}
+                                onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
+                                placeholder="Descreva como a IA deve se comportar, o tom de voz, regras específicas..."
+                                className="flex-1 font-mono text-sm resize-none"
+                              />
+                              <div className="text-xs text-muted-foreground text-right">
+                                {config.systemPrompt.length} caracteres
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                         <Textarea
                           value={config.systemPrompt}
                           onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
-                          placeholder="Instruções para a IA..."
-                          rows={5}
+                          placeholder="Descreva como a IA deve se comportar, o tom de voz, regras específicas..."
+                          rows={12}
                           className="font-mono text-sm"
                         />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {config.systemPrompt.length} caracteres
+                        </div>
                       </div>
                     </FieldCard>
 
                     <FieldCard>
                       <div className="space-y-3">
-                        <FieldLabel icon={Thermometer} description="Menor = mais preciso e consistente · Maior = mais criativo e variado">
-                          Temperatura: {config.temperature}
+                        <FieldLabel icon={Sparkles} description="Define o quão criativas e variadas serão as respostas da IA">
+                          Criatividade das respostas
                         </FieldLabel>
-                        <Slider
-                          value={[config.temperature]}
-                          onValueChange={([v]) => updateConfig({ temperature: v })}
-                          min={0}
-                          max={1}
-                          step={0.1}
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground">
-                          <span>Preciso</span>
-                          <span>Criativo</span>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { label: "Preciso", value: 0.3, desc: "Objetivo e consistente", icon: Crosshair, color: "bg-info/15 text-info border-info/30" },
+                            { label: "Equilibrado", value: 0.6, desc: "Natural e equilibrado", icon: Scale, color: "bg-accent/15 text-accent border-accent/30" },
+                            { label: "Criativo", value: 0.9, desc: "Humano e variado", icon: Lightbulb, color: "bg-warning/15 text-warning border-warning/30" },
+                          ].map((preset) => {
+                            const isSelected = Math.abs(config.temperature - preset.value) < 0.05;
+                            const PresetIcon = preset.icon;
+                            return (
+                              <button
+                                key={preset.value}
+                                type="button"
+                                onClick={() => updateConfig({ temperature: preset.value })}
+                                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
+                                  isSelected
+                                    ? `${preset.color} border-current shadow-sm`
+                                    : "border-border/50 bg-card hover:border-border"
+                                }`}
+                              >
+                                <PresetIcon className="w-5 h-5" />
+                                <span className="text-xs font-semibold">{preset.label}</span>
+                                <span className="text-[10px] text-muted-foreground leading-tight">{preset.desc}</span>
+                              </button>
+                            );
+                          })}
                         </div>
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                              <ChevronDown className="w-3.5 h-3.5" />
+                              Ajuste fino ({config.temperature})
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="pt-3">
+                            <Slider
+                              value={[config.temperature]}
+                              onValueChange={([v]) => updateConfig({ temperature: v })}
+                              min={0}
+                              max={1}
+                              step={0.1}
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>0 — Preciso</span>
+                              <span>1 — Criativo</span>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </div>
-                      <div className="space-y-2">
-                        <FieldLabel description="Limite de tokens por resposta gerada">
-                          Máximo de tokens
+                    </FieldCard>
+
+                    <FieldCard>
+                      <div className="space-y-3">
+                        <FieldLabel description="Define o tamanho máximo que cada resposta da IA pode ter">
+                          Tamanho máximo das respostas
                         </FieldLabel>
-                        <Input
-                          type="number"
-                          value={config.maxTokens}
-                          onChange={(e) => updateConfig({ maxTokens: parseInt(e.target.value) || 500 })}
-                          className="h-11"
-                        />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[
+                            { label: "Curta", value: 250, desc: "1-2 frases diretas", icon: AlignLeft },
+                            { label: "Média", value: 500, desc: "3-5 frases completas", icon: AlignCenter },
+                            { label: "Longa", value: 1000, desc: "Detalhada e explicativa", icon: AlignJustify },
+                            { label: "Personalizado", value: -1, desc: "Defina manualmente", icon: Pencil },
+                          ].map((preset) => {
+                            const isSelected = preset.value === -1
+                              ? ![250, 500, 1000].includes(config.maxTokens)
+                              : config.maxTokens === preset.value;
+                            const PresetIcon = preset.icon;
+                            return (
+                              <button
+                                key={preset.label}
+                                type="button"
+                                onClick={() => {
+                                  if (preset.value !== -1) updateConfig({ maxTokens: preset.value });
+                                }}
+                                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
+                                  isSelected
+                                    ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
+                                    : "border-border/50 bg-card hover:border-border"
+                                }`}
+                              >
+                                <PresetIcon className="w-4 h-4" />
+                                <span className="text-xs font-semibold">{preset.label}</span>
+                                <span className="text-[10px] text-muted-foreground leading-tight">{preset.desc}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {![250, 500, 1000].includes(config.maxTokens) && (
+                          <Input
+                            type="number"
+                            value={config.maxTokens}
+                            onChange={(e) => updateConfig({ maxTokens: parseInt(e.target.value) || 500 })}
+                            className="h-11"
+                            placeholder="Ex: 750"
+                          />
+                        )}
                       </div>
                     </FieldCard>
 
