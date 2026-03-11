@@ -39,6 +39,7 @@ export default function FollowUp() {
   return (
     <div className="flex-1 p-6 space-y-6 overflow-auto">
       <PageHeader
+        icon={TrendingUp}
         title="Follow-up"
         description="Métricas e acompanhamento dos follow-ups automáticos"
       />

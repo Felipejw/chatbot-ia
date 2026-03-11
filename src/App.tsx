@@ -70,6 +70,7 @@ const App = () => (
                 <Route path="/tags" element={<ProtectedRoute module="tags"><Tags /></ProtectedRoute>} />
                 <Route path="/campanhas" element={<ProtectedRoute module="campanhas"><Campanhas /></ProtectedRoute>} />
                 <Route path="/chatbot" element={<ProtectedRoute module="chatbot"><Chatbot /></ProtectedRoute>} />
+                <Route path="/follow-up" element={<ProtectedRoute module="chatbot"><FollowUp /></ProtectedRoute>} />
                 <Route path="/filas-chatbot" element={<ProtectedRoute module="setores"><FilasChatbot /></ProtectedRoute>} />
                 <Route path="/integracoes" element={<ProtectedRoute module="integracoes"><Integracoes /></ProtectedRoute>} />
                 <Route path="/conexoes" element={<ProtectedRoute module="conexoes"><Conexoes /></ProtectedRoute>} />

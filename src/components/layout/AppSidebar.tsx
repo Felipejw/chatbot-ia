@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
   { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
   { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
+  { title: "Follow-up", href: "/follow-up", icon: RotateCcw, module: "chatbot" },
   { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
   { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
   { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
