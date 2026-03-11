@@ -28,6 +28,13 @@ import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface FollowUpStep {
+  interval: number;
+  unit: "minutes" | "hours" | "days";
+  message: string;
+  mode: "ai" | "fixed";
+}
+
 interface AgentConfig {
   // Trigger
   triggerType: string;
@@ -56,6 +63,15 @@ interface AgentConfig {
   followUpPrompt: string;
   followUpFinalAction: "none" | "close" | "transfer";
   followUpTransferQueueId: string;
+  // Follow-up advanced
+  followUpStepConfigs: FollowUpStep[];
+  followUpAllowedHoursStart: string;
+  followUpAllowedHoursEnd: string;
+  followUpAllowedDays: string[];
+  followUpModel: string;
+  followUpTemperature: number;
+  followUpClosingMessage: string;
+  followUpStopOnHumanAssign: boolean;
   // End
   endMessage: string;
   markResolved: boolean;
@@ -84,6 +100,18 @@ const defaultConfig: AgentConfig = {
   followUpPrompt: "Gere uma mensagem de acompanhamento amigável e natural para o contato que não respondeu.",
   followUpFinalAction: "none",
   followUpTransferQueueId: "",
+  followUpStepConfigs: [
+    { interval: 30, unit: "minutes", message: "", mode: "ai" },
+    { interval: 2, unit: "hours", message: "", mode: "ai" },
+    { interval: 24, unit: "hours", message: "", mode: "ai" },
+  ],
+  followUpAllowedHoursStart: "08:00",
+  followUpAllowedHoursEnd: "20:00",
+  followUpAllowedDays: ["mon", "tue", "wed", "thu", "fri"],
+  followUpModel: "google/gemini-2.5-flash-lite",
+  followUpTemperature: 0.8,
+  followUpClosingMessage: "",
+  followUpStopOnHumanAssign: true,
   endMessage: "",
   markResolved: true,
 };
