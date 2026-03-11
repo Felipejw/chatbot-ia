@@ -25,7 +25,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const platformName = getSetting("platform_name") || "TalkFlow";
+  const platformName = getSetting("platform_name") || "WhatzApp IA";
   const platformLogo = getSetting("platform_logo");
   const currentYear = new Date().getFullYear();
 

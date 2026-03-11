@@ -39,7 +39,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const { theme, setTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const platformName = getSetting("platform_name") || "TalkFlow";
+  const platformName = getSetting("platform_name") || "WhatzApp IA";
   const platformLogo = getSetting("platform_logo");
 
   const { data: unreadCount } = useQuery({
