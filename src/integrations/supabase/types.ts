@@ -761,6 +761,8 @@ export type Database = {
           id: string
           interval_minutes: number
           max_steps: number
+          media_type: string | null
+          media_url: string | null
           message_content: string | null
           mode: string
           scheduled_at: string
@@ -790,6 +792,8 @@ export type Database = {
           id?: string
           interval_minutes?: number
           max_steps?: number
+          media_type?: string | null
+          media_url?: string | null
           message_content?: string | null
           mode?: string
           scheduled_at: string
@@ -819,6 +823,8 @@ export type Database = {
           id?: string
           interval_minutes?: number
           max_steps?: number
+          media_type?: string | null
+          media_url?: string | null
           message_content?: string | null
           mode?: string
           scheduled_at?: string
