@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquare, Tags, Settings,
   Send, Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
-  Sun, Moon,
+  Sun, Moon, RotateCcw,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
