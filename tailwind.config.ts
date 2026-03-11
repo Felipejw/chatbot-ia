@@ -101,15 +101,22 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "slide-up": "slide-up 0.4s ease-out",
       },
       boxShadow: {
         'glow': '0 0 20px hsl(var(--primary) / 0.3)',
         'glow-accent': '0 0 20px hsl(var(--accent) / 0.3)',
+        'card-hover': '0 8px 25px hsl(var(--primary) / 0.12)',
+        'elevated': '0 4px 12px hsl(var(--foreground) / 0.06)',
       },
     },
   },
