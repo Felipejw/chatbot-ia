@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, ShoppingCart, Headphones, CalendarCheck, Target, UserCheck, Pencil, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
@@ -69,7 +69,133 @@ interface AgentConfig {
   followUpStopOnHumanAssign: boolean;
   endMessage: string;
   markResolved: boolean;
+  agentProfile?: string;
 }
+
+// Agent profile definitions
+interface AgentProfile {
+  key: string;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  recommended?: boolean;
+  model: string;
+  temperature: number;
+  systemPrompt: string;
+}
+
+const AGENT_PROFILES: AgentProfile[] = [
+  {
+    key: "vendedor",
+    label: "Vendedor (X1)",
+    description: "Especialista em vendas consultivas, converte leads e tira dúvidas",
+    icon: ShoppingCart,
+    color: "bg-warning/15 text-warning border-warning/30",
+    recommended: true,
+    model: "google/gemini-2.5-flash",
+    temperature: 0.8,
+    systemPrompt: `Você é um especialista em vendas consultivas via WhatsApp (X1). Seu objetivo é converter leads em clientes.
+
+Diretrizes:
+- Seja amigável, empático e persuasivo, sem ser invasivo
+- Faça perguntas abertas para entender a necessidade do cliente
+- Destaque benefícios e diferenciais do produto/serviço
+- Trate objeções de preço com naturalidade, mostrando valor
+- Crie senso de urgência quando apropriado (ofertas limitadas, últimas unidades)
+- Use linguagem acessível e informal (mas profissional)
+- Sempre ofereça um próximo passo claro (enviar catálogo, agendar demo, fechar pedido)
+- Nunca invente informações sobre produtos — se não souber, diga que vai verificar
+- Responda rápido e de forma concisa, como numa conversa real de WhatsApp`,
+  },
+  {
+    key: "suporte",
+    label: "Suporte",
+    description: "Atendente de suporte técnico/SAC, resolve problemas com empatia",
+    icon: Headphones,
+    color: "bg-info/15 text-info border-info/30",
+    model: "google/gemini-2.5-flash",
+    temperature: 0.5,
+    systemPrompt: `Você é um atendente de suporte técnico/SAC via WhatsApp. Seu objetivo é resolver problemas e tirar dúvidas de forma rápida e empática.
+
+Diretrizes:
+- Seja paciente, empático e objetivo
+- Primeiro entenda completamente o problema antes de sugerir soluções
+- Dê instruções passo a passo, claras e numeradas quando necessário
+- Se não conseguir resolver, escale para um humano sem fazer o cliente repetir informações
+- Nunca culpe o cliente pelo problema
+- Confirme se o problema foi resolvido antes de encerrar
+- Use linguagem simples, evite jargões técnicos desnecessários
+- Peça desculpas por inconvenientes de forma genuína`,
+  },
+  {
+    key: "agendamento",
+    label: "Agendamento",
+    description: "Agenda reuniões, consultas e confirma horários automaticamente",
+    icon: CalendarCheck,
+    color: "bg-accent/15 text-accent border-accent/30",
+    model: "google/gemini-2.5-flash-lite",
+    temperature: 0.5,
+    systemPrompt: `Você é um assistente especializado em agendamento via WhatsApp. Seu objetivo é facilitar marcação de reuniões, consultas e compromissos.
+
+Diretrizes:
+- Ofereça horários disponíveis de forma clara e organizada
+- Confirme data, horário e local/link com o cliente
+- Envie lembretes amigáveis antes do compromisso
+- Trate reagendamentos e cancelamentos com flexibilidade
+- Colete informações necessárias (nome, telefone, motivo) de forma natural
+- Sugira alternativas quando o horário desejado não estiver disponível
+- Seja breve e direto — agendamentos devem ser rápidos`,
+  },
+  {
+    key: "qualificacao",
+    label: "Qualificação",
+    description: "Qualifica leads com perguntas estratégicas antes de transferir",
+    icon: Target,
+    color: "bg-destructive/15 text-destructive border-destructive/30",
+    model: "google/gemini-2.5-flash",
+    temperature: 0.6,
+    systemPrompt: `Você é um especialista em qualificação de leads via WhatsApp. Seu objetivo é coletar informações estratégicas para avaliar o potencial do lead antes de transferi-lo para vendas.
+
+Diretrizes:
+- Faça perguntas naturais e conversacionais (não pareça um formulário)
+- Colete informações BANT: Budget (orçamento), Authority (decisor), Need (necessidade), Timeline (prazo)
+- Identifique o nível de interesse e urgência do lead
+- Classifique o lead como quente, morno ou frio
+- Quando qualificado, faça uma transição suave para o vendedor com resumo
+- Não tente vender — seu papel é qualificar e transferir
+- Seja amigável e demonstre interesse genuíno no problema do lead`,
+  },
+  {
+    key: "recepcionista",
+    label: "Recepcionista",
+    description: "Boas-vindas e direcionamento para o setor correto",
+    icon: UserCheck,
+    color: "bg-primary/15 text-primary border-primary/30",
+    model: "google/gemini-2.5-flash-lite",
+    temperature: 0.7,
+    systemPrompt: `Você é uma recepcionista virtual via WhatsApp. Seu objetivo é dar boas-vindas, entender a necessidade do contato e direcioná-lo para o setor correto.
+
+Diretrizes:
+- Cumprimente de forma calorosa e profissional
+- Identifique rapidamente o motivo do contato
+- Direcione para o departamento correto (vendas, suporte, financeiro, etc.)
+- Se não souber para onde direcionar, faça perguntas para entender melhor
+- Informe sobre horários de funcionamento quando relevante
+- Colete nome e informações básicas do contato
+- Seja ágil — ninguém gosta de esperar na recepção`,
+  },
+  {
+    key: "custom",
+    label: "Personalizado",
+    description: "Configure tudo manualmente do seu jeito",
+    icon: Pencil,
+    color: "bg-muted text-muted-foreground border-border",
+    model: "",
+    temperature: -1,
+    systemPrompt: "",
+  },
+];
 
 const defaultConfig: AgentConfig = {
   triggerType: "keyword",
@@ -482,6 +608,59 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
                 {config.aiEnabled && (
                   <>
+                    {/* Agent Profile Selector */}
+                    <FieldCard>
+                      <FieldLabel icon={Sparkles} description="Escolha um perfil para pré-configurar prompt, modelo e temperatura automaticamente (opcional)">
+                        Perfil do Agente
+                      </FieldLabel>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                        {AGENT_PROFILES.map((profile) => {
+                          const isSelected = (config.agentProfile || "custom") === profile.key;
+                          const ProfileIcon = profile.icon;
+                          return (
+                            <button
+                              key={profile.key}
+                              type="button"
+                              onClick={() => {
+                                if (profile.key === "custom") {
+                                  updateConfig({ agentProfile: "custom" });
+                                } else {
+                                  updateConfig({
+                                    agentProfile: profile.key,
+                                    model: profile.model,
+                                    temperature: profile.temperature,
+                                    systemPrompt: profile.systemPrompt,
+                                  });
+                                }
+                              }}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-left hover:shadow-md ${
+                                isSelected
+                                  ? `${profile.color} border-current shadow-sm`
+                                  : "border-border/50 bg-card hover:border-border"
+                              }`}
+                            >
+                              {profile.recommended && (
+                                <Badge className="absolute -top-2 -right-2 text-[9px] px-1.5 py-0 bg-warning text-warning-foreground shadow-sm">
+                                  Popular
+                                </Badge>
+                              )}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                isSelected ? profile.color : "bg-muted"
+                              } transition-colors`}>
+                                <ProfileIcon className="w-5 h-5" />
+                              </div>
+                              <div className="text-center">
+                                <span className="text-xs font-semibold block leading-tight">{profile.label}</span>
+                                <span className="text-[10px] text-muted-foreground leading-tight mt-0.5 block line-clamp-2">
+                                  {profile.description}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </FieldCard>
+
                     <FieldCard>
                       <div className="space-y-2">
                         <FieldLabel icon={Brain} description="Escolha o modelo de IA que melhor se adapta ao seu uso">
