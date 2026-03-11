@@ -1,33 +1,70 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Redesign Completo do Sistema
 
-## Causa Raiz
+## Paleta de Cores
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+Baseado nas preferências: azul claro, azul marinho e verde WhatsApp.
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
-
-## Plano
-
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```text
+Azul Marinho (sidebar/dark):  #0A1628 → #0F2240
+Azul Claro (primary):         #2B7FFF → #5BA3FF  
+Verde WhatsApp (accent):      #25D366 → #128C7E
+Background:                   #F0F4F8 (light) / #0B1120 (dark)
+Cards:                        #FFFFFF (light) / #111B2E (dark)
 ```
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+## Alterações
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+### 1. `src/index.css` — Nova paleta completa
+- **Light mode**: fundo azul-gelo (`#F0F4F8`), cards brancos, primary azul vibrante `#2B7FFF`, accent verde WhatsApp `#25D366`
+- **Dark mode**: fundo navy profundo `#0B1120`, cards `#111B2E`, primary azul claro `#5BA3FF`, accent verde `#2EE67A`
+- **Sidebar**: gradiente navy `#0A1628` → `#0F2240`, accent com glow sutil
+- **Chat bubbles**: incoming cinza-azulado, outgoing verde WhatsApp suave
+- Adicionar glass-morphism nos cards (backdrop-blur + semi-transparência)
+- Border radius mais generoso (1rem)
+- Novas animações: slide-up para cards, fade-scale para modais
 
-### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+### 2. `src/components/layout/AppSidebar.tsx` — Sidebar moderna
+- Gradiente vertical no fundo
+- Links com indicador lateral colorido (barra à esquerda) no ativo, em vez de fundo sólido
+- Hover com glow suave verde/azul
+- Logo com glow sutil
+- Separadores visuais entre seções
+- Avatar com ring colorido de status
+
+### 3. `src/components/layout/AppLayout.tsx` — Layout refinado
+- Fundo com pattern sutil (dots ou grid muito leve)
+- Header mobile com gradiente
+
+### 4. `src/pages/Dashboard.tsx` + `StatsCard.tsx` — Cards modernos
+- Stats cards com gradiente sutil no ícone, borda esquerda colorida
+- Hover com elevação + sombra colorida
+- Números com transição animada
+
+### 5. `src/pages/Login.tsx` — Tela de login premium
+- Lado esquerdo com gradiente navy → azul, pattern decorativo
+- Glassmorphism no card de login
+- Botão com gradiente azul → verde
+
+### 6. `tailwind.config.ts` — Novas utilidades
+- Adicionar cores de gradiente
+- Box-shadow com cores customizadas
+
+### 7. `src/components/ui/PageHeader.tsx` — Header com gradiente no ícone
+
+### 8. `src/components/ui/badge.tsx` — Badges com cores mais vibrantes
+
+## Arquivos alterados
+- `src/index.css` (paleta + animações + componentes)
+- `tailwind.config.ts` (novas utilidades)
+- `src/components/layout/AppSidebar.tsx` (visual)
+- `src/components/layout/AppLayout.tsx` (layout)
+- `src/pages/Dashboard.tsx` (cards)
+- `src/components/dashboard/StatsCard.tsx` (design)
+- `src/components/dashboard/ActivityChart.tsx` (cores)
+- `src/components/dashboard/RecentConversations.tsx` (visual)
+- `src/pages/Login.tsx` (redesign)
+- `src/components/ui/PageHeader.tsx` (gradiente)
+- `src/components/ui/SkeletonCard.tsx` (visual)
 
