@@ -772,6 +772,9 @@ async function executeFlowFromNode(
             message_type: "text",
           });
 
+          // Auto-tag conversation based on AI interaction
+          autoTagConversation(supabase, conversationId, messageContent, aiResponse).catch(() => {});
+
           const nextNode = getNextNode(nodes, edges, currentNode.id);
           
           if (nextNode) {
