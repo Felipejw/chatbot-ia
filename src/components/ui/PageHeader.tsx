@@ -13,7 +13,12 @@ export function PageHeader({ icon: Icon, title, description, action, className }
   return (
     <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-fade-in", className)}>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{
+            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--accent) / 0.1) 100%)',
+          }}
+        >
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div>

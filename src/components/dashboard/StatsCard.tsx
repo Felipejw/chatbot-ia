@@ -19,7 +19,7 @@ export function StatsCard({
   iconColor = "bg-primary/10 text-primary",
 }: StatsCardProps) {
   return (
-    <div className="card-stats animate-fade-in">
+    <div className="card-stats animate-slide-up">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
