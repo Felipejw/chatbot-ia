@@ -118,6 +118,20 @@ const defaultConfig: AgentConfig = {
   markResolved: true,
 };
 
+function getTotalCycleTime(steps: FollowUpStep[]): string {
+  let totalMinutes = 0;
+  for (const s of steps) {
+    if (s.unit === "minutes") totalMinutes += s.interval;
+    else if (s.unit === "hours") totalMinutes += s.interval * 60;
+    else if (s.unit === "days") totalMinutes += s.interval * 1440;
+  }
+  if (totalMinutes < 60) return `${totalMinutes}min`;
+  if (totalMinutes < 1440) return `${Math.floor(totalMinutes / 60)}h${totalMinutes % 60 > 0 ? `${totalMinutes % 60}min` : ""}`;
+  const days = Math.floor(totalMinutes / 1440);
+  const remainHours = Math.floor((totalMinutes % 1440) / 60);
+  return `${days}d${remainHours > 0 ? `${remainHours}h` : ""}`;
+}
+
 interface AgentConfigPanelProps {
   flowId: string;
 }
