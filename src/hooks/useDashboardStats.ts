@@ -71,8 +71,7 @@ export function useRecentConversations(limit = 5) {
         .from('conversations')
         .select(`
           *,
-          contact:contacts (id, name, email, phone, avatar_url, whatsapp_lid, name_source),
-          assignee:profiles!conversations_assigned_to_fkey (id, name, avatar_url)
+          contact:contacts (id, name, email, phone, avatar_url, whatsapp_lid, name_source)
         `)
         .order('last_message_at', { ascending: false })
         .limit(limit);
@@ -87,39 +86,30 @@ export function useTeamPerformance() {
   return useQuery({
     queryKey: ['team-performance'],
     queryFn: async () => {
-      // Get all users with their conversation counts
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, user_id, name, avatar_url');
 
-      if (!profiles) return [];
+      if (!profiles || profiles.length === 0) return [];
 
-      // Get conversation counts per user
-      const { data: conversations } = await supabase
-        .from('conversations')
-        .select('assigned_to, status');
+      const results = await Promise.all(
+        profiles.map(async (profile) => {
+          const [resolvedRes, activeRes] = await Promise.all([
+            supabase.from('conversations').select('*', { count: 'exact', head: true })
+              .eq('assigned_to', profile.user_id).eq('status', 'resolved'),
+            supabase.from('conversations').select('*', { count: 'exact', head: true })
+              .eq('assigned_to', profile.user_id).in('status', ['new', 'in_progress']),
+          ]);
 
-      const userStats = new Map<string, { resolved: number; active: number }>();
+          return {
+            ...profile,
+            resolved: resolvedRes.count || 0,
+            active: activeRes.count || 0,
+          };
+        })
+      );
 
-      conversations?.forEach(c => {
-        if (!c.assigned_to) return;
-        
-        const stats = userStats.get(c.assigned_to) || { resolved: 0, active: 0 };
-        
-        if (c.status === 'resolved') {
-          stats.resolved++;
-        } else if (c.status === 'in_progress' || c.status === 'new') {
-          stats.active++;
-        }
-        
-        userStats.set(c.assigned_to, stats);
-      });
-
-      return profiles.map(profile => ({
-        ...profile,
-        resolved: userStats.get(profile.user_id)?.resolved || 0,
-        active: userStats.get(profile.user_id)?.active || 0,
-      }));
+      return results;
     },
   });
 }

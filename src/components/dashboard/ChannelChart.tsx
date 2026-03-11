@@ -24,27 +24,37 @@ const CHANNEL_LABELS: Record<string, string> = {
   sms: "SMS",
 };
 
+const ALL_CHANNELS = Object.keys(CHANNEL_LABELS);
+
 function useChannelStats() {
   return useQuery({
     queryKey: ["channel-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const results = await Promise.all(
+        ALL_CHANNELS.map(async (channel) => {
+          const { count } = await supabase
+            .from("conversations")
+            .select("*", { count: "exact", head: true })
+            .eq("channel", channel);
+          return { channel, count: count || 0 };
+        })
+      );
+
+      // Also count conversations with null channel (default whatsapp)
+      const { count: nullCount } = await supabase
         .from("conversations")
-        .select("channel");
+        .select("*", { count: "exact", head: true })
+        .is("channel", null);
 
-      if (error) throw error;
+      const whatsappEntry = results.find((r) => r.channel === "whatsapp");
+      if (whatsappEntry) whatsappEntry.count += nullCount || 0;
 
-      const counts: Record<string, number> = {};
-      (data || []).forEach((c) => {
-        const ch = c.channel || "whatsapp";
-        counts[ch] = (counts[ch] || 0) + 1;
-      });
-
-      return Object.entries(counts)
-        .map(([channel, count]) => ({
-          name: CHANNEL_LABELS[channel] || channel,
-          value: count,
-          color: CHANNEL_COLORS[channel] || "#94A3B8",
+      return results
+        .filter((r) => r.count > 0)
+        .map((r) => ({
+          name: CHANNEL_LABELS[r.channel] || r.channel,
+          value: r.count,
+          color: CHANNEL_COLORS[r.channel] || "#94A3B8",
         }))
         .sort((a, b) => b.value - a.value);
     },
