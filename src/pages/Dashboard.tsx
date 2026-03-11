@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import { TeamPerformance } from "@/components/dashboard/TeamPerformance";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useFlows } from "@/hooks/useFlows";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -48,7 +49,7 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonStatsCard key={i} />)
+          Array.from({ length: 5 }).map((_, i) => <SkeletonStatsCard key={i} />)
         ) : (
           <>
             <StatsCard
@@ -95,9 +96,10 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Charts Row */}
+      {/* Charts + Team Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityChart />
+        <TeamPerformance />
       </div>
 
       {/* Recent Conversations */}
