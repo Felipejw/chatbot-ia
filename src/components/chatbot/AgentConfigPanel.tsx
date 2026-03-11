@@ -35,6 +35,8 @@ interface FollowUpStep {
   unit: "minutes" | "hours" | "days";
   message: string;
   mode: "ai" | "fixed";
+  mediaUrl?: string;
+  mediaType?: "none" | "image" | "audio" | "video";
 }
 
 interface AgentConfig {
