@@ -23,6 +23,7 @@ const Tags = lazy(() => import("./pages/Tags"));
 const Campanhas = lazy(() => import("./pages/Campanhas"));
 const Chatbot = lazy(() => import("./pages/Chatbot"));
 const FilasChatbot = lazy(() => import("./pages/FilasChatbot"));
+const FollowUp = lazy(() => import("./pages/FollowUp"));
 const Integracoes = lazy(() => import("./pages/Integracoes"));
 const Conexoes = lazy(() => import("./pages/Conexoes"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
@@ -69,6 +70,7 @@ const App = () => (
                 <Route path="/tags" element={<ProtectedRoute module="tags"><Tags /></ProtectedRoute>} />
                 <Route path="/campanhas" element={<ProtectedRoute module="campanhas"><Campanhas /></ProtectedRoute>} />
                 <Route path="/chatbot" element={<ProtectedRoute module="chatbot"><Chatbot /></ProtectedRoute>} />
+                <Route path="/follow-up" element={<ProtectedRoute module="chatbot"><FollowUp /></ProtectedRoute>} />
                 <Route path="/filas-chatbot" element={<ProtectedRoute module="setores"><FilasChatbot /></ProtectedRoute>} />
                 <Route path="/integracoes" element={<ProtectedRoute module="integracoes"><Integracoes /></ProtectedRoute>} />
                 <Route path="/conexoes" element={<ProtectedRoute module="conexoes"><Conexoes /></ProtectedRoute>} />

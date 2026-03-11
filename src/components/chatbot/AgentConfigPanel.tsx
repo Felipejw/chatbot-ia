@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, Image, Video, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
@@ -35,6 +35,8 @@ interface FollowUpStep {
   unit: "minutes" | "hours" | "days";
   message: string;
   mode: "ai" | "fixed";
+  mediaUrl?: string;
+  mediaType?: "none" | "image" | "audio" | "video";
 }
 
 interface AgentConfig {
@@ -608,21 +610,65 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             </Select>
                           </div>
                           {step.mode === "fixed" && (
-                            <div className="space-y-1">
-                              <Label className="text-xs">Mensagem</Label>
-                              <Textarea
-                                value={step.message}
-                                onChange={(e) => {
-                                  const newSteps = [...config.followUpStepConfigs];
-                                  newSteps[idx] = { ...newSteps[idx], message: e.target.value };
-                                  updateConfig({
-                                    followUpStepConfigs: newSteps,
-                                    followUpMessages: newSteps.map((s) => s.message),
-                                  });
-                                }}
-                                placeholder={`Mensagem da etapa ${idx + 1}...`}
-                                rows={2}
-                              />
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Mensagem</Label>
+                                <Textarea
+                                  value={step.message}
+                                  onChange={(e) => {
+                                    const newSteps = [...config.followUpStepConfigs];
+                                    newSteps[idx] = { ...newSteps[idx], message: e.target.value };
+                                    updateConfig({
+                                      followUpStepConfigs: newSteps,
+                                      followUpMessages: newSteps.map((s) => s.message),
+                                    });
+                                  }}
+                                  placeholder={`Mensagem da etapa ${idx + 1}...`}
+                                  rows={2}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Mídia (opcional)</Label>
+                                <Select
+                                  value={step.mediaType || "none"}
+                                  onValueChange={(v) => {
+                                    const newSteps = [...config.followUpStepConfigs];
+                                    newSteps[idx] = { ...newSteps[idx], mediaType: v as any, mediaUrl: v === "none" ? "" : newSteps[idx].mediaUrl };
+                                    updateConfig({ followUpStepConfigs: newSteps });
+                                  }}
+                                >
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sem mídia</SelectItem>
+                                    <SelectItem value="image">🖼️ Imagem</SelectItem>
+                                    <SelectItem value="audio">🎵 Áudio</SelectItem>
+                                    <SelectItem value="video">🎬 Vídeo</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {step.mediaType && step.mediaType !== "none" && (
+                                <div className="space-y-1">
+                                  <Label className="text-xs">URL da mídia</Label>
+                                  <Input
+                                    value={step.mediaUrl || ""}
+                                    onChange={(e) => {
+                                      const newSteps = [...config.followUpStepConfigs];
+                                      newSteps[idx] = { ...newSteps[idx], mediaUrl: e.target.value };
+                                      updateConfig({ followUpStepConfigs: newSteps });
+                                    }}
+                                    placeholder="https://exemplo.com/arquivo.jpg"
+                                  />
+                                  {step.mediaUrl && step.mediaType === "image" && (
+                                    <img src={step.mediaUrl} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover border border-border" />
+                                  )}
+                                  {step.mediaUrl && step.mediaType === "video" && (
+                                    <video src={step.mediaUrl} className="mt-2 rounded-lg max-h-32 border border-border" controls />
+                                  )}
+                                  {step.mediaUrl && step.mediaType === "audio" && (
+                                    <audio src={step.mediaUrl} className="mt-2 w-full" controls />
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

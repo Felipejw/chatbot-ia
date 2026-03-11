@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquare, Tags, Settings,
   Send, Bot, Plug, QrCode, ChevronsLeft, ChevronsRight, Building2, LogOut,
-  Sun, Moon,
+  Sun, Moon, RotateCcw,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { title: "WhatsApp", href: "/atendimento", icon: MessageSquare, module: "atendimento" },
   { title: "Tags", href: "/tags", icon: Tags, module: "tags" },
   { title: "Agentes de IA", href: "/chatbot", icon: Bot, module: "chatbot" },
+  { title: "Follow-up", href: "/follow-up", icon: RotateCcw, module: "chatbot" },
   { title: "Disparo em Massa", href: "/campanhas", icon: Send, module: "campanhas" },
   { title: "Setores", href: "/filas-chatbot", icon: Building2, module: "setores" },
   { title: "Integrações", href: "/integracoes", icon: Plug, module: "integracoes" },
