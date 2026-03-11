@@ -14,12 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, Image, Video, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,6 +22,7 @@ import { useFlow, useFlows, type ChatbotFlow } from "@/hooks/useFlows";
 import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -134,6 +130,16 @@ function getTotalCycleTime(steps: FollowUpStep[]): string {
   return `${days}d${remainHours > 0 ? `${remainHours}h` : ""}`;
 }
 
+function StatusDot({ active }: { active: boolean }) {
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+        active ? "bg-emerald-500" : "bg-muted-foreground/30"
+      }`}
+    />
+  );
+}
+
 interface AgentConfigPanelProps {
   flowId: string;
 }
@@ -144,6 +150,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
   const { data: queues } = useQueues();
   const { data: users } = useUsers();
   const { connections } = useWhatsAppConnections();
+  const isMobile = useIsMobile();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -215,6 +222,16 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
     );
   }
 
+  const tabItems = [
+    { value: "general", label: "Geral", icon: Settings, active: true },
+    { value: "trigger", label: "Gatilho", icon: Zap, active: !!config.triggerValue },
+    { value: "ai", label: "IA", icon: Brain, active: config.aiEnabled },
+    { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, active: !!config.connectionId },
+    { value: "transfer", label: "Transferência", icon: ArrowRightLeft, active: config.transferEnabled },
+    { value: "followup", label: "Follow-up", icon: RotateCcw, active: config.followUpEnabled },
+    { value: "end", label: "Encerramento", icon: XCircle, active: !!config.endMessage },
+  ];
+
   return (
     <div className="flex-1 flex flex-col bg-muted/20">
       {/* Header */}
@@ -229,18 +246,36 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-6 max-w-3xl mx-auto space-y-4">
-          <Accordion type="multiple" defaultValue={["general", "trigger", "ai", "followup", "transfer", "end"]} className="space-y-4">
-            {/* === GERAL === */}
-            <AccordionItem value="general" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Geral</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+      <Tabs defaultValue="general" className={`flex-1 flex ${isMobile ? "flex-col" : "flex-row"} overflow-hidden`}>
+        {/* Tab navigation */}
+        <TabsList className={`${
+          isMobile
+            ? "flex h-auto w-full overflow-x-auto border-b border-border rounded-none bg-background p-1 gap-1 justify-start shrink-0"
+            : "flex flex-col h-full w-52 shrink-0 border-r border-border rounded-none bg-background p-2 gap-1 justify-start items-stretch"
+        }`}>
+          {tabItems.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className={`${
+                isMobile
+                  ? "flex items-center gap-1.5 px-3 py-2 text-xs whitespace-nowrap rounded-md"
+                  : "flex items-center gap-2.5 px-3 py-2.5 text-sm justify-start rounded-md w-full"
+              } data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none`}
+            >
+              <tab.icon className={`${isMobile ? "w-3.5 h-3.5" : "w-4 h-4"} shrink-0`} />
+              <span>{tab.label}</span>
+              <StatusDot active={tab.active} />
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {/* Tab contents */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6 max-w-2xl">
+              {/* === GERAL === */}
+              <TabsContent value="general" className="mt-0 space-y-4">
                 <div className="space-y-2">
                   <Label>Nome do agente</Label>
                   <Input
@@ -264,18 +299,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     onCheckedChange={(v) => { setIsActive(v); setHasChanges(true); }}
                   />
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            {/* === GATILHO === */}
-            <AccordionItem value="trigger" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="font-medium">Gatilho</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              {/* === GATILHO === */}
+              <TabsContent value="trigger" className="mt-0 space-y-4">
                 <div className="space-y-2">
                   <Label>Tipo de gatilho</Label>
                   <Select value={config.triggerType} onValueChange={(v) => updateConfig({ triggerType: v })}>
@@ -298,18 +325,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     />
                   </div>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            {/* === CONFIGURAÇÃO DA IA === */}
-            <AccordionItem value="ai" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-violet-500" />
-                  <span className="font-medium">Configuração da IA</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              {/* === IA === */}
+              <TabsContent value="ai" className="mt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>IA habilitada</Label>
                   <Switch
@@ -374,18 +393,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     </div>
                   </>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            {/* === WHATSAPP === */}
-            <AccordionItem value="whatsapp" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-emerald-500" />
-                  <span className="font-medium">WhatsApp</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              {/* === WHATSAPP === */}
+              <TabsContent value="whatsapp" className="mt-0 space-y-4">
                 <div className="space-y-2">
                   <Label>Conexão / Número</Label>
                   <Select value={config.connectionId || "all"} onValueChange={(v) => updateConfig({ connectionId: v === "all" ? "" : v })}>
@@ -403,18 +414,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     Selecione um número específico ou deixe para responder em todas.
                   </p>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            {/* === TRANSFERÊNCIA === */}
-            <AccordionItem value="transfer" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <ArrowRightLeft className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium">Transferência</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              {/* === TRANSFERÊNCIA === */}
+              <TabsContent value="transfer" className="mt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>Habilitar transferência</Label>
                   <Switch
@@ -479,23 +482,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     )}
                   </>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            {/* === FOLLOW-UP === */}
-            <AccordionItem value="followup" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <RotateCcw className="w-4 h-4 text-amber-500" />
-                  <span className="font-medium">Follow-up Automático</span>
-                  {config.followUpEnabled && (
-                    <Badge variant="secondary" className="ml-2 text-[10px]">
-                      {config.followUpStepConfigs.length} etapa{config.followUpStepConfigs.length > 1 ? "s" : ""} · {getTotalCycleTime(config.followUpStepConfigs)}
-                    </Badge>
-                  )}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-5 pb-4">
+              {/* === FOLLOW-UP === */}
+              <TabsContent value="followup" className="mt-0 space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Habilitar follow-up</Label>
@@ -850,17 +840,10 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     )}
                   </>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </TabsContent>
 
-            <AccordionItem value="end" className="border rounded-lg bg-card px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-rose-500" />
-                  <span className="font-medium">Encerramento</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+              {/* === ENCERRAMENTO === */}
+              <TabsContent value="end" className="mt-0 space-y-4">
                 <div className="space-y-2">
                   <Label>Mensagem de encerramento</Label>
                   <Textarea
@@ -877,11 +860,11 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     onCheckedChange={(v) => updateConfig({ markResolved: v })}
                   />
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+              </TabsContent>
+            </div>
+          </ScrollArea>
         </div>
-      </ScrollArea>
+      </Tabs>
     </div>
   );
 }
