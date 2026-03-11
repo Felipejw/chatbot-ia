@@ -45,6 +45,24 @@ async function sendWhatsAppMessage(config: any, phone: string, content: string):
   }
 }
 
+async function sendWhatsAppMedia(config: any, phone: string, mediaUrl: string, mediaType: string, caption?: string): Promise<boolean> {
+  try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (config.apiKey) headers["X-API-Key"] = config.apiKey;
+
+    const response = await fetch(`${config.serverUrl}/sessions/${config.sessionName}/send/media`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ to: phone, url: mediaUrl, type: mediaType, caption: caption || "" }),
+    });
+    const result = await response.json();
+    return response.ok && result.success;
+  } catch (error) {
+    console.error("[FollowUp] Error sending media:", error);
+    return false;
+  }
+}
+
 function formatPhoneForBaileys(phone: string, whatsappLid?: string) {
   const cleanPhone = phone?.replace(/\D/g, "") || "";
   const isRealPhone = cleanPhone.length >= 10 && cleanPhone.length <= 14;
