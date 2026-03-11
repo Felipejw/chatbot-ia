@@ -1,33 +1,47 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Reorganizar configuração do Agente de IA em blocos visuais
 
-## Causa Raiz
+## Problema atual
+A configuração usa Accordion (lista vertical de seções colapsáveis), o que dificulta a navegação e a localização rápida das seções.
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+## Solução
+Substituir o layout de accordion por um sistema de **blocos/cards com navegação por abas laterais ou tabs no topo**. Cada bloco será um card independente visível ao clicar na tab correspondente, semelhante a um painel de configurações moderno.
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+### Layout proposto
 
-## Plano
-
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```text
+┌─────────────────────────────────────────────┐
+│  Header: Nome do Agente + Botão Salvar      │
+├──────┬──────────────────────────────────────│
+│ Tabs │  Conteúdo do bloco selecionado       │
+│      │                                       │
+│ ⚙ Geral       │  [Card com campos]          │
+│ ⚡ Gatilho     │                              │
+│ 🧠 IA         │                              │
+│ 💬 WhatsApp   │                              │
+│ ↔ Transfer.   │                              │
+│ 🔄 Follow-up  │                              │
+│ ✕ Encerram.   │                              │
+└──────┴──────────────────────────────────────┘
 ```
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+### Implementação
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+Usar `Tabs` do Radix (já instalado) com orientação vertical no desktop e horizontal no mobile:
 
-### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+- **Tabs à esquerda** (sidebar interna) com ícone + label para cada seção
+- **Conteúdo à direita** renderiza apenas o bloco ativo, sem scroll infinito
+- Cada tab tem um **indicador visual** (dot colorido ou borda) mostrando se há configuração ativa naquela seção (ex: IA habilitada, follow-up ativo)
+- Badge de status na tab (ex: "Ativo" verde no Follow-up quando habilitado)
+
+### Alterações
+
+**`src/components/chatbot/AgentConfigPanel.tsx`** — Único arquivo alterado:
+- Substituir `<Accordion>` por `<Tabs>` com `orientation="vertical"`
+- Mover cada seção (Geral, Gatilho, IA, WhatsApp, Transferência, Follow-up, Encerramento) para um `<TabsContent>`
+- Adicionar `<TabsList>` como sidebar lateral com ícones + labels
+- Cada card de conteúdo mantém exatamente os mesmos campos e lógica
+- No mobile (< 768px), tabs ficam horizontais no topo com scroll
+- Manter toda a lógica de estado, save, updateConfig intacta
 
