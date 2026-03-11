@@ -1,0 +1,1 @@
+ALTER TABLE public.conversation_tags ADD CONSTRAINT conversation_tags_conversation_id_tag_id_unique UNIQUE (conversation_id, tag_id);
