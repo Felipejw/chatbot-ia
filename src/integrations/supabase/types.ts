@@ -744,6 +744,10 @@ export type Database = {
       }
       follow_ups: {
         Row: {
+          allowed_days: string[] | null
+          allowed_hours_end: string | null
+          allowed_hours_start: string | null
+          closing_message: string | null
           connection_id: string | null
           contact_id: string
           conversation_id: string
@@ -751,7 +755,9 @@ export type Database = {
           final_action: string | null
           fixed_messages: Json | null
           flow_id: string | null
+          follow_up_model: string | null
           follow_up_prompt: string | null
+          follow_up_temperature: number | null
           id: string
           interval_minutes: number
           max_steps: number
@@ -761,10 +767,16 @@ export type Database = {
           sent_at: string | null
           status: string
           step: number
+          step_intervals: Json | null
+          stop_on_human_assign: boolean | null
           transfer_queue_id: string | null
           updated_at: string
         }
         Insert: {
+          allowed_days?: string[] | null
+          allowed_hours_end?: string | null
+          allowed_hours_start?: string | null
+          closing_message?: string | null
           connection_id?: string | null
           contact_id: string
           conversation_id: string
@@ -772,7 +784,9 @@ export type Database = {
           final_action?: string | null
           fixed_messages?: Json | null
           flow_id?: string | null
+          follow_up_model?: string | null
           follow_up_prompt?: string | null
+          follow_up_temperature?: number | null
           id?: string
           interval_minutes?: number
           max_steps?: number
@@ -782,10 +796,16 @@ export type Database = {
           sent_at?: string | null
           status?: string
           step?: number
+          step_intervals?: Json | null
+          stop_on_human_assign?: boolean | null
           transfer_queue_id?: string | null
           updated_at?: string
         }
         Update: {
+          allowed_days?: string[] | null
+          allowed_hours_end?: string | null
+          allowed_hours_start?: string | null
+          closing_message?: string | null
           connection_id?: string | null
           contact_id?: string
           conversation_id?: string
@@ -793,7 +813,9 @@ export type Database = {
           final_action?: string | null
           fixed_messages?: Json | null
           flow_id?: string | null
+          follow_up_model?: string | null
           follow_up_prompt?: string | null
+          follow_up_temperature?: number | null
           id?: string
           interval_minutes?: number
           max_steps?: number
@@ -803,6 +825,8 @@ export type Database = {
           sent_at?: string | null
           status?: string
           step?: number
+          step_intervals?: Json | null
+          stop_on_human_assign?: boolean | null
           transfer_queue_id?: string | null
           updated_at?: string
         }
