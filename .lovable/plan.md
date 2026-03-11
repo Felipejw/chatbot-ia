@@ -1,42 +1,33 @@
 
 
-# Melhorar o visual do painel de configuração do Agente de IA
+# Corrigir Bug "Acesso Negado" ao Logar
 
-O painel atual está funcional, mas visualmente "seco" — labels pequenos, sem hierarquia visual clara, sem cores de destaque, e sem espaçamento generoso. Vamos dar vida a ele.
+## Causa Raiz
 
-## Melhorias planejadas
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-### 1. Tabs laterais mais expressivas
-- Ícones maiores com cores temáticas por seção (IA = roxo, WhatsApp = verde, Follow-up = azul, etc.)
-- Tab ativa com fundo gradiente sutil + borda lateral colorida (como a sidebar do sistema)
-- Descrição curta abaixo do nome de cada tab (ex: "Gatilho" → "Quando o agente ativa")
-- StatusDot maior e com animação pulse quando ativo
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-### 2. Header de cada seção dentro do conteúdo
-- Cada `TabsContent` ganha um header com ícone grande + título + descrição da seção em texto muted
-- Separador visual (divider) entre o header e os campos
+## Plano
 
-### 3. Cards de campo agrupados
-- Inputs agrupados em cards com `bg-card` e bordas suaves, ao invés de ficarem "soltos"
-- Labels com tamanho maior (`text-sm font-medium`) e com ícone inline quando aplicável
-- Descriptions sob cada campo em texto `text-xs text-muted-foreground` para orientar o usuário
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
+```sql
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```
 
-### 4. Cores e badges de status
-- Switch "Agente ativo" com badge verde/vermelho ao lado
-- Seções desabilitadas (IA off, Transfer off) com overlay sutil em vez de sumir completamente
-- Badge "Ciclo total: 1d2h30min" no Follow-up com cor de destaque
-- Timeline do Follow-up com cores mais vibrantes e linhas mais grossas
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
+```typescript
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
 
-### 5. Espaçamento e tipografia
-- Padding `p-8` no conteúdo (ao invés de `p-6`)
-- Gaps maiores entre campos (`space-y-6` ao invés de `space-y-4`)
-- Títulos de seção em `text-xl font-semibold`
-- Cards de etapa do Follow-up com borda esquerda colorida (numbered steps)
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+```
 
-### 6. Animações sutis
-- Transição `animate-fade-in` ao trocar de tab
-- Cards de etapa com hover suave (`hover:shadow-md transition-shadow`)
-
-## Arquivo alterado
-- **`src/components/chatbot/AgentConfigPanel.tsx`** — refatoração visual completa (mesmo conteúdo/lógica, apenas styling)
+### Arquivos alterados
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 
