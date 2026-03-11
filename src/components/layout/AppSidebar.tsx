@@ -63,35 +63,60 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
     : navItems.filter(item => !item.module || hasPermission(item.module, 'view'));
 
   return (
-    <aside className={cn("h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 border-r border-sidebar-border", isCollapsed ? "w-16" : "w-64")}>
+    <aside
+      className={cn(
+        "h-screen flex flex-col transition-all duration-300 border-r border-sidebar-border",
+        isCollapsed ? "w-16" : "w-64"
+      )}
+      style={{
+        background: 'linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(218 55% 7%) 100%)',
+      }}
+    >
+      {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         {!isCollapsed && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {platformLogo ? (
               <img src={platformLogo} alt={platformName} className="w-8 h-8 object-contain rounded-lg" />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-primary-foreground" />
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-glow">
+                <MessageSquare className="w-4.5 h-4.5 text-primary-foreground" />
               </div>
             )}
-            <span className="font-bold text-lg">{platformName}</span>
+            <span className="font-bold text-lg text-sidebar-foreground">{platformName}</span>
           </div>
         )}
-        <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)} className="text-sidebar-foreground hover:bg-sidebar-accent" title={isCollapsed ? "Expandir menu" : "Recolher menu"}>
-          {isCollapsed ? <ChevronsRight className="w-5 h-5" /> : <ChevronsLeft className="w-5 h-5" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+        >
+          {isCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
         </Button>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
         <ul className="space-y-1">
           {visibleItems.map((item) => (
             <li key={item.href}>
-              <NavLink to={item.href} onClick={onNavigate} className={cn("sidebar-link relative", isActive(item.href) && "sidebar-link-active", isCollapsed && "justify-center px-2")} title={isCollapsed ? item.title : undefined}>
+              <NavLink
+                to={item.href}
+                onClick={onNavigate}
+                className={cn(
+                  "sidebar-link",
+                  isActive(item.href) && "sidebar-link-active",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? item.title : undefined}
+              >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
                 {!isCollapsed && <span className="truncate">{item.title}</span>}
                 {item.href === "/atendimento" && unreadCount && unreadCount > 0 ? (
                   <span className={cn(
-                    "bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center",
+                    "bg-accent text-accent-foreground text-[10px] font-bold rounded-full flex items-center justify-center",
                     isCollapsed ? "absolute -top-1 -right-1 w-4 h-4" : "ml-auto w-5 h-5"
                   )}>
                     {unreadCount > 99 ? "99+" : unreadCount}
@@ -103,22 +128,23 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         </ul>
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-sidebar-border">
         {!isCollapsed && profile && (
           <div className="flex items-center gap-3 px-4 py-3">
-            <Avatar className="h-8 w-8 flex-shrink-0">
+            <Avatar className="h-8 w-8 flex-shrink-0 ring-2 ring-accent/30">
               <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+              <AvatarFallback className="text-xs bg-primary/20 text-primary-foreground">
                 {(profile.name || profile.email || "U").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{profile.name}</p>
+              <p className="text-sm font-medium truncate text-sidebar-foreground">{profile.name}</p>
               <p className="text-xs text-sidebar-muted truncate">{profile.email}</p>
             </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-1.5 rounded-md text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
+              className="p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
               title={theme === "dark" ? "Modo claro" : "Modo escuro"}
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -127,9 +153,9 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         )}
         {isCollapsed && profile && (
           <div className="relative flex justify-center px-3 py-3">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 ring-2 ring-accent/30">
               <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+              <AvatarFallback className="text-xs bg-primary/20 text-primary-foreground">
                 {(profile.name || profile.email || "U").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -143,7 +169,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           </div>
         )}
         <div className="p-3 space-y-1">
-          <NavLink to="/configuracoes" onClick={onNavigate} className={cn("sidebar-link", isActive("/configuracoes") && "sidebar-link-active", isCollapsed && "justify-center px-2")}>
+          <NavLink
+            to="/configuracoes"
+            onClick={onNavigate}
+            className={cn("sidebar-link", isActive("/configuracoes") && "sidebar-link-active", isCollapsed && "justify-center px-2")}
+          >
             <Settings className="w-5 h-5" />
             {!isCollapsed && <span>Configurações</span>}
           </NavLink>
@@ -157,7 +187,10 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                 toast.error("Erro ao sair. Tente novamente.");
               }
             }}
-            className={cn("sidebar-link w-full text-destructive hover:text-destructive", isCollapsed && "justify-center px-2")}
+            className={cn(
+              "sidebar-link w-full text-destructive/80 hover:text-destructive",
+              isCollapsed && "justify-center px-2"
+            )}
           >
             <LogOut className="w-5 h-5" />
             {!isCollapsed && <span>Sair</span>}

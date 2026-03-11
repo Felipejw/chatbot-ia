@@ -21,8 +21,13 @@ export function AppLayout() {
   if (isMobile) {
     return (
       <div className="flex min-h-screen w-full bg-background flex-col">
-        {/* Mobile Header */}
-        <header className="h-14 border-b flex items-center px-4 gap-3 bg-sidebar text-sidebar-foreground shrink-0">
+        <header
+          className="h-14 border-b border-sidebar-border flex items-center px-4 gap-3 shrink-0"
+          style={{
+            background: 'linear-gradient(90deg, hsl(var(--sidebar-background)) 0%, hsl(218 55% 14%) 100%)',
+            color: 'hsl(var(--sidebar-foreground))',
+          }}
+        >
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="text-sidebar-foreground">
