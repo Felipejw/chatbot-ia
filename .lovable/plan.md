@@ -1,33 +1,30 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Perfis de Agente (Templates Pré-configurados)
 
-## Causa Raiz
+Adicionar uma seleção opcional de "perfil de agente" na tab de IA que pré-preenche o prompt do sistema, temperatura e modelo com configurações otimizadas para cada caso de uso.
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+## Perfis disponíveis
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+| Perfil | Prompt resumido | Temp | Modelo |
+|--------|----------------|------|--------|
+| **Vendedor (X1)** | Especialista em vendas consultivas, foco em converter leads, tirar dúvidas sobre produto/preço, criar urgência natural | 0.8 | gemini-2.5-flash |
+| **Suporte** | Atendente de suporte técnico/SAC, foco em resolver problemas, tom empático e objetivo | 0.5 | gemini-2.5-flash |
+| **Agendamento** | Especialista em agendar reuniões/consultas, confirmar horários, enviar lembretes | 0.5 | gemini-2.5-flash-lite |
+| **Qualificação de Leads** | Faz perguntas estratégicas para qualificar o lead (BANT), coleta informações antes de transferir | 0.6 | gemini-2.5-flash |
+| **Recepcionista** | Primeiro contato, boas-vindas, identifica a necessidade e direciona para o setor correto | 0.7 | gemini-2.5-flash-lite |
+| **Personalizado** | Opção atual — o usuário define tudo manualmente (padrão) |
 
-## Plano
+## Implementação
 
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
-```
+**Arquivo**: `src/components/chatbot/AgentConfigPanel.tsx`
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+- Adicionar um seletor de perfil (cards visuais com ícone + título + descrição curta) **acima** do campo de modelo na tab IA
+- Ao clicar num perfil, preenche automaticamente: `systemPrompt`, `temperature`, `model`
+- O perfil "Personalizado" não altera nada (mantém o que o usuário já configurou)
+- Após selecionar um perfil, o usuário ainda pode editar qualquer campo livremente
+- Armazenar o perfil selecionado num campo local `agentProfile` no config (apenas para UI, não afeta lógica de execução)
+- Cada card de perfil terá um ícone temático, cor de fundo sutil, e badge "Recomendado" no Vendedor
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
-
-### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+Nenhuma mudança no banco de dados — é puramente front-end.
 
