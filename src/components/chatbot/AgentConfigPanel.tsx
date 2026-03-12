@@ -347,6 +347,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
   const { data: users } = useUsers();
   const { connections } = useWhatsAppConnections();
   const isMobile = useIsMobile();
+  const { getSetting } = useSystemSettings();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
