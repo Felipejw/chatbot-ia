@@ -2050,17 +2050,25 @@ const handler = async (req: Request): Promise<Response> => {
           autoTagConversation(supabase, conversationId, message, aiResponse).catch(() => {});
 
           // Schedule follow-up if enabled
-          if (cfg.followUpEnabled && cfg.followUpIntervalMinutes > 0) {
+          if (cfg.followUpEnabled) {
             await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
-            const scheduledAt = new Date(Date.now() + cfg.followUpIntervalMinutes * 60 * 1000);
-            await supabase.from("follow_ups").insert({
+            
+            const stepConfigs = cfg.followUpStepConfigs as any[] | null;
+            const firstStepInterval = stepConfigs?.[0]?.intervalMinutes || stepConfigs?.[0]?.interval;
+            const firstStepUnit = stepConfigs?.[0]?.unit || "minutes";
+            let intervalMinutes = cfg.followUpIntervalMinutes || firstStepInterval || 60;
+            if (firstStepInterval && firstStepUnit === "hours") intervalMinutes = firstStepInterval * 60;
+            if (firstStepInterval && firstStepUnit === "days") intervalMinutes = firstStepInterval * 1440;
+
+            const scheduledAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
+            const { error: fuInsertErr } = await supabase.from("follow_ups").insert({
               conversation_id: conversationId,
               contact_id: contactId || contact.id,
               connection_id: effectiveConnectionId || null,
               flow_id: flow.id,
               step: 1,
-              max_steps: cfg.followUpSteps || 3,
-              interval_minutes: cfg.followUpIntervalMinutes,
+              max_steps: cfg.followUpSteps || stepConfigs?.length || 3,
+              interval_minutes: intervalMinutes,
               mode: cfg.followUpMode || "ai",
               status: "pending",
               follow_up_prompt: cfg.followUpPrompt || null,
@@ -2068,8 +2076,20 @@ const handler = async (req: Request): Promise<Response> => {
               final_action: cfg.followUpFinalAction || "none",
               transfer_queue_id: cfg.followUpTransferQueueId || null,
               scheduled_at: scheduledAt.toISOString(),
+              step_intervals: stepConfigs || [],
+              allowed_hours_start: cfg.followUpAllowedHoursStart || "08:00",
+              allowed_hours_end: cfg.followUpAllowedHoursEnd || "20:00",
+              allowed_days: cfg.followUpAllowedDays || ["mon","tue","wed","thu","fri"],
+              follow_up_model: cfg.followUpModel || "google/gemini-2.5-flash",
+              follow_up_temperature: cfg.followUpTemperature ?? 0.8,
+              stop_on_human_assign: cfg.followUpStopOnHumanAssign ?? true,
+              closing_message: cfg.followUpClosingMessage || null,
             });
-            console.log(`[FlowExecutor] Follow-up scheduled for ${scheduledAt.toISOString()}`);
+            if (fuInsertErr) {
+              console.error("[FlowExecutor] Error inserting follow-up:", fuInsertErr);
+            } else {
+              console.log(`[FlowExecutor] Follow-up scheduled for ${scheduledAt.toISOString()}`);
+            }
           }
 
           return new Response(JSON.stringify({ success: true, action: "config_agent_executed", flowId: flow.id }), {
