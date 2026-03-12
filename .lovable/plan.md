@@ -1,33 +1,56 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Correção: Coluna `config` no init.sql + IA gratuita via Google Gemini
 
-## Causa Raiz
+## Dois problemas a resolver
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+### 1. Erro ao salvar fluxo do Chatbot (VPS)
+A tabela `chatbot_flows` no `deploy/supabase/init.sql` **não tem a coluna `config`** (linhas 473-483). O `AgentConfigPanel` tenta salvar `config: config as any` (linha 387), causando erro no banco da VPS.
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+### 2. IA sem funcionar na VPS
+Atualmente, o `execute-flow` e `process-follow-ups` usam o Lovable AI Gateway (`ai.gateway.lovable.dev`) com `LOVABLE_API_KEY`, que **não existe na VPS**. O código já tem a função `callGoogleAI` pronta para chamar a API do Google Gemini diretamente, mas precisa de uma chave configurada.
+
+A Google oferece a **API do Gemini gratuitamente** em [aistudio.google.com](https://aistudio.google.com/apikey).
+
+---
 
 ## Plano
 
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
-```
+### 1. Adicionar coluna `config` no init.sql
+- Arquivo: `deploy/supabase/init.sql` (linha 482)
+- Adicionar `config jsonb DEFAULT '{}'::jsonb` na definição da tabela `chatbot_flows`
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+### 2. Adicionar migration para o Cloud
+- Migration SQL: `ALTER TABLE chatbot_flows ADD COLUMN IF NOT EXISTS config jsonb DEFAULT '{}'::jsonb;`
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+### 3. Permitir configurar Google AI API Key na UI (Configurações)
+- Arquivo: `src/components/configuracoes/OptionsTab.tsx`
+- Adicionar campo para salvar a `google_ai_api_key` na tabela `system_settings`
+- Isso permite que o admin configure a chave sem acesso ao servidor
+
+### 4. Alterar `execute-flow` para usar Google AI como fallback
+- Arquivo: `supabase/functions/execute-flow/index.ts`
+- Na função `callAI` (linha 392-407): se `LOVABLE_API_KEY` não existir, buscar `google_ai_api_key` da tabela `system_settings` e usar `callGoogleAI` diretamente
+- Na função `autoTagConversation` (linha 332): mesmo fallback
+- Mapear os nomes de modelo do formato gateway (`google/gemini-2.5-flash`) para o formato Google API (`gemini-2.5-flash`)
+
+### 5. Alterar `process-follow-ups` para usar Google AI como fallback
+- Arquivo: `supabase/functions/process-follow-ups/index.ts`
+- Na função `generateAIFollowUp` (linha 121-184): se `LOVABLE_API_KEY` não existir, buscar `google_ai_api_key` de `system_settings` e chamar a API do Google diretamente
+
+### 6. Atualizar modelos disponíveis na UI
+- Arquivo: `src/components/chatbot/AgentConfigPanel.tsx` (linhas 674-680)
+- Remover modelos OpenAI (não funcionam sem gateway)
+- Manter apenas modelos Gemini que funcionam com a API gratuita do Google:
+  - `gemini-2.5-flash`
+  - `gemini-2.5-pro`
+  - `gemini-2.5-flash-lite`
 
 ### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+- `deploy/supabase/init.sql` -- adicionar coluna `config`
+- Migration SQL -- garantir coluna no Cloud
+- `supabase/functions/execute-flow/index.ts` -- fallback Google AI
+- `supabase/functions/process-follow-ups/index.ts` -- fallback Google AI
+- `src/components/chatbot/AgentConfigPanel.tsx` -- modelos Gemini apenas
+- `src/components/configuracoes/OptionsTab.tsx` -- campo para Google AI API Key
 
