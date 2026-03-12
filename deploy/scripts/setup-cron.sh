@@ -61,14 +61,14 @@ SELECT cron.unschedule(jobid)
 FROM cron.job
 WHERE jobname = 'process-follow-ups';
 
--- Criar novo job: a cada minuto
+-- Criar novo job: a cada minuto (usa URL interna Docker + service_role_key)
 SELECT cron.schedule(
   'process-follow-ups',
   '* * * * *',
   \$\$
   SELECT net.http_post(
-    url := '${SUPABASE_URL}/functions/v1/process-follow-ups',
-    headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${ANON_KEY}\"}'::jsonb,
+    url := '${INTERNAL_URL}/functions/v1/process-follow-ups',
+    headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${SERVICE_ROLE_KEY}\"}'::jsonb,
     body := concat('{\"time\": \"', now(), '\"}')::jsonb
   ) AS request_id;
   \$\$
