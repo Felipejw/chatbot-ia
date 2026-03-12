@@ -53,7 +53,7 @@ async function sendWhatsAppMedia(config: any, phone: string, mediaUrl: string, m
     const response = await fetch(`${config.serverUrl}/sessions/${config.sessionName}/send/media`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ to: phone, url: mediaUrl, type: mediaType, caption: caption || "" }),
+      body: JSON.stringify({ to: phone, mediaUrl, mediaType, caption: caption || "" }),
     });
     const result = await response.json();
     return response.ok && result.success;
@@ -81,8 +81,15 @@ function formatPhoneForBaileys(phone: string, whatsappLid?: string) {
   return { formattedPhone: cleanPhone, isLid: false };
 }
 
-function isWithinAllowedWindow(followUp: any): boolean {
+// Get current time in Brazil timezone (BRT = UTC-3)
+function getBrazilTime(): Date {
   const now = new Date();
+  const brasilOffset = -3 * 60; // -3 hours in minutes
+  return new Date(now.getTime() + (brasilOffset + now.getTimezoneOffset()) * 60000);
+}
+
+function isWithinAllowedWindow(followUp: any): boolean {
+  const now = getBrazilTime();
   
   // Check allowed days
   const allowedDays = followUp.allowed_days as string[] | null;
@@ -92,7 +99,7 @@ function isWithinAllowedWindow(followUp: any): boolean {
     if (!allowedDays.includes(currentDay)) return false;
   }
 
-  // Check allowed hours
+  // Check allowed hours (using Brazil time)
   const start = followUp.allowed_hours_start as string | null;
   const end = followUp.allowed_hours_end as string | null;
   if (start && end) {
@@ -101,6 +108,37 @@ function isWithinAllowedWindow(followUp: any): boolean {
   }
 
   return true;
+}
+
+// Calculate next valid window for a follow-up that is currently outside allowed hours/days
+function getNextValidScheduleTime(followUp: any): Date | null {
+  const allowedDays = followUp.allowed_days as string[] | null;
+  const start = followUp.allowed_hours_start as string | null;
+  if (!start) return null;
+
+  const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const now = getBrazilTime();
+
+  // Try up to 7 days ahead
+  for (let dayOffset = 0; dayOffset <= 7; dayOffset++) {
+    const candidate = new Date(now.getTime() + dayOffset * 86400000);
+    const dayName = dayNames[candidate.getDay()];
+
+    if (allowedDays && allowedDays.length > 0 && !allowedDays.includes(dayName)) continue;
+
+    // Set to allowed_hours_start
+    const [startH, startM] = start.split(":").map(Number);
+    candidate.setHours(startH, startM, 0, 0);
+
+    // If same day and start already passed, skip to next day
+    if (dayOffset === 0 && candidate <= now) continue;
+
+    // Convert back from BRT to UTC for storage
+    const brasilOffset = -3 * 60;
+    const utcTime = new Date(candidate.getTime() - (brasilOffset + now.getTimezoneOffset()) * 60000);
+    return utcTime;
+  }
+  return null;
 }
 
 function getStepIntervalMinutes(followUp: any): number {
@@ -365,7 +403,16 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Check allowed time window — reschedule if outside
         if (!isWithinAllowedWindow(followUp)) {
-          console.log(`[FollowUp] ${followUp.id} outside allowed window, skipping for now`);
+          const nextValid = getNextValidScheduleTime(followUp);
+          if (nextValid) {
+            console.log(`[FollowUp] ${followUp.id} outside allowed window (BRT), rescheduling to ${nextValid.toISOString()}`);
+            await supabase.from("follow_ups").update({
+              scheduled_at: nextValid.toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq("id", followUp.id);
+          } else {
+            console.log(`[FollowUp] ${followUp.id} outside allowed window, no valid window found in next 7 days`);
+          }
           continue;
         }
 

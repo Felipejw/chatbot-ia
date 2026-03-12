@@ -31,13 +31,14 @@ else
 fi
 
 # Variáveis necessárias
-SUPABASE_URL="${API_EXTERNAL_URL:-https://${DOMAIN}}"
-ANON_KEY="${ANON_KEY}"
+# Use internal Docker URL for pg_cron (avoids external DNS/TLS issues)
+INTERNAL_URL="http://kong:8000"
+SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
-if [ -z "$ANON_KEY" ]; then
-    log_error "ANON_KEY não definida no .env"
+if [ -z "$SERVICE_ROLE_KEY" ]; then
+    log_error "SERVICE_ROLE_KEY não definida no .env"
     exit 1
 fi
 
@@ -47,7 +48,7 @@ if [ -z "$POSTGRES_PASSWORD" ]; then
 fi
 
 log_info "Configurando cron job para follow-ups..."
-log_info "Supabase URL: $SUPABASE_URL"
+log_info "URL interna: ${INTERNAL_URL}/functions/v1/process-follow-ups"
 
 # SQL para criar/atualizar o cron job
 CRON_SQL="
@@ -60,14 +61,14 @@ SELECT cron.unschedule(jobid)
 FROM cron.job
 WHERE jobname = 'process-follow-ups';
 
--- Criar novo job: a cada minuto
+-- Criar novo job: a cada minuto (usa URL interna Docker + service_role_key)
 SELECT cron.schedule(
   'process-follow-ups',
   '* * * * *',
   \$\$
   SELECT net.http_post(
-    url := '${SUPABASE_URL}/functions/v1/process-follow-ups',
-    headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${ANON_KEY}\"}'::jsonb,
+    url := '${INTERNAL_URL}/functions/v1/process-follow-ups',
+    headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${SERVICE_ROLE_KEY}\"}'::jsonb,
     body := concat('{\"time\": \"', now(), '\"}')::jsonb
   ) AS request_id;
   \$\$
@@ -92,4 +93,4 @@ else
 fi
 
 log_success "Cron job 'process-follow-ups' configurado (a cada minuto)"
-log_info "URL: ${SUPABASE_URL}/functions/v1/process-follow-ups"
+log_info "URL: ${INTERNAL_URL}/functions/v1/process-follow-ups (rede interna Docker)"

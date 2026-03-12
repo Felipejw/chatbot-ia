@@ -388,12 +388,17 @@ const handler = async (req: Request): Promise<Response> => {
 
               if (mediaResp.ok) {
                 const respCT = mediaResp.headers.get("content-type") || "";
-                if (respCT.includes("application/json")) {
+              if (respCT.includes("application/json")) {
                   const jsonResp = await mediaResp.json();
-                  if (jsonResp.base64) {
-                    const dataUri = `data:${jsonResp.mimetype || "application/octet-stream"};base64,${jsonResp.base64}`;
+                  // Support both { base64, mimetype } and { data: { base64, mimetype } }
+                  const b64 = jsonResp.data?.base64 || jsonResp.base64;
+                  const mime = jsonResp.data?.mimetype || jsonResp.mimetype;
+                  if (b64) {
+                    const dataUri = `data:${mime || "application/octet-stream"};base64,${b64}`;
                     mediaUrl = await storeMediaFromBase64(supabaseClient, sessName, messageId, dataUri);
                     console.log(`[Baileys Webhook] Inline media download success: ${mediaUrl ? 'stored' : 'failed'}`);
+                  } else {
+                    console.warn(`[Baileys Webhook] JSON response has no base64 field. Keys: ${JSON.stringify(Object.keys(jsonResp))}`);
                   }
                 } else {
                   const arrayBuf = await mediaResp.arrayBuffer();

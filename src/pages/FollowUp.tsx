@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp } from "lucide-react";
+import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useFollowUpMetrics } from "@/hooks/useFollowUpMetrics";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function MetricCard({ title, value, icon: Icon, description, color }: {
   title: string; value: string | number; icon: React.ElementType; description?: string; color?: string;
@@ -25,6 +29,22 @@ function MetricCard({ title, value, icon: Icon, description, color }: {
 
 export default function FollowUp() {
   const { statusCounts, dailyVolume, agentEffectiveness, isLoading } = useFollowUpMetrics();
+  const [processing, setProcessing] = useState(false);
+
+  const handleProcessNow = async () => {
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-follow-ups", {
+        body: { time: new Date().toISOString() },
+      });
+      if (error) throw error;
+      toast.success(`Processado: ${data?.processed || 0} enviados de ${data?.total || 0} pendentes`);
+    } catch (err) {
+      toast.error("Erro ao processar follow-ups: " + (err instanceof Error ? err.message : "Erro desconhecido"));
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -38,11 +58,22 @@ export default function FollowUp() {
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-auto">
-      <PageHeader
-        icon={TrendingUp}
-        title="Follow-up"
-        description="Métricas e acompanhamento dos follow-ups automáticos"
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          icon={TrendingUp}
+          title="Follow-up"
+          description="Métricas e acompanhamento dos follow-ups automáticos"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleProcessNow}
+          disabled={processing}
+        >
+          {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+          Processar agora
+        </Button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

@@ -119,10 +119,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (responseContentType.includes('application/json')) {
         const jsonResponse = await mediaResponse.json();
-        if (jsonResponse.base64) {
-          mediaBuffer = Uint8Array.from(atob(jsonResponse.base64), (c) => c.charCodeAt(0));
-          contentType = jsonResponse.mimetype || contentType;
+        // Support both { base64, mimetype } and { data: { base64, mimetype } }
+        const b64 = jsonResponse.data?.base64 || jsonResponse.base64;
+        const mime = jsonResponse.data?.mimetype || jsonResponse.mimetype;
+        if (b64) {
+          mediaBuffer = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          contentType = mime || contentType;
         } else {
+          console.error('[download-whatsapp-media] JSON response has no base64 field. Keys:', Object.keys(jsonResponse));
           return new Response(
             JSON.stringify({ success: false, error: 'No media data in Baileys response' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
