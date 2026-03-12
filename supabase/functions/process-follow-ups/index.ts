@@ -53,7 +53,7 @@ async function sendWhatsAppMedia(config: any, phone: string, mediaUrl: string, m
     const response = await fetch(`${config.serverUrl}/sessions/${config.sessionName}/send/media`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ to: phone, url: mediaUrl, type: mediaType, caption: caption || "" }),
+      body: JSON.stringify({ to: phone, mediaUrl, mediaType, caption: caption || "" }),
     });
     const result = await response.json();
     return response.ok && result.success;
