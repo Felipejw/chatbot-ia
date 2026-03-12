@@ -129,8 +129,23 @@ async function getGoogleApiKeyFromDB(supabase: any): Promise<string | null> {
   } catch { return null; }
 }
 
+async function getOpenAIApiKeyFromDB(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "openai_api_key")
+      .maybeSingle();
+    return data?.value || null;
+  } catch { return null; }
+}
+
 function normalizeModelName(model: string): string {
   return model.replace(/^google\//, "");
+}
+
+function isOpenAIModel(model: string): boolean {
+  return model.startsWith("gpt-");
 }
 
 async function generateAIFollowUp(
@@ -163,6 +178,46 @@ ${step === maxSteps ? "- Esta é a ÚLTIMA tentativa de contato. Seja cordial ao
 
   const fallbackMsg = "Olá! Estou aqui caso precise de algo. 😊";
   const resolvedModel = normalizeModelName(model || "gemini-2.5-flash");
+  const resolvedRawModel = model || "gemini-2.5-flash";
+
+  // If OpenAI model, use OpenAI API
+  if (isOpenAIModel(resolvedRawModel)) {
+    const openaiKey = await getOpenAIApiKeyFromDB(supabase);
+    if (openaiKey) {
+      try {
+        console.log("[FollowUp] Using OpenAI API for model:", resolvedRawModel);
+        const aiMessages = [
+          { role: "system", content: systemPrompt },
+          ...history.map((m: any) => ({
+            role: m.sender_type === "contact" ? "user" : "assistant",
+            content: m.content,
+          })),
+          { role: "user", content: "[O contato não respondeu. Gere uma mensagem de follow-up.]" },
+        ];
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: resolvedRawModel,
+            messages: aiMessages,
+            temperature: temperature ?? 0.8,
+            max_tokens: 300,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          return data.choices?.[0]?.message?.content || fallbackMsg;
+        }
+        console.error("[FollowUp] OpenAI error:", response.status);
+      } catch (error) {
+        console.error("[FollowUp] OpenAI call error:", error);
+      }
+    }
+    return fallbackMsg;
+  }
 
   // Try Lovable AI Gateway first
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
