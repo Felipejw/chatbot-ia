@@ -460,46 +460,173 @@ function isOpenAIModel(model: string): boolean {
   return model.startsWith("gpt-");
 }
 
-// Transcribe audio using Google Gemini multimodal API
-async function transcribeAudio(mediaUrl: string, requestBody: any): Promise<string> {
-  const fallbackText = "[O contato enviou um áudio que não pôde ser transcrito]";
+// Download audio from Baileys server directly (fallback when mediaUrl is null)
+async function downloadAudioFromBaileys(
+  supabase: any,
+  baileysMessageId: string,
+  sessionName: string
+): Promise<{ base64: string; contentType: string } | null> {
   try {
-    // Build full URL for the media
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    let fullUrl = mediaUrl;
-    if (mediaUrl.startsWith("/storage/")) {
-      fullUrl = `${supabaseUrl}${mediaUrl}`;
-    } else if (!mediaUrl.startsWith("http")) {
-      fullUrl = `${supabaseUrl}/storage/v1/object/public/${mediaUrl}`;
+    const { data: urlSetting } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "baileys_server_url")
+      .single();
+
+    if (!urlSetting?.value) {
+      console.log("[FlowExecutor] No baileys_server_url configured");
+      return null;
     }
 
-    console.log("[FlowExecutor] Downloading audio from:", fullUrl);
+    const { data: keySetting } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "baileys_api_key")
+      .single();
 
-    // Download the audio file
-    const audioResponse = await fetch(fullUrl);
-    if (!audioResponse.ok) {
-      console.error("[FlowExecutor] Failed to download audio:", audioResponse.status);
+    const baileysUrl = urlSetting.value.replace(/\/$/, "");
+    const headers: Record<string, string> = {};
+    if (keySetting?.value) headers["X-API-Key"] = keySetting.value;
+
+    const url = `${baileysUrl}/sessions/${sessionName}/messages/${baileysMessageId}/media`;
+    console.log(`[FlowExecutor] Downloading audio directly from Baileys: ${url}`);
+
+    const response = await fetch(url, { method: "GET", headers });
+    if (!response.ok) {
+      console.warn(`[FlowExecutor] Baileys direct download failed: ${response.status}`);
+      return null;
+    }
+
+    const respCT = response.headers.get("content-type") || "";
+
+    if (respCT.includes("application/json")) {
+      const json = await response.json();
+      if (!json.base64) return null;
+      return { base64: json.base64, contentType: json.mimetype || "audio/ogg" };
+    } else {
+      const arrayBuf = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuf);
+      if (bytes.length === 0) return null;
+      // Convert binary to base64
+      let binaryStr = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binaryStr += String.fromCharCode(...chunk);
+      }
+      return { base64: btoa(binaryStr), contentType: respCT.split(";")[0].trim() || "audio/ogg" };
+    }
+  } catch (err) {
+    console.error("[FlowExecutor] Baileys direct download error:", err);
+    return null;
+  }
+}
+
+// Transcribe audio using Google Gemini multimodal API
+async function transcribeAudio(mediaUrl: string | null, requestBody: any, supabaseClient?: any): Promise<string> {
+  const fallbackText = "[O contato enviou um áudio. Peça gentilmente que repita a mensagem em texto, explicando que você precisa da mensagem escrita para poder ajudar melhor.]";
+  try {
+    let base64Audio = "";
+    let contentType = "audio/ogg";
+
+    // If we already have base64 from Baileys direct download
+    if (requestBody._audioBase64) {
+      console.log("[FlowExecutor] Using pre-downloaded audio base64");
+      base64Audio = requestBody._audioBase64;
+      contentType = requestBody._audioContentType || "audio/ogg";
+    } else if (mediaUrl) {
+      // Download from storage using authenticated request
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      // Extract storage path from URL
+      let storagePath = "";
+      if (mediaUrl.includes("/storage/v1/object/public/whatsapp-media/")) {
+        storagePath = mediaUrl.split("/storage/v1/object/public/whatsapp-media/")[1];
+      } else if (mediaUrl.startsWith("/storage/")) {
+        // Relative path like /storage/v1/object/public/whatsapp-media/session/file.ogg
+        const match = mediaUrl.match(/whatsapp-media\/(.+)$/);
+        storagePath = match ? match[1] : "";
+      }
+
+      if (storagePath && supabaseClient) {
+        // Use Supabase client to download (works inside Docker)
+        console.log(`[FlowExecutor] Downloading audio from storage path: ${storagePath}`);
+        const { data: fileData, error: dlError } = await supabaseClient.storage
+          .from("whatsapp-media")
+          .download(storagePath);
+
+        if (dlError || !fileData) {
+          console.error("[FlowExecutor] Storage download failed:", dlError?.message);
+          // Fallback: try direct URL
+          const fullUrl = mediaUrl.startsWith("http") ? mediaUrl : `${supabaseUrl}${mediaUrl}`;
+          console.log("[FlowExecutor] Falling back to direct URL:", fullUrl);
+          const audioResponse = await fetch(fullUrl, {
+            headers: { "Authorization": `Bearer ${serviceKey}` },
+          });
+          if (!audioResponse.ok) {
+            console.error("[FlowExecutor] Direct URL download also failed:", audioResponse.status);
+            return fallbackText;
+          }
+          const audioBlob = await audioResponse.arrayBuffer();
+          const audioBytes = new Uint8Array(audioBlob);
+          const chunkSize = 8192;
+          let binaryStr = "";
+          for (let i = 0; i < audioBytes.length; i += chunkSize) {
+            const chunk = audioBytes.subarray(i, i + chunkSize);
+            binaryStr += String.fromCharCode(...chunk);
+          }
+          base64Audio = btoa(binaryStr);
+          contentType = audioResponse.headers.get("content-type") || "audio/ogg";
+        } else {
+          // fileData is a Blob
+          const audioBytes = new Uint8Array(await fileData.arrayBuffer());
+          const chunkSize = 8192;
+          let binaryStr = "";
+          for (let i = 0; i < audioBytes.length; i += chunkSize) {
+            const chunk = audioBytes.subarray(i, i + chunkSize);
+            binaryStr += String.fromCharCode(...chunk);
+          }
+          base64Audio = btoa(binaryStr);
+          contentType = fileData.type || "audio/ogg";
+          console.log(`[FlowExecutor] Audio downloaded from storage: ${audioBytes.length} bytes, type: ${contentType}`);
+        }
+      } else {
+        // No storage path extracted, try full URL
+        const fullUrl = mediaUrl.startsWith("http") ? mediaUrl : `${supabaseUrl}${mediaUrl}`;
+        console.log("[FlowExecutor] Downloading audio from URL:", fullUrl);
+        const audioResponse = await fetch(fullUrl);
+        if (!audioResponse.ok) {
+          console.error("[FlowExecutor] Failed to download audio:", audioResponse.status);
+          return fallbackText;
+        }
+        const audioBlob = await audioResponse.arrayBuffer();
+        const audioBytes = new Uint8Array(audioBlob);
+        const chunkSize = 8192;
+        let binaryStr = "";
+        for (let i = 0; i < audioBytes.length; i += chunkSize) {
+          const chunk = audioBytes.subarray(i, i + chunkSize);
+          binaryStr += String.fromCharCode(...chunk);
+        }
+        base64Audio = btoa(binaryStr);
+        contentType = audioResponse.headers.get("content-type") || "audio/ogg";
+      }
+    } else {
+      console.error("[FlowExecutor] No mediaUrl and no pre-downloaded audio");
       return fallbackText;
     }
 
-    const audioBlob = await audioResponse.arrayBuffer();
-    const audioBytes = new Uint8Array(audioBlob);
-
-    // Convert to base64
-    let base64Audio = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < audioBytes.length; i += chunkSize) {
-      const chunk = audioBytes.subarray(i, i + chunkSize);
-      base64Audio += String.fromCharCode(...chunk);
+    if (!base64Audio) {
+      console.error("[FlowExecutor] Could not obtain audio data");
+      return fallbackText;
     }
-    base64Audio = btoa(base64Audio);
 
-    const contentType = audioResponse.headers.get("content-type") || "audio/ogg";
-    console.log(`[FlowExecutor] Audio downloaded: ${audioBytes.length} bytes, type: ${contentType}`);
+    console.log(`[FlowExecutor] Audio ready for transcription: ${base64Audio.length} base64 chars, type: ${contentType}`);
 
     // Try Google AI key from system_settings first
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = (await import("https://esm.sh/@supabase/supabase-js@2")).createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl2 = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = supabaseClient || (await import("https://esm.sh/@supabase/supabase-js@2")).createClient(supabaseUrl2, supabaseKey2);
     
     const googleKey = await getGoogleApiKeyFromDB(supabase);
 
@@ -1327,16 +1454,53 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json();
-    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation } = body;
+    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation, baileysMessageId } = body;
 
-    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation });
+    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation, baileysMessageId });
+
+    // Create supabase client early for audio download
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Transcribe audio if needed
     let message = rawMessage;
-    if (incomingMessageType === "audio" && incomingMediaUrl) {
-      console.log("[FlowExecutor] Audio message detected, attempting transcription...");
-      message = await transcribeAudio(incomingMediaUrl, body);
-      console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+    if (incomingMessageType === "audio") {
+      console.log("[FlowExecutor] Audio message detected, mediaUrl:", incomingMediaUrl || "NULL", ", baileysMessageId:", baileysMessageId || "NULL");
+
+      let audioMediaUrl = incomingMediaUrl;
+
+      // If mediaUrl is null, try downloading directly from Baileys server
+      if (!audioMediaUrl && baileysMessageId) {
+        console.log("[FlowExecutor] mediaUrl is null, attempting Baileys direct download...");
+
+        // Get session name from connection
+        let sessionName = "default";
+        if (connectionId) {
+          const { data: conn } = await supabase.from("connections").select("session_data, name").eq("id", connectionId).single();
+          if (conn) {
+            const sd = conn.session_data as any;
+            sessionName = sd?.sessionName || conn.name.toLowerCase().replace(/\s+/g, "_");
+          }
+        }
+
+        const audioData = await downloadAudioFromBaileys(supabase, baileysMessageId, sessionName);
+        if (audioData) {
+          // Pass base64 directly to transcribeAudio
+          body._audioBase64 = audioData.base64;
+          body._audioContentType = audioData.contentType;
+          audioMediaUrl = "__direct__"; // marker so we enter transcription
+        }
+      }
+
+      if (audioMediaUrl || body._audioBase64) {
+        console.log("[FlowExecutor] Attempting transcription...");
+        message = await transcribeAudio(audioMediaUrl === "__direct__" ? null : audioMediaUrl, body, supabase);
+        console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+      } else {
+        console.warn("[FlowExecutor] No audio source available, using fallback message");
+        message = "[O contato enviou um áudio. Peça gentilmente que repita a mensagem em texto, explicando que você precisa da mensagem escrita para poder ajudar melhor.]";
+      }
     }
 
     if (!conversationId || !message) {
@@ -1346,9 +1510,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // supabase client already created above
 
     // Fetch conversation data
     const { data: conversation, error: convError } = await supabase
