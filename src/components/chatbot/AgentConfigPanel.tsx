@@ -240,6 +240,8 @@ const defaultConfig: AgentConfig = {
   endMessage: "",
   markResolved: true,
   responseDelay: 0,
+  responseDelayMode: "fixed",
+  responseDelayMax: 10,
 };
 
 function getTotalCycleTime(steps: FollowUpStep[]): string {
