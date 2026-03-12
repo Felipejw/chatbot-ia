@@ -623,21 +623,10 @@ async function transcribeAudio(mediaUrl: string | null, requestBody: any, supaba
 
     console.log(`[FlowExecutor] Audio ready for transcription: ${base64Audio.length} base64 chars, type: ${contentType}`);
 
-    // Convert to base64
-    let base64Audio = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < audioBytes.length; i += chunkSize) {
-      const chunk = audioBytes.subarray(i, i + chunkSize);
-      base64Audio += String.fromCharCode(...chunk);
-    }
-    base64Audio = btoa(base64Audio);
-
-    const contentType = audioResponse.headers.get("content-type") || "audio/ogg";
-    console.log(`[FlowExecutor] Audio downloaded: ${audioBytes.length} bytes, type: ${contentType}`);
-
     // Try Google AI key from system_settings first
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = (await import("https://esm.sh/@supabase/supabase-js@2")).createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl2 = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = supabaseClient || (await import("https://esm.sh/@supabase/supabase-js@2")).createClient(supabaseUrl2, supabaseKey2);
     
     const googleKey = await getGoogleApiKeyFromDB(supabase);
 
