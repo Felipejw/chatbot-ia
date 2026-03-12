@@ -73,6 +73,8 @@ interface AgentConfig {
   markResolved: boolean;
   agentProfile?: string;
   responseDelay: number;
+  responseDelayMode: "fixed" | "random";
+  responseDelayMax: number;
 }
 
 // Agent profile definitions
