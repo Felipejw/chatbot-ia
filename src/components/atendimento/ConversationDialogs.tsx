@@ -102,41 +102,8 @@ export function ConversationDialogs(props: ConversationDialogsProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Schedule Dialog */}
-      <Dialog open={props.showScheduleDialog} onOpenChange={props.setShowScheduleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agendar Mensagem/Lembrete</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Título</Label>
-              <Input value={props.scheduleTitle} onChange={(e) => props.setScheduleTitle(e.target.value)} placeholder="Ex: Retornar ligação" />
-            </div>
-            <div className="space-y-2">
-              <Label>Descrição (opcional)</Label>
-              <Textarea value={props.scheduleDescription} onChange={(e) => props.setScheduleDescription(e.target.value)} placeholder="Detalhes do agendamento..." rows={2} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data</Label>
-                <Input type="date" value={props.scheduleDate} onChange={(e) => props.setScheduleDate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Hora</Label>
-                <Input type="time" value={props.scheduleTime} onChange={(e) => props.setScheduleTime(e.target.value)} />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => props.setShowScheduleDialog(false)}>Cancelar</Button>
-            <Button onClick={props.onCreateSchedule} disabled={props.scheduleLoading || !props.scheduleTitle.trim() || !props.scheduleDate || !props.scheduleTime}>
-              {props.scheduleLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Agendar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Transfer to Bot Flow Dialog */}
       <Dialog open={props.showBotFlowDialog} onOpenChange={props.setShowBotFlowDialog}>
