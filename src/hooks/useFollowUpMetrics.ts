@@ -47,6 +47,7 @@ export function useFollowUpMetrics() {
       };
     },
     staleTime: 30000,
+    retry: 1,
   });
 
   const dailyVolume = useQuery({
