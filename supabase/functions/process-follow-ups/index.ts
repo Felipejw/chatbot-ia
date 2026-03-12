@@ -118,6 +118,21 @@ function getStepIntervalMinutes(followUp: any): number {
   return followUp.interval_minutes;
 }
 
+async function getGoogleApiKeyFromDB(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "google_ai_api_key")
+      .maybeSingle();
+    return data?.value || null;
+  } catch { return null; }
+}
+
+function normalizeModelName(model: string): string {
+  return model.replace(/^google\//, "");
+}
+
 async function generateAIFollowUp(
   supabase: any,
   prompt: string,
@@ -128,9 +143,6 @@ async function generateAIFollowUp(
   model?: string,
   temperature?: number
 ): Promise<string> {
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!lovableApiKey) return "Olá! Gostaria de saber se posso ajudá-lo com algo mais.";
-
   const { data: messages } = await supabase
     .from("messages")
     .select("content, sender_type")
@@ -138,10 +150,7 @@ async function generateAIFollowUp(
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const history = (messages || []).reverse().map((m: any) => ({
-    role: m.sender_type === "contact" ? "user" : "assistant",
-    content: m.content,
-  }));
+  const history = (messages || []).reverse();
 
   const systemPrompt = `${prompt}
 
@@ -152,34 +161,79 @@ Contexto:
 - Seja breve, amigável e natural. Não mencione que é um follow-up automático.
 ${step === maxSteps ? "- Esta é a ÚLTIMA tentativa de contato. Seja cordial ao se despedir." : ""}`;
 
-  try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: model || "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history,
-          { role: "user", content: "[O contato não respondeu. Gere uma mensagem de follow-up.]" },
-        ],
-        temperature: temperature ?? 0.8,
-        max_tokens: 300,
-      }),
-    });
+  const fallbackMsg = "Olá! Estou aqui caso precise de algo. 😊";
+  const resolvedModel = normalizeModelName(model || "gemini-2.5-flash");
 
+  // Try Lovable AI Gateway first
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableApiKey) {
+    try {
+      const aiMessages = [
+        { role: "system", content: systemPrompt },
+        ...history.map((m: any) => ({
+          role: m.sender_type === "contact" ? "user" : "assistant",
+          content: m.content,
+        })),
+        { role: "user", content: "[O contato não respondeu. Gere uma mensagem de follow-up.]" },
+      ];
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({
+          model: model || "google/gemini-2.5-flash",
+          messages: aiMessages,
+          temperature: temperature ?? 0.8,
+          max_tokens: 300,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || fallbackMsg;
+      }
+    } catch (error) {
+      console.error("[FollowUp] Lovable AI error:", error);
+    }
+  }
+
+  // Fallback: Google AI API key from system_settings
+  const googleKey = await getGoogleApiKeyFromDB(supabase);
+  if (!googleKey) {
+    console.error("[FollowUp] No AI API key available");
+    return fallbackMsg;
+  }
+
+  try {
+    console.log("[FollowUp] Using Google AI API key from system_settings");
+    const contents = history.map((m: any) => ({
+      role: m.sender_type === "contact" ? "user" : "model",
+      parts: [{ text: m.content }],
+    }));
+    contents.push({ role: "user", parts: [{ text: "[O contato não respondeu. Gere uma mensagem de follow-up.]" }] });
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${googleKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { temperature: temperature ?? 0.8, maxOutputTokens: 300 },
+        }),
+      }
+    );
     if (!response.ok) {
-      console.error("[FollowUp] AI error:", response.status, await response.text());
-      return "Olá! Estou aqui caso precise de algo. 😊";
+      console.error("[FollowUp] Google AI error:", response.status);
+      return fallbackMsg;
     }
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || "Olá! Posso ajudá-lo com algo?";
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || fallbackMsg;
   } catch (error) {
-    console.error("[FollowUp] AI call error:", error);
-    return "Olá! Estou aqui caso precise de algo. 😊";
+    console.error("[FollowUp] Google AI call error:", error);
+    return fallbackMsg;
   }
 }
 

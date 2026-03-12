@@ -1252,7 +1252,7 @@ const handler = async (req: Request): Promise<Response> => {
         const { systemPrompt, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey } = flowState.aiNodeData;
         const conversationHistory = await fetchConversationHistory(supabase, conversationId, 10);
 
-        const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory);
+        const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase);
 
         await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
