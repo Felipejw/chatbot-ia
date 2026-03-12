@@ -329,33 +329,49 @@ async function autoTagConversation(
       return;
     }
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) return;
-
     const tagList = tags.map((t: any) => `- ${t.name}${t.description ? ` (${t.description})` : ""}`).join("\n");
+    const classifyPrompt = `Você é um classificador de conversas. Analise a mensagem do cliente e a resposta do atendente/bot e retorne APENAS os nomes das tags aplicáveis da lista abaixo, separados por vírgula. Se nenhuma tag se aplicar, retorne "NENHUMA".\n\nTags disponíveis:\n${tagList}`;
+    const classifyUserMsg = `Mensagem do cliente: ${messageContent}\n\nResposta do bot: ${aiResponse}`;
 
-    const classifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um classificador de conversas. Analise a mensagem do cliente e a resposta do atendente/bot e retorne APENAS os nomes das tags aplicáveis da lista abaixo, separados por vírgula. Se nenhuma tag se aplicar, retorne "NENHUMA".\n\nTags disponíveis:\n${tagList}`,
-          },
-          {
-            role: "user",
-            content: `Mensagem do cliente: ${messageContent}\n\nResposta do bot: ${aiResponse}`,
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 200,
-      }),
-    });
+    // Try Lovable AI Gateway first, then fallback to Google AI
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    let classifyResponse: Response;
+    
+    if (lovableApiKey) {
+      classifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: classifyPrompt },
+            { role: "user", content: classifyUserMsg },
+          ],
+          temperature: 0.1,
+          max_tokens: 200,
+        }),
+      });
+    } else {
+      // Fallback to Google AI
+      const googleKey = await getGoogleApiKeyFromDB(supabase);
+      if (!googleKey) return;
+      
+      classifyResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: classifyUserMsg }] }],
+            systemInstruction: { parts: [{ text: classifyPrompt }] },
+            generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+          }),
+        }
+      );
+    }
 
     if (!classifyResponse.ok) {
       console.error("[FlowExecutor] Auto-tag AI error:", classifyResponse.status);
