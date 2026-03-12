@@ -1,43 +1,33 @@
 
 
-# Plano: Delay aleatório + Script de atualização simplificado
+# Corrigir Bug "Acesso Negado" ao Logar
 
-## 1. Delay aleatório entre dois períodos
+## Causa Raiz
 
-Atualmente o `responseDelay` é um valor fixo (0, 3, 5, 10s). Vou adicionar uma opção "Aleatório" que permite definir um intervalo (ex: entre 3 e 8 segundos). Cada resposta usará um delay randômico nesse range, simulando comportamento humano.
+O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
 
-### Alterações
+Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
 
-**`src/components/chatbot/AgentConfigPanel.tsx`**
-- Adicionar campos `responseDelayMode` (`fixed` | `random`) e `responseDelayMax` ao `AgentConfig`
-- Na UI, adicionar botão "Aleatório" ao lado dos presets existentes
-- Quando selecionado, exibir dois inputs: "De X seg" e "Até Y seg"
+## Plano
 
-**`supabase/functions/execute-flow/index.ts`**
-- Na linha 1554, onde já aplica `responseDelay`, verificar `cfg.responseDelayMode`:
-  - Se `"random"`: gerar delay entre `cfg.responseDelay` (mín) e `cfg.responseDelayMax` (máx)
-  - Se `"fixed"` ou ausente: manter comportamento atual
+### 1. Corrigir a role no banco via migração
+Executar SQL para atualizar a role do admin para `super_admin`:
+```sql
+UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
+```
 
----
+### 2. Corrigir a função bootstrap-admin
+Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
+```typescript
+// Antes (não funciona com unique(user_id, role)):
+await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
 
-## 2. Comando de atualização one-line (sem reinstalar)
-
-O `deploy/scripts/update.sh` já existe e faz: git pull → rebuild frontend → deploy → migrations → restart containers. Mas ele assume que o repositório já foi clonado. Vou criar um **script de atualização remota** que pode ser executado via `curl`, similar ao bootstrap mas **preservando** .env, sessões e banco.
-
-### Alteração
-
-**`deploy/scripts/update-remote.sh`** (novo arquivo)
-- Comando: `curl -fsSL https://raw.githubusercontent.com/Felipejw/chatbot-ia/main/deploy/scripts/update-remote.sh | sudo bash`
-- Fluxo:
-  1. Detectar instalação existente em `/opt/sistema`
-  2. Fazer backup do `.env` e sessões
-  3. Git fetch + reset (ou re-clone se necessário)
-  4. Executar o `update.sh` existente (que faz build, deploy, migrations, restart)
-  5. Restaurar configs
-- Não reinstala Docker, banco ou Supabase — só atualiza código e frontend
+// Depois:
+await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+```
 
 ### Arquivos alterados
-- `src/components/chatbot/AgentConfigPanel.tsx` — modo aleatório no delay
-- `supabase/functions/execute-flow/index.ts` — random delay no edge function
-- `deploy/scripts/update-remote.sh` — novo script de atualização via curl
+- Migração SQL para corrigir a role atual
+- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
 

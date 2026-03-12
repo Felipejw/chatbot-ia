@@ -73,6 +73,8 @@ interface AgentConfig {
   markResolved: boolean;
   agentProfile?: string;
   responseDelay: number;
+  responseDelayMode: "fixed" | "random";
+  responseDelayMax: number;
 }
 
 // Agent profile definitions
@@ -238,6 +240,8 @@ const defaultConfig: AgentConfig = {
   endMessage: "",
   markResolved: true,
   responseDelay: 0,
+  responseDelayMode: "fixed",
+  responseDelayMax: 10,
 };
 
 function getTotalCycleTime(steps: FollowUpStep[]): string {
@@ -847,66 +851,138 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     </FieldCard>
 
                     <FieldCard>
-                      <div className="space-y-3">
-                        <FieldLabel icon={Clock} description="Tempo que a IA aguarda após a última mensagem recebida antes de responder. Útil para esperar o contato terminar de digitar.">
+                      <div className="space-y-4">
+                        <FieldLabel icon={Clock} description="Tempo que a IA aguarda antes de responder. Use o modo aleatório para simular comportamento humano e reduzir risco de banimento.">
                           Tempo de espera antes de responder
                         </FieldLabel>
-                        <div className="grid grid-cols-4 gap-3">
-                          {[
-                            { label: "Imediato", value: 0 },
-                            { label: "3 seg", value: 3 },
-                            { label: "5 seg", value: 5 },
-                            { label: "10 seg", value: 10 },
-                          ].map((preset) => (
-                            <button
-                              key={preset.value}
-                              type="button"
-                              onClick={() => updateConfig({ responseDelay: preset.value })}
-                              className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
-                                config.responseDelay === preset.value
-                                  ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
-                                  : "border-border/50 bg-card hover:border-border"
-                              }`}
-                            >
-                              <Clock className="w-4 h-4" />
-                              <span className="text-xs font-semibold">{preset.label}</span>
-                            </button>
-                          ))}
+
+                        {/* Mode toggle */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ responseDelayMode: "fixed" })}
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 ${
+                              config.responseDelayMode !== "random"
+                                ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
+                                : "border-border/50 bg-card hover:border-border"
+                            }`}
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span className="text-sm font-semibold">Fixo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ responseDelayMode: "random" })}
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 ${
+                              config.responseDelayMode === "random"
+                                ? "bg-accent/10 text-accent border-accent/30 shadow-sm"
+                                : "border-border/50 bg-card hover:border-border"
+                            }`}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            <span className="text-sm font-semibold">Aleatório</span>
+                          </button>
                         </div>
-                        {![0, 3, 5, 10].includes(config.responseDelay) && (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              value={config.responseDelay}
-                              onChange={(e) => updateConfig({ responseDelay: parseInt(e.target.value) || 0 })}
-                              className="h-11 w-32"
-                              min={0}
-                              max={120}
-                            />
-                            <span className="text-sm text-muted-foreground">segundos</span>
-                          </div>
-                        )}
-                        <Collapsible>
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                              <ChevronDown className="w-3.5 h-3.5" />
-                              Valor personalizado ({config.responseDelay}s)
-                            </Button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="pt-3">
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                value={config.responseDelay}
-                                onChange={(e) => updateConfig({ responseDelay: Math.max(0, Math.min(120, parseInt(e.target.value) || 0)) })}
-                                className="h-11 w-32"
-                                min={0}
-                                max={120}
-                              />
-                              <span className="text-sm text-muted-foreground">segundos (0-120)</span>
+
+                        {config.responseDelayMode !== "random" ? (
+                          <>
+                            {/* Fixed mode presets */}
+                            <div className="grid grid-cols-4 gap-3">
+                              {[
+                                { label: "Imediato", value: 0 },
+                                { label: "3 seg", value: 3 },
+                                { label: "5 seg", value: 5 },
+                                { label: "10 seg", value: 10 },
+                              ].map((preset) => (
+                                <button
+                                  key={preset.value}
+                                  type="button"
+                                  onClick={() => updateConfig({ responseDelay: preset.value })}
+                                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
+                                    config.responseDelay === preset.value
+                                      ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
+                                      : "border-border/50 bg-card hover:border-border"
+                                  }`}
+                                >
+                                  <Clock className="w-4 h-4" />
+                                  <span className="text-xs font-semibold">{preset.label}</span>
+                                </button>
+                              ))}
                             </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                  Valor personalizado ({config.responseDelay}s)
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="pt-3">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    value={config.responseDelay}
+                                    onChange={(e) => updateConfig({ responseDelay: Math.max(0, Math.min(120, parseInt(e.target.value) || 0)) })}
+                                    className="h-11 w-32"
+                                    min={0}
+                                    max={120}
+                                  />
+                                  <span className="text-sm text-muted-foreground">segundos (0-120)</span>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </>
+                        ) : (
+                          <>
+                            {/* Random mode */}
+                            <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-4">
+                              <p className="text-xs text-muted-foreground">
+                                A IA vai aguardar um tempo aleatório entre os dois valores, simulando digitação humana natural.
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 space-y-1">
+                                  <Label className="text-xs text-muted-foreground">Mínimo</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      value={config.responseDelay}
+                                      onChange={(e) => {
+                                        const v = Math.max(0, Math.min(120, parseInt(e.target.value) || 0));
+                                        updateConfig({ responseDelay: v, responseDelayMax: Math.max(v, config.responseDelayMax) });
+                                      }}
+                                      className="h-11"
+                                      min={0}
+                                      max={120}
+                                    />
+                                    <span className="text-sm text-muted-foreground shrink-0">seg</span>
+                                  </div>
+                                </div>
+                                <span className="text-muted-foreground font-medium mt-5">—</span>
+                                <div className="flex-1 space-y-1">
+                                  <Label className="text-xs text-muted-foreground">Máximo</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      value={config.responseDelayMax}
+                                      onChange={(e) => {
+                                        const v = Math.max(config.responseDelay, Math.min(120, parseInt(e.target.value) || 0));
+                                        updateConfig({ responseDelayMax: v });
+                                      }}
+                                      className="h-11"
+                                      min={config.responseDelay}
+                                      max={120}
+                                    />
+                                    <span className="text-sm text-muted-foreground shrink-0">seg</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <Badge variant="outline" className="text-xs font-mono bg-background">
+                                  ⏱ Responderá entre {config.responseDelay}s e {config.responseDelayMax}s
+                                </Badge>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </FieldCard>
                   </>
