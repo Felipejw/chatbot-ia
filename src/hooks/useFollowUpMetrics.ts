@@ -47,6 +47,7 @@ export function useFollowUpMetrics() {
       };
     },
     staleTime: 30000,
+    retry: 1,
   });
 
   const dailyVolume = useQuery({
@@ -80,6 +81,7 @@ export function useFollowUpMetrics() {
       }));
     },
     staleTime: 30000,
+    retry: 1,
   });
 
   const agentEffectiveness = useQuery({
@@ -122,12 +124,16 @@ export function useFollowUpMetrics() {
         .sort((a, b) => b.rate - a.rate);
     },
     staleTime: 30000,
+    retry: 1,
   });
+
+  const isError = statusCounts.isError || dailyVolume.isError || agentEffectiveness.isError;
 
   return {
     statusCounts: statusCounts.data,
     dailyVolume: dailyVolume.data,
     agentEffectiveness: agentEffectiveness.data,
-    isLoading: statusCounts.isLoading || dailyVolume.isLoading || agentEffectiveness.isLoading,
+    isLoading: !isError && (statusCounts.isLoading || dailyVolume.isLoading || agentEffectiveness.isLoading),
+    isError,
   };
 }

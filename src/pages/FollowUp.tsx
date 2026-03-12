@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useFollowUpMetrics } from "@/hooks/useFollowUpMetrics";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ function MetricCard({ title, value, icon: Icon, description, color }: {
 }
 
 export default function FollowUp() {
-  const { statusCounts, dailyVolume, agentEffectiveness, isLoading } = useFollowUpMetrics();
+  const { statusCounts, dailyVolume, agentEffectiveness, isLoading, isError } = useFollowUpMetrics();
   const [processing, setProcessing] = useState(false);
 
   const handleProcessNow = async () => {
@@ -58,6 +59,14 @@ export default function FollowUp() {
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-auto">
+      {isError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Não foi possível carregar as métricas de follow-up. Verifique a conexão com o banco de dados.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <PageHeader
           icon={TrendingUp}

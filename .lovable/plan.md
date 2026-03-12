@@ -1,30 +1,24 @@
 
 
-# Plano: Corrigir página Follow-up que fica carregando infinitamente
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Problema
+## ✅ Concluído
 
-A página de Follow-up fica presa no spinner de loading porque o hook `useFollowUpMetrics` usa 3 queries independentes com `react-query`. Se qualquer uma dessas queries falhar (ex: tabela não existe na VPS, erro de RLS, etc.), o `react-query` fica tentando novamente infinitamente, mantendo `isLoading: true` para sempre.
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-O `isLoading` retorna `true` enquanto QUALQUER das 3 queries estiver carregando ou re-tentando:
-```typescript
-isLoading: statusCounts.isLoading || dailyVolume.isLoading || agentEffectiveness.isLoading
-```
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-## Solução
-
-### 1. Adicionar tratamento de erro no hook `useFollowUpMetrics`
-
-- Adicionar `retry: 1` (máximo 1 retry) em cada query para não ficar tentando infinitamente
-- Retornar também o estado de `error` para que a página possa exibir uma mensagem
-- Retornar valores padrão quando houver erro (em vez de `undefined`)
-
-### 2. Melhorar a página `FollowUp.tsx`
-
-- Tratar estado de erro: mostrar a página com valores zerados + mensagem de aviso, em vez de ficar no spinner
-- Usar `isError` para exibir um alerta informativo
-
-## Arquivos alterados
-- `src/hooks/useFollowUpMetrics.ts` -- adicionar `retry: 1` nas queries, expor `isError`
-- `src/pages/FollowUp.tsx` -- tratar erro mostrando página vazia com aviso em vez de spinner infinito
-
+### Próximos passos do usuário
+1. Salvar a chave do Google AI em Configurações > Opções
+2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
+3. O cron job será configurado automaticamente
