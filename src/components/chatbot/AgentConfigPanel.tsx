@@ -711,6 +711,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                       return null;
                     })()}
 
+                    <FieldCard>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <FieldLabel description="Instruções que definem a personalidade e comportamento da IA">
