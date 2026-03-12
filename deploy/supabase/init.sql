@@ -1165,8 +1165,6 @@ CREATE TABLE IF NOT EXISTS public.follow_ups (
   media_type text DEFAULT 'none'
 );
 
--- Remove the duplicate follow_up_prompt if table was freshly created (it's already defined above)
--- This is safe because IF NOT EXISTS means the table won't be recreated if it exists
 
 CREATE INDEX IF NOT EXISTS idx_follow_ups_status_scheduled ON public.follow_ups (status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_follow_ups_conversation ON public.follow_ups (conversation_id);
