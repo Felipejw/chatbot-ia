@@ -671,9 +671,14 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         <Select value={config.model} onValueChange={(v) => updateConfig({ model: v })}>
                           <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem disabled value="__gemini_header" className="text-xs font-semibold text-muted-foreground">── Google Gemini (Gratuito) ──</SelectItem>
                             <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</SelectItem>
                             <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
                             <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Rápido)</SelectItem>
+                            <SelectItem disabled value="__openai_header" className="text-xs font-semibold text-muted-foreground">── OpenAI ChatGPT (Pago) ──</SelectItem>
+                            <SelectItem value="gpt-4o-mini">GPT-4o Mini (Recomendado, econômico)</SelectItem>
+                            <SelectItem value="gpt-4o">GPT-4o (Mais capaz)</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Rápido)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

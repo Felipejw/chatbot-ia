@@ -333,7 +333,7 @@ async function autoTagConversation(
     const classifyPrompt = `Você é um classificador de conversas. Analise a mensagem do cliente e a resposta do atendente/bot e retorne APENAS os nomes das tags aplicáveis da lista abaixo, separados por vírgula. Se nenhuma tag se aplicar, retorne "NENHUMA".\n\nTags disponíveis:\n${tagList}`;
     const classifyUserMsg = `Mensagem do cliente: ${messageContent}\n\nResposta do bot: ${aiResponse}`;
 
-    // Try Lovable AI Gateway first, then fallback to Google AI
+    // Try Lovable AI Gateway first, then fallback to Google/OpenAI
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     let classifyResponse: Response;
     
@@ -355,22 +355,43 @@ async function autoTagConversation(
         }),
       });
     } else {
-      // Fallback to Google AI
-      const googleKey = await getGoogleApiKeyFromDB(supabase);
-      if (!googleKey) return;
-      
-      classifyResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleKey}`,
-        {
+      // Try OpenAI first if key exists
+      const openaiKey = await getOpenAIApiKeyFromDB(supabase);
+      if (openaiKey) {
+        classifyResponse = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openaiKey}`,
+          },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: classifyUserMsg }] }],
-            systemInstruction: { parts: [{ text: classifyPrompt }] },
-            generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: classifyPrompt },
+              { role: "user", content: classifyUserMsg },
+            ],
+            temperature: 0.1,
+            max_tokens: 200,
           }),
-        }
-      );
+        });
+      } else {
+        // Fallback to Google AI
+        const googleKey = await getGoogleApiKeyFromDB(supabase);
+        if (!googleKey) return;
+        
+        classifyResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: classifyUserMsg }] }],
+              systemInstruction: { parts: [{ text: classifyPrompt }] },
+              generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+            }),
+          }
+        );
+      }
     }
 
     if (!classifyResponse.ok) {
@@ -417,9 +438,80 @@ async function getGoogleApiKeyFromDB(supabase: any): Promise<string | null> {
   } catch { return null; }
 }
 
+// Helper to get OpenAI API key from system_settings
+async function getOpenAIApiKeyFromDB(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "openai_api_key")
+      .maybeSingle();
+    return data?.value || null;
+  } catch { return null; }
+}
+
 // Map gateway model names to Google API model names
 function normalizeModelName(model: string): string {
   return model.replace(/^google\//, "");
+}
+
+// Check if model is OpenAI
+function isOpenAIModel(model: string): boolean {
+  return model.startsWith("gpt-");
+}
+
+// Call OpenAI API directly
+async function callOpenAI(
+  apiKey: string,
+  systemPrompt: string,
+  userMessage: string,
+  model: string,
+  temperature: number,
+  maxTokens: number,
+  knowledgeBase?: string,
+  conversationHistory?: ChatMessage[]
+): Promise<string> {
+  const fullPrompt = knowledgeBase
+    ? `${systemPrompt}\n\nBase de conhecimento:\n${knowledgeBase}`
+    : systemPrompt;
+
+  const messages: Array<{ role: string; content: string }> = [
+    { role: "system", content: fullPrompt },
+  ];
+
+  if (conversationHistory) {
+    for (const msg of conversationHistory) {
+      messages.push({
+        role: msg.sender_type === "contact" ? "user" : "assistant",
+        content: msg.content,
+      });
+    }
+  }
+
+  messages.push({ role: "user", content: userMessage });
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[FlowExecutor] OpenAI API error:", response.status, errorText);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
 }
 
 // Unified AI caller that routes to the appropriate API
@@ -435,11 +527,22 @@ async function callAI(
   conversationHistory?: ChatMessage[],
   supabase?: any
 ): Promise<string> {
-  // If explicitly using own key
-  if (useOwnApiKey && googleApiKey) {
+  // If explicitly using own Google key
+  if (useOwnApiKey && googleApiKey && !isOpenAIModel(model)) {
     return callGoogleAI(googleApiKey, systemPrompt, userMessage, normalizeModelName(model), temperature, maxTokens, knowledgeBase, conversationHistory);
   }
   
+  // If OpenAI model, route to OpenAI
+  if (isOpenAIModel(model) && supabase) {
+    const openaiKey = await getOpenAIApiKeyFromDB(supabase);
+    if (openaiKey) {
+      console.log("[FlowExecutor] Using OpenAI API for model:", model);
+      return callOpenAI(openaiKey, systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
+    }
+    console.error("[FlowExecutor] OpenAI model selected but no openai_api_key configured");
+    return "Desculpe, a chave da API OpenAI não está configurada. Acesse Configurações > Opções para configurar.";
+  }
+
   // Try Lovable AI Gateway first
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (lovableApiKey) {
@@ -455,8 +558,8 @@ async function callAI(
     }
   }
   
-  console.error("[FlowExecutor] No AI API key available (neither LOVABLE_API_KEY nor google_ai_api_key)");
-  return "Desculpe, não foi possível processar sua mensagem. Configure a chave da API do Google AI nas configurações.";
+  console.error("[FlowExecutor] No AI API key available");
+  return "Desculpe, não foi possível processar sua mensagem. Configure a chave da API nas configurações.";
 }
 
 // Get the next node following an edge
