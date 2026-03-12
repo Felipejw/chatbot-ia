@@ -59,6 +59,14 @@ export default function FollowUp() {
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-auto">
+      {isError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Não foi possível carregar as métricas de follow-up. Verifique a conexão com o banco de dados.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <PageHeader
           icon={TrendingUp}
