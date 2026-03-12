@@ -732,6 +732,7 @@ const handler = async (req: Request): Promise<Response> => {
               mediaUrl: mediaUrl || null,
               connectionId: connection.id,
               isNewConversation,
+              baileysMessageId: messageId,
             }),
           });
         } catch (flowError) {
