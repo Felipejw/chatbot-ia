@@ -813,7 +813,7 @@ async function executeFlowFromNode(
 
           const aiResponse = await callAI(
             systemPrompt, messageContent, model, temperature, maxTokens, 
-            knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory
+            knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase
           );
 
           await sendWhatsAppMessage(baileysConfig, phone, aiResponse);
