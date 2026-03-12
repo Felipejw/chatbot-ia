@@ -13,7 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Users, Globe, Brain, Eye, EyeOff } from "lucide-react";
+import { Loader2, RefreshCw, Users, Globe, Brain, Eye, EyeOff, Bot } from "lucide-react";
 import { BaileysConfigSection } from "./BaileysConfigSection";
 
 interface SettingOptionProps {
