@@ -379,7 +379,8 @@ async function autoTagConversation(
     }
 
     const classifyData = await classifyResponse.json();
-    const result = classifyData.choices?.[0]?.message?.content?.trim() || "";
+    // Handle both Lovable gateway format and Google API format
+    const result = (classifyData.choices?.[0]?.message?.content || classifyData.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
 
     if (!result || result === "NENHUMA") return;
 
