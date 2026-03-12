@@ -411,7 +411,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
   const tabItems = [
     { value: "general", label: "Geral", icon: Settings, active: true },
-    { value: "trigger", label: "Gatilho", icon: Zap, active: !!config.triggerValue },
+    { value: "trigger", label: "Gatilho", icon: Zap, active: config.triggerType === "new_conversation" || config.triggerType === "all" || !!config.triggerValue },
     { value: "ai", label: "IA", icon: Brain, active: config.aiEnabled },
     { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, active: !!config.connectionId },
     { value: "transfer", label: "Transferência", icon: ArrowRightLeft, active: config.transferEnabled },
