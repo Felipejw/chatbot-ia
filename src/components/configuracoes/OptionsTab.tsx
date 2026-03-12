@@ -57,6 +57,8 @@ export function OptionsTab() {
   const { getSetting, updateSetting, createOrUpdateSetting, isLoading } = useSystemSettings();
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const [apiBaseUrl, setApiBaseUrl] = useState("");
+  const [googleApiKey, setGoogleApiKey] = useState("");
+  const [showGoogleKey, setShowGoogleKey] = useState(false);
 
   const handleChange = (key: string, value: string) => {
     updateSetting.mutate({ key, value });
