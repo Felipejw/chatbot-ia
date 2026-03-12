@@ -1590,8 +1590,16 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Transcribe audio if needed
+    // Transcribe audio or describe image if needed
     let message = rawMessage;
+    const sessionName = await (async () => {
+      if (!connectionId) return "default";
+      const { data: conn } = await supabase.from("connections").select("session_data, name").eq("id", connectionId).single();
+      if (!conn) return "default";
+      const sd = conn.session_data as any;
+      return sd?.sessionName || conn.name.toLowerCase().replace(/\s+/g, "_");
+    })();
+
     if (incomingMessageType === "audio") {
       console.log("[FlowExecutor] Audio message detected, mediaUrl:", incomingMediaUrl || "NULL", ", baileysMessageId:", baileysMessageId || "NULL");
 
@@ -1600,23 +1608,11 @@ const handler = async (req: Request): Promise<Response> => {
       // If mediaUrl is null, try downloading directly from Baileys server
       if (!audioMediaUrl && baileysMessageId) {
         console.log("[FlowExecutor] mediaUrl is null, attempting Baileys direct download...");
-
-        // Get session name from connection
-        let sessionName = "default";
-        if (connectionId) {
-          const { data: conn } = await supabase.from("connections").select("session_data, name").eq("id", connectionId).single();
-          if (conn) {
-            const sd = conn.session_data as any;
-            sessionName = sd?.sessionName || conn.name.toLowerCase().replace(/\s+/g, "_");
-          }
-        }
-
-        const audioData = await downloadAudioFromBaileys(supabase, baileysMessageId, sessionName);
+        const audioData = await downloadMediaFromBaileys(supabase, baileysMessageId, sessionName);
         if (audioData) {
-          // Pass base64 directly to transcribeAudio
           body._audioBase64 = audioData.base64;
           body._audioContentType = audioData.contentType;
-          audioMediaUrl = "__direct__"; // marker so we enter transcription
+          audioMediaUrl = "__direct__";
         }
       }
 
@@ -1627,6 +1623,23 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         console.warn("[FlowExecutor] No audio source available, using fallback message");
         message = "[O contato enviou um áudio. Peça gentilmente que repita a mensagem em texto, explicando que você precisa da mensagem escrita para poder ajudar melhor.]";
+      }
+    } else if (incomingMessageType === "image") {
+      console.log("[FlowExecutor] Image message detected, mediaUrl:", incomingMediaUrl || "NULL", ", baileysMessageId:", baileysMessageId || "NULL");
+
+      const mediaData = await getMediaBase64(incomingMediaUrl, baileysMessageId, sessionName, supabase);
+      if (mediaData) {
+        console.log(`[FlowExecutor] Image obtained: ${mediaData.base64.length} base64 chars, type: ${mediaData.contentType}`);
+        const imageDescription = await describeImage(mediaData.base64, mediaData.contentType, supabase);
+        const caption = rawMessage && rawMessage !== "[Imagem]" ? rawMessage : "";
+        message = `[Descrição da imagem enviada pelo contato]: ${imageDescription}`;
+        if (caption) message += `\n[Legenda]: ${caption}`;
+        console.log("[FlowExecutor] Image description result:", message.substring(0, 150));
+      } else {
+        console.warn("[FlowExecutor] Could not obtain image data");
+        const caption = rawMessage && rawMessage !== "[Imagem]" ? rawMessage : "";
+        message = "[O contato enviou uma imagem que não pôde ser analisada. Peça gentilmente que descreva o conteúdo da imagem em texto.]";
+        if (caption) message += `\n[Legenda]: ${caption}`;
       }
     }
 
