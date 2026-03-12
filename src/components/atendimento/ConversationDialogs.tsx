@@ -58,20 +58,6 @@ interface ConversationDialogsProps {
   onDeleteConversation: () => Promise<void>;
   deleteLoading: boolean;
 
-  // Schedule dialog
-  showScheduleDialog: boolean;
-  setShowScheduleDialog: (v: boolean) => void;
-  scheduleTitle: string;
-  setScheduleTitle: (v: string) => void;
-  scheduleDescription: string;
-  setScheduleDescription: (v: string) => void;
-  scheduleDate: string;
-  setScheduleDate: (v: string) => void;
-  scheduleTime: string;
-  setScheduleTime: (v: string) => void;
-  onCreateSchedule: () => void;
-  scheduleLoading: boolean;
-
   // Bot flow dialog
   showBotFlowDialog: boolean;
   setShowBotFlowDialog: (v: boolean) => void;
