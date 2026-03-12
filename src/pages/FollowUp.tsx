@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useFollowUpMetrics } from "@/hooks/useFollowUpMetrics";
 import { supabase } from "@/integrations/supabase/client";
