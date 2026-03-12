@@ -501,8 +501,14 @@ async function downloadAudioFromBaileys(
 
     if (respCT.includes("application/json")) {
       const json = await response.json();
-      if (!json.base64) return null;
-      return { base64: json.base64, contentType: json.mimetype || "audio/ogg" };
+      // Support both { base64, mimetype } and { data: { base64, mimetype } }
+      const b64 = json.data?.base64 || json.base64;
+      const mime = json.data?.mimetype || json.mimetype;
+      if (!b64) {
+        console.warn("[FlowExecutor] Baileys JSON response has no base64. Keys:", Object.keys(json));
+        return null;
+      }
+      return { base64: b64, contentType: mime || "audio/ogg" };
     } else {
       const arrayBuf = await response.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);

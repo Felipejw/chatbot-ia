@@ -403,7 +403,16 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Check allowed time window — reschedule if outside
         if (!isWithinAllowedWindow(followUp)) {
-          console.log(`[FollowUp] ${followUp.id} outside allowed window, skipping for now`);
+          const nextValid = getNextValidScheduleTime(followUp);
+          if (nextValid) {
+            console.log(`[FollowUp] ${followUp.id} outside allowed window (BRT), rescheduling to ${nextValid.toISOString()}`);
+            await supabase.from("follow_ups").update({
+              scheduled_at: nextValid.toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq("id", followUp.id);
+          } else {
+            console.log(`[FollowUp] ${followUp.id} outside allowed window, no valid window found in next 7 days`);
+          }
           continue;
         }
 

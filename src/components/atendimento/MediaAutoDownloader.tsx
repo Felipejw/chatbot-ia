@@ -84,11 +84,17 @@ async function tryDirectBaileysDownload(
 
     if (contentType.includes("application/json")) {
       const json = await response.json();
-      if (!json.base64) return null;
-      const binary = atob(json.base64);
+      // Support both { base64, mimetype } and { data: { base64, mimetype } }
+      const b64 = json.data?.base64 || json.base64;
+      const mime = json.data?.mimetype || json.mimetype;
+      if (!b64) {
+        console.warn("[MediaAutoDownloader] JSON response has no base64 field:", Object.keys(json));
+        return null;
+      }
+      const binary = atob(b64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      finalMimetype = json.mimetype || "application/octet-stream";
+      finalMimetype = mime || "application/octet-stream";
       mediaBlob = new Blob([bytes], { type: finalMimetype });
     } else {
       mediaBlob = await response.blob();
