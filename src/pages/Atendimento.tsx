@@ -459,7 +459,7 @@ export default function Atendimento() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => s.setShowMessageSearch(true)}><Search className="w-4 h-4 mr-2" />Buscar mensagens</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { setTimeout(() => s.setShowTagPopover(true), 150); }}><Tag className="w-4 h-4 mr-2" />Gerenciar tags</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => s.setShowScheduleDialog(true)}><Calendar className="w-4 h-4 mr-2" />Agendar mensagem</DropdownMenuItem>
+                    
                     {s.canEdit && <DropdownMenuItem onClick={s.handleChangeQueue}><Building className="w-4 h-4 mr-2" />Mudar setor</DropdownMenuItem>}
                     {s.canEdit && (
                       s.selectedConversation.is_bot_active
