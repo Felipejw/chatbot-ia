@@ -543,23 +543,23 @@ async function callAI(
     return "Desculpe, a chave da API OpenAI não está configurada. Acesse Configurações > Opções para configurar.";
   }
 
-  // Try Lovable AI Gateway first
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableApiKey) {
-    return callLovableAI(systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
-  }
-  
-  // Fallback: Google AI API key from system_settings
-  if (supabase) {
+  // First, try own API keys from system_settings (priority for VPS installs)
+  if (supabase && !isOpenAIModel(model)) {
     const dbKey = await getGoogleApiKeyFromDB(supabase);
     if (dbKey) {
       console.log("[FlowExecutor] Using Google AI API key from system_settings");
       return callGoogleAI(dbKey, systemPrompt, userMessage, normalizeModelName(model), temperature, maxTokens, knowledgeBase, conversationHistory);
     }
   }
+
+  // Fallback: Try Lovable AI Gateway
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableApiKey) {
+    return callLovableAI(systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
+  }
   
-  console.error("[FlowExecutor] No AI API key available");
-  return "Desculpe, não foi possível processar sua mensagem. Configure a chave da API nas configurações.";
+  console.error("[FlowExecutor] No AI API key available. Configure google_ai_api_key in Configurações > Opções.");
+  return "Desculpe, não foi possível processar sua mensagem. Configure a chave da API nas configurações (Configurações > Opções).";
 }
 
 // Get the next node following an edge

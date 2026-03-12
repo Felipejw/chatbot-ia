@@ -26,6 +26,8 @@ import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
