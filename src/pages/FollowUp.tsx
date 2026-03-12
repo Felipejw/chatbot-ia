@@ -40,8 +40,10 @@ export default function FollowUp() {
       });
       if (error) throw error;
       toast.success(`Processado: ${data?.processed || 0} enviados de ${data?.total || 0} pendentes`);
-    } catch (err) {
-      toast.error("Erro ao processar follow-ups: " + (err instanceof Error ? err.message : "Erro desconhecido"));
+    } catch (err: any) {
+      const detail = err?.message || err?.context?.body || err?.context?.statusText || "Erro desconhecido";
+      console.error("[FollowUp] Processar agora error:", err);
+      toast.error(`Erro ao processar follow-ups: ${detail}`);
     } finally {
       setProcessing(false);
     }
