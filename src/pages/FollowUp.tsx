@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp } from "lucide-react";
+import { Loader2, Send, MessageSquare, XCircle, Clock, TrendingUp, Play } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useFollowUpMetrics } from "@/hooks/useFollowUpMetrics";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function MetricCard({ title, value, icon: Icon, description, color }: {
   title: string; value: string | number; icon: React.ElementType; description?: string; color?: string;
