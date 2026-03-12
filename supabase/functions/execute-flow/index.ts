@@ -333,7 +333,7 @@ async function autoTagConversation(
     const classifyPrompt = `Você é um classificador de conversas. Analise a mensagem do cliente e a resposta do atendente/bot e retorne APENAS os nomes das tags aplicáveis da lista abaixo, separados por vírgula. Se nenhuma tag se aplicar, retorne "NENHUMA".\n\nTags disponíveis:\n${tagList}`;
     const classifyUserMsg = `Mensagem do cliente: ${messageContent}\n\nResposta do bot: ${aiResponse}`;
 
-    // Try Lovable AI Gateway first, then fallback to Google AI
+    // Try Lovable AI Gateway first, then fallback to Google/OpenAI
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     let classifyResponse: Response;
     
@@ -355,22 +355,43 @@ async function autoTagConversation(
         }),
       });
     } else {
-      // Fallback to Google AI
-      const googleKey = await getGoogleApiKeyFromDB(supabase);
-      if (!googleKey) return;
-      
-      classifyResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleKey}`,
-        {
+      // Try OpenAI first if key exists
+      const openaiKey = await getOpenAIApiKeyFromDB(supabase);
+      if (openaiKey) {
+        classifyResponse = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openaiKey}`,
+          },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: classifyUserMsg }] }],
-            systemInstruction: { parts: [{ text: classifyPrompt }] },
-            generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: classifyPrompt },
+              { role: "user", content: classifyUserMsg },
+            ],
+            temperature: 0.1,
+            max_tokens: 200,
           }),
-        }
-      );
+        });
+      } else {
+        // Fallback to Google AI
+        const googleKey = await getGoogleApiKeyFromDB(supabase);
+        if (!googleKey) return;
+        
+        classifyResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: classifyUserMsg }] }],
+              systemInstruction: { parts: [{ text: classifyPrompt }] },
+              generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+            }),
+          }
+        );
+      }
     }
 
     if (!classifyResponse.ok) {
