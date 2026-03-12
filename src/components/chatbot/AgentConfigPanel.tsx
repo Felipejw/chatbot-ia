@@ -237,6 +237,7 @@ const defaultConfig: AgentConfig = {
   followUpStopOnHumanAssign: true,
   endMessage: "",
   markResolved: true,
+  responseDelay: 0,
 };
 
 function getTotalCycleTime(steps: FollowUpStep[]): string {
