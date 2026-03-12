@@ -728,6 +728,8 @@ const handler = async (req: Request): Promise<Response> => {
               conversationId: conversation.id,
               contactId: contact.id,
               message: messageContent,
+              messageType: msgType,
+              mediaUrl: mediaUrl || null,
               connectionId: connection.id,
               isNewConversation,
             }),
