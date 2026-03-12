@@ -1,44 +1,24 @@
 
 
-# Plano: Adicionar capacidades suportadas por cada modelo na seleção
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## O que será feito
+## ✅ Concluído
 
-Adicionar badges/descrições ao lado de cada modelo no seletor mostrando quais tipos de mídia ele suporta (texto, áudio, imagens, documentos). Isso ajuda o usuário a escolher o modelo certo sabendo qual aceita áudio, por exemplo.
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-## Alterações
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-**`src/components/chatbot/AgentConfigPanel.tsx`** (linhas 680-691)
-
-Substituir os `SelectItem` simples por itens com descrições de capacidades:
-
-```text
-Gemini 2.5 Flash (Recomendado)     📝 💬 🎧 📄 🖼️
-  Texto, Áudio, Documentos, Imagens
-
-Gemini 2.5 Pro                     📝 💬 🎧 📄 🖼️
-  Texto, Áudio, Documentos, Imagens — Mais preciso
-
-Gemini 2.5 Flash Lite (Rápido)     📝 💬
-  Apenas texto — Mais rápido e econômico
-
-GPT-4o Mini (Econômico)            📝 💬 🖼️
-  Texto e Imagens
-
-GPT-4o (Mais capaz)                📝 💬 🎧 🖼️
-  Texto, Áudio e Imagens
-
-GPT-4 Turbo (Rápido)               📝 💬 🖼️
-  Texto e Imagens
-```
-
-Cada item terá:
-- Nome do modelo (texto principal)
-- Linha secundária em texto menor mostrando as capacidades suportadas com ícones de badge (usando componente `Badge` existente)
-- Badges coloridos: verde para "Áudio", azul para "Imagens", cinza para "Documentos"
-
-A implementação usará `SelectItem` customizado com layout de duas linhas (nome + capabilities) para manter a UX limpa dentro do dropdown.
-
-## Arquivos alterados
-- `src/components/chatbot/AgentConfigPanel.tsx` — modelo selector com capabilities
-
+### Próximos passos do usuário
+1. Salvar a chave do Google AI em Configurações > Opções
+2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
+3. O cron job será configurado automaticamente
