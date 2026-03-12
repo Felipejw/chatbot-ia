@@ -1353,6 +1353,18 @@ const handler = async (req: Request): Promise<Response> => {
       // Handle AI response (continue conversation with AI)
       if (flowState.awaitingAIResponse && flowState.aiNodeData) {
         const { systemPrompt, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey } = flowState.aiNodeData;
+
+        // Apply response delay from flow config
+        try {
+          const { data: flowCfgData } = await supabase.from("chatbot_flows").select("config").eq("id", flowState.flowId).single();
+          const responseDelay = (flowCfgData?.config as any)?.responseDelay || 0;
+          if (responseDelay > 0) {
+            const delayMs = Math.min(responseDelay * 1000, 30000);
+            console.log(`[FlowExecutor] Waiting ${responseDelay}s before AI response...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+        } catch {}
+
         const conversationHistory = await fetchConversationHistory(supabase, conversationId, 10);
 
         const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase);
