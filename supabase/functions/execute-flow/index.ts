@@ -388,6 +388,23 @@ async function autoTagConversation(
   }
 }
 
+// Helper to get Google AI API key from system_settings
+async function getGoogleApiKeyFromDB(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "google_ai_api_key")
+      .maybeSingle();
+    return data?.value || null;
+  } catch { return null; }
+}
+
+// Map gateway model names to Google API model names
+function normalizeModelName(model: string): string {
+  return model.replace(/^google\//, "");
+}
+
 // Unified AI caller that routes to the appropriate API
 async function callAI(
   systemPrompt: string,
@@ -398,12 +415,31 @@ async function callAI(
   knowledgeBase?: string,
   useOwnApiKey?: boolean,
   googleApiKey?: string,
-  conversationHistory?: ChatMessage[]
+  conversationHistory?: ChatMessage[],
+  supabase?: any
 ): Promise<string> {
+  // If explicitly using own key
   if (useOwnApiKey && googleApiKey) {
-    return callGoogleAI(googleApiKey, systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
+    return callGoogleAI(googleApiKey, systemPrompt, userMessage, normalizeModelName(model), temperature, maxTokens, knowledgeBase, conversationHistory);
   }
-  return callLovableAI(systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
+  
+  // Try Lovable AI Gateway first
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableApiKey) {
+    return callLovableAI(systemPrompt, userMessage, model, temperature, maxTokens, knowledgeBase, conversationHistory);
+  }
+  
+  // Fallback: Google AI API key from system_settings
+  if (supabase) {
+    const dbKey = await getGoogleApiKeyFromDB(supabase);
+    if (dbKey) {
+      console.log("[FlowExecutor] Using Google AI API key from system_settings");
+      return callGoogleAI(dbKey, systemPrompt, userMessage, normalizeModelName(model), temperature, maxTokens, knowledgeBase, conversationHistory);
+    }
+  }
+  
+  console.error("[FlowExecutor] No AI API key available (neither LOVABLE_API_KEY nor google_ai_api_key)");
+  return "Desculpe, não foi possível processar sua mensagem. Configure a chave da API do Google AI nas configurações.";
 }
 
 // Get the next node following an edge
