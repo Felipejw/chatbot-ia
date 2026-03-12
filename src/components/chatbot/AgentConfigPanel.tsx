@@ -679,15 +679,67 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         </FieldLabel>
                         <Select value={config.model} onValueChange={(v) => updateConfig({ model: v })}>
                           <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="min-w-[340px]">
                             <SelectItem disabled value="__gemini_header" className="text-xs font-semibold text-muted-foreground">── Google Gemini (Gratuito) ──</SelectItem>
-                            <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</SelectItem>
-                            <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                            <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Rápido)</SelectItem>
+                            <SelectItem value="gemini-2.5-flash">
+                              <div className="flex flex-col gap-0.5">
+                                <span>Gemini 2.5 Flash (Recomendado)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                  <span className="inline-flex items-center rounded-full bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0 text-[10px]">🎧 Áudio</span>
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1.5 py-0 text-[10px]">🖼️ Imagens</span>
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📄 Docs</span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gemini-2.5-pro">
+                              <div className="flex flex-col gap-0.5">
+                                <span>Gemini 2.5 Pro (Mais preciso)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                  <span className="inline-flex items-center rounded-full bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0 text-[10px]">🎧 Áudio</span>
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1.5 py-0 text-[10px]">🖼️ Imagens</span>
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📄 Docs</span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gemini-2.5-flash-lite">
+                              <div className="flex flex-col gap-0.5">
+                                <span>Gemini 2.5 Flash Lite (Rápido)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                </div>
+                              </div>
+                            </SelectItem>
                             <SelectItem disabled value="__openai_header" className="text-xs font-semibold text-muted-foreground">── OpenAI ChatGPT (Pago) ──</SelectItem>
-                            <SelectItem value="gpt-4o-mini">GPT-4o Mini (Recomendado, econômico)</SelectItem>
-                            <SelectItem value="gpt-4o">GPT-4o (Mais capaz)</SelectItem>
-                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Rápido)</SelectItem>
+                            <SelectItem value="gpt-4o-mini">
+                              <div className="flex flex-col gap-0.5">
+                                <span>GPT-4o Mini (Econômico)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1.5 py-0 text-[10px]">🖼️ Imagens</span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-4o">
+                              <div className="flex flex-col gap-0.5">
+                                <span>GPT-4o (Mais capaz)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                  <span className="inline-flex items-center rounded-full bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0 text-[10px]">🎧 Áudio</span>
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1.5 py-0 text-[10px]">🖼️ Imagens</span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-4-turbo">
+                              <div className="flex flex-col gap-0.5">
+                                <span>GPT-4 Turbo (Rápido)</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">📝 Texto</span>
+                                  <span className="inline-flex items-center rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1.5 py-0 text-[10px]">🖼️ Imagens</span>
+                                </div>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
