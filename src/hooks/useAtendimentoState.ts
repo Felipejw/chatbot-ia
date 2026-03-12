@@ -77,11 +77,6 @@ export function useAtendimentoState() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0);
   const [showTagPopover, setShowTagPopover] = useState(false);
-  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [scheduleTitle, setScheduleTitle] = useState("");
-  const [scheduleDescription, setScheduleDescription] = useState("");
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [scheduleTime, setScheduleTime] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tagFilter, setTagFilter] = useState<string[]>([]);
@@ -521,9 +516,7 @@ export function useAtendimentoState() {
     showProfilePanel, setShowProfilePanel, isUploading, showDeleteDialog, setShowDeleteDialog,
     showMobileChat, setShowMobileChat, showMessageSearch, setShowMessageSearch, messageSearchQuery, setMessageSearchQuery,
     currentSearchIndex, setCurrentSearchIndex, showQuickReplies, selectedQuickReplyIndex,
-    showTagPopover, setShowTagPopover, showScheduleDialog, setShowScheduleDialog,
-    scheduleTitle, setScheduleTitle, scheduleDescription, setScheduleDescription,
-    scheduleDate, setScheduleDate, scheduleTime, setScheduleTime,
+    showTagPopover, setShowTagPopover,
     showEmojiPicker, setShowEmojiPicker, statusFilter, tagFilter, queueFilter, setQueueFilter,
     showFilterPopover, setShowFilterPopover, showBotFlowDialog, setShowBotFlowDialog,
     selectedFlowId, setSelectedFlowId, showQueueDialog, setShowQueueDialog,

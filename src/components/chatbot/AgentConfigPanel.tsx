@@ -72,6 +72,7 @@ interface AgentConfig {
   endMessage: string;
   markResolved: boolean;
   agentProfile?: string;
+  responseDelay: number;
 }
 
 // Agent profile definitions
@@ -236,6 +237,7 @@ const defaultConfig: AgentConfig = {
   followUpStopOnHumanAssign: true,
   endMessage: "",
   markResolved: true,
+  responseDelay: 0,
 };
 
 function getTotalCycleTime(steps: FollowUpStep[]): string {
@@ -411,7 +413,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
   const tabItems = [
     { value: "general", label: "Geral", icon: Settings, active: true },
-    { value: "trigger", label: "Gatilho", icon: Zap, active: !!config.triggerValue },
+    { value: "trigger", label: "Gatilho", icon: Zap, active: config.triggerType === "new_conversation" || config.triggerType === "all" || !!config.triggerValue },
     { value: "ai", label: "IA", icon: Brain, active: config.aiEnabled },
     { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, active: !!config.connectionId },
     { value: "transfer", label: "Transferência", icon: ArrowRightLeft, active: config.transferEnabled },
@@ -841,6 +843,70 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                           rows={4}
                           className="font-mono text-sm"
                         />
+                      </div>
+                    </FieldCard>
+
+                    <FieldCard>
+                      <div className="space-y-3">
+                        <FieldLabel icon={Clock} description="Tempo que a IA aguarda após a última mensagem recebida antes de responder. Útil para esperar o contato terminar de digitar.">
+                          Tempo de espera antes de responder
+                        </FieldLabel>
+                        <div className="grid grid-cols-4 gap-3">
+                          {[
+                            { label: "Imediato", value: 0 },
+                            { label: "3 seg", value: 3 },
+                            { label: "5 seg", value: 5 },
+                            { label: "10 seg", value: 10 },
+                          ].map((preset) => (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              onClick={() => updateConfig({ responseDelay: preset.value })}
+                              className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
+                                config.responseDelay === preset.value
+                                  ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
+                                  : "border-border/50 bg-card hover:border-border"
+                              }`}
+                            >
+                              <Clock className="w-4 h-4" />
+                              <span className="text-xs font-semibold">{preset.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {![0, 3, 5, 10].includes(config.responseDelay) && (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={config.responseDelay}
+                              onChange={(e) => updateConfig({ responseDelay: parseInt(e.target.value) || 0 })}
+                              className="h-11 w-32"
+                              min={0}
+                              max={120}
+                            />
+                            <span className="text-sm text-muted-foreground">segundos</span>
+                          </div>
+                        )}
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                              <ChevronDown className="w-3.5 h-3.5" />
+                              Valor personalizado ({config.responseDelay}s)
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="pt-3">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                value={config.responseDelay}
+                                onChange={(e) => updateConfig({ responseDelay: Math.max(0, Math.min(120, parseInt(e.target.value) || 0)) })}
+                                className="h-11 w-32"
+                                min={0}
+                                max={120}
+                              />
+                              <span className="text-sm text-muted-foreground">segundos (0-120)</span>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </div>
                     </FieldCard>
                   </>

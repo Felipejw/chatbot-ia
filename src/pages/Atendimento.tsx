@@ -459,7 +459,7 @@ export default function Atendimento() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => s.setShowMessageSearch(true)}><Search className="w-4 h-4 mr-2" />Buscar mensagens</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { setTimeout(() => s.setShowTagPopover(true), 150); }}><Tag className="w-4 h-4 mr-2" />Gerenciar tags</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => s.setShowScheduleDialog(true)}><Calendar className="w-4 h-4 mr-2" />Agendar mensagem</DropdownMenuItem>
+                    
                     {s.canEdit && <DropdownMenuItem onClick={s.handleChangeQueue}><Building className="w-4 h-4 mr-2" />Mudar setor</DropdownMenuItem>}
                     {s.canEdit && (
                       s.selectedConversation.is_bot_active
@@ -634,10 +634,7 @@ export default function Atendimento() {
       {/* Dialogs */}
       <ConversationDialogs
         showDeleteDialog={s.showDeleteDialog} setShowDeleteDialog={s.setShowDeleteDialog} onDeleteConversation={s.handleDeleteConversation} deleteLoading={s.deleteConversation.isPending}
-        showScheduleDialog={s.showScheduleDialog} setShowScheduleDialog={s.setShowScheduleDialog}
-        scheduleTitle={s.scheduleTitle} setScheduleTitle={s.setScheduleTitle} scheduleDescription={s.scheduleDescription} setScheduleDescription={s.setScheduleDescription}
-        scheduleDate={s.scheduleDate} setScheduleDate={s.setScheduleDate} scheduleTime={s.scheduleTime} setScheduleTime={s.setScheduleTime}
-        onCreateSchedule={() => { s.setScheduleTitle(""); s.setScheduleDescription(""); s.setScheduleDate(""); s.setScheduleTime(""); s.setShowScheduleDialog(false); }} scheduleLoading={false}
+        
         showBotFlowDialog={s.showBotFlowDialog} setShowBotFlowDialog={s.setShowBotFlowDialog} selectedFlowId={s.selectedFlowId} setSelectedFlowId={s.setSelectedFlowId}
         activeFlows={s.activeFlows} onConfirmTransferToBot={s.confirmTransferToBot} transferLoading={s.updateConversation.isPending}
         showQueueDialog={s.showQueueDialog} setShowQueueDialog={s.setShowQueueDialog} selectedQueueId={s.selectedQueueId} setSelectedQueueId={s.setSelectedQueueId}
