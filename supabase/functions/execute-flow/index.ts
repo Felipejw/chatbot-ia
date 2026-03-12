@@ -1493,6 +1493,116 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Search through all active flows for a matching trigger
     for (const flow of activeFlows) {
+      const cfg = flow.config as any;
+
+      // === CONFIG-BASED AGENT (new system — no flow_nodes) ===
+      if (cfg && cfg.aiEnabled) {
+        const triggerType = cfg.triggerType || flow.trigger_type || "keyword";
+        const triggerValue = (cfg.triggerValue || flow.trigger_value || "").toLowerCase();
+        const messageLower = message.toLowerCase();
+
+        // Check connection filter
+        if (cfg.connectionId && effectiveConnectionId && cfg.connectionId !== effectiveConnectionId) {
+          continue;
+        }
+
+        let triggerMatched = false;
+        if (triggerType === "all") triggerMatched = true;
+        else if (triggerType === "new_conversation" && isNewConversation) triggerMatched = true;
+        else if (triggerType === "keyword" && triggerValue) {
+          const keywords = triggerValue.split(",").map((k: string) => k.trim());
+          triggerMatched = keywords.some((k: string) => messageLower.includes(k));
+        } else if (triggerType === "phrase" && triggerValue) {
+          triggerMatched = messageLower.includes(triggerValue);
+        }
+
+        if (triggerMatched) {
+          console.log("[FlowExecutor] Config-based agent matched:", flow.id, flow.name);
+
+          // Activate flow on conversation
+          await supabase.from("conversations").update({
+            active_flow_id: flow.id,
+            is_bot_active: true,
+            flow_state: {
+              flowId: flow.id,
+              awaitingAIResponse: true,
+              currentNodeId: "config-agent",
+              awaitingMenuResponse: false,
+              aiNodeData: {
+                systemPrompt: cfg.systemPrompt || "Você é um assistente virtual amigável.",
+                model: cfg.model || "google/gemini-2.5-flash",
+                temperature: cfg.temperature ?? 0.7,
+                maxTokens: cfg.maxTokens || 500,
+                knowledgeBase: cfg.knowledgeBase || "",
+              },
+            },
+          }).eq("id", conversationId);
+
+          // Apply response delay
+          const responseDelay = cfg.responseDelay || 0;
+          if (responseDelay > 0) {
+            const delayMs = Math.min(responseDelay * 1000, 30000);
+            console.log(`[FlowExecutor] Waiting ${responseDelay}s before responding...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+
+          // Fetch history and call AI
+          const conversationHistory = await fetchConversationHistory(supabase, conversationId, 10);
+          const aiResponse = await callAI(
+            cfg.systemPrompt || "Você é um assistente virtual amigável.",
+            message,
+            cfg.model || "google/gemini-2.5-flash",
+            cfg.temperature ?? 0.7,
+            cfg.maxTokens || 500,
+            cfg.knowledgeBase || "",
+            false,
+            undefined,
+            conversationHistory,
+            supabase
+          );
+
+          await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
+          await supabase.from("messages").insert({
+            conversation_id: conversationId,
+            content: aiResponse,
+            sender_type: "bot",
+            message_type: "text",
+          });
+
+          // Auto-tag
+          autoTagConversation(supabase, conversationId, message, aiResponse).catch(() => {});
+
+          // Schedule follow-up if enabled
+          if (cfg.followUpEnabled && cfg.followUpIntervalMinutes > 0) {
+            await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
+            const scheduledAt = new Date(Date.now() + cfg.followUpIntervalMinutes * 60 * 1000);
+            await supabase.from("follow_ups").insert({
+              conversation_id: conversationId,
+              contact_id: contactId || contact.id,
+              connection_id: effectiveConnectionId || null,
+              flow_id: flow.id,
+              step: 1,
+              max_steps: cfg.followUpSteps || 3,
+              interval_minutes: cfg.followUpIntervalMinutes,
+              mode: cfg.followUpMode || "ai",
+              status: "pending",
+              follow_up_prompt: cfg.followUpPrompt || null,
+              fixed_messages: cfg.followUpMessages || [],
+              final_action: cfg.followUpFinalAction || "none",
+              transfer_queue_id: cfg.followUpTransferQueueId || null,
+              scheduled_at: scheduledAt.toISOString(),
+            });
+            console.log(`[FlowExecutor] Follow-up scheduled for ${scheduledAt.toISOString()}`);
+          }
+
+          return new Response(JSON.stringify({ success: true, action: "config_agent_executed", flowId: flow.id }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        continue;
+      }
+
+      // === LEGACY NODE-BASED FLOW ===
       const [{ data: nodes }, { data: edges }] = await Promise.all([
         supabase.from("flow_nodes").select("*").eq("flow_id", flow.id),
         supabase.from("flow_edges").select("*").eq("flow_id", flow.id),
@@ -1508,13 +1618,11 @@ const handler = async (req: Request): Promise<Response> => {
       if (trigger) {
         console.log("[FlowExecutor] Trigger matched in flow:", flow.id, flow.name);
 
-        // Activate flow on conversation
         await supabase
           .from("conversations")
           .update({ active_flow_id: flow.id, is_bot_active: true })
           .eq("id", conversationId);
 
-        // Get next node after trigger
         const startNode = getNextNode(flowNodes, flowEdges, trigger.id);
 
         if (startNode) {
