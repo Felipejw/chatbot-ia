@@ -59,6 +59,8 @@ export function OptionsTab() {
   const [apiBaseUrl, setApiBaseUrl] = useState("");
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [showGoogleKey, setShowGoogleKey] = useState(false);
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   const handleChange = (key: string, value: string) => {
     updateSetting.mutate({ key, value });
