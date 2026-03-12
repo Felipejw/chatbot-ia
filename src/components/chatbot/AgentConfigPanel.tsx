@@ -693,7 +693,24 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                       </div>
                     </FieldCard>
 
-                    <FieldCard>
+                    {/* API Key Warning */}
+                    {(() => {
+                      const isGemini = !config.model.startsWith("gpt");
+                      const requiredKey = isGemini ? "google_ai_api_key" : "openai_api_key";
+                      const keyValue = getSetting(requiredKey);
+                      if (!keyValue) {
+                        return (
+                          <Alert variant="destructive" className="border-destructive/50">
+                            <AlertDescription className="text-sm">
+                              ⚠️ A chave <strong>{isGemini ? "Google AI (Gemini)" : "OpenAI"}</strong> não está configurada. 
+                              Vá em <strong>Configurações → Opções</strong> e preencha o campo "{isGemini ? "Chave API Google" : "Chave API OpenAI"}" para que a IA funcione.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
+
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <FieldLabel description="Instruções que definem a personalidade e comportamento da IA">
