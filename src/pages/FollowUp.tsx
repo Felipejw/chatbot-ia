@@ -29,7 +29,7 @@ function MetricCard({ title, value, icon: Icon, description, color }: {
 }
 
 export default function FollowUp() {
-  const { statusCounts, dailyVolume, agentEffectiveness, isLoading } = useFollowUpMetrics();
+  const { statusCounts, dailyVolume, agentEffectiveness, isLoading, isError } = useFollowUpMetrics();
   const [processing, setProcessing] = useState(false);
 
   const handleProcessNow = async () => {
