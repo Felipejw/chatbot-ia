@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfDay, subDays, format } from "date-fns";
+import { subDays, format } from "date-fns";
 
 interface StatusCounts {
   sent: number;
@@ -127,13 +127,16 @@ export function useFollowUpMetrics() {
     retry: 1,
   });
 
-  const isError = statusCounts.isError || dailyVolume.isError || agentEffectiveness.isError;
-
   return {
     statusCounts: statusCounts.data,
     dailyVolume: dailyVolume.data,
     agentEffectiveness: agentEffectiveness.data,
-    isLoading: !isError && (statusCounts.isLoading || dailyVolume.isLoading || agentEffectiveness.isLoading),
-    isError,
+    isLoading: statusCounts.isLoading || dailyVolume.isLoading || agentEffectiveness.isLoading,
+    isError: statusCounts.isError && dailyVolume.isError && agentEffectiveness.isError,
+    errors: {
+      statusCounts: statusCounts.isError,
+      dailyVolume: dailyVolume.isError,
+      agentEffectiveness: agentEffectiveness.isError,
+    },
   };
 }
