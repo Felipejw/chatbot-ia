@@ -1,33 +1,45 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Plano: 4 Correções no Chatbot e WhatsApp
 
-## Causa Raiz
+## Problemas Identificados
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+### 1. "Agendar mensagem" na página WhatsApp
+Opção existe em `src/pages/Atendimento.tsx` (linha 462) mas o módulo de agendamentos foi removido do projeto. Precisa remover o menu item e o dialog associado.
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+### 2. IA não responde (CRÍTICO)
+O `execute-flow` (CASE 2, linha 1481-1528) procura triggers em `flow_nodes`/`flow_edges`, mas o novo sistema de Agentes de IA **não cria nodes/edges** — salva tudo na coluna `config` JSONB da tabela `chatbot_flows`. Quando `nodes.length === 0`, o loop faz `continue` e ignora o agente.
 
-## Plano
+**Solução**: Antes de buscar em `flow_nodes`, verificar se o flow tem `config` com IA configurada. Se tiver, usar a config diretamente (triggerType, triggerValue, model, prompt, etc.) sem precisar de nodes/edges.
 
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
-```
+### 3. Bolinhas verdes inconsistentes
+Na linha 414: `{ value: "trigger", active: !!config.triggerValue }` — mas para gatilhos tipo "nova conversa" ou "todas", `triggerValue` é vazio. Corrigir para considerar o `triggerType` também.
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+### 4. Delay de resposta da IA
+Adicionar campo `responseDelay` (segundos) no `AgentConfig` e na UI, e implementar `await sleep(delay)` no execute-flow antes de enviar a resposta da IA.
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+---
 
-### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+## Alterações
+
+### `src/pages/Atendimento.tsx`
+- Remover a linha do `DropdownMenuItem` "Agendar mensagem" (linha 462)
+
+### `src/components/atendimento/ConversationDialogs.tsx`
+- Remover o dialog de agendamento e suas props
+
+### `src/hooks/useAtendimentoState.ts`
+- Remover estados `showScheduleDialog`, `scheduleTitle`, `scheduleDescription`, `scheduleDate`, `scheduleTime`
+
+### `src/components/chatbot/AgentConfigPanel.tsx`
+- Corrigir condição do dot "Gatilho": `active: config.triggerType === "new_conversation" || config.triggerType === "all" || !!config.triggerValue`
+- Adicionar `responseDelay` (número, em segundos, default 0) ao `AgentConfig`
+- Adicionar campo na aba "IA" para configurar delay (ex: "Tempo de espera antes de responder")
+
+### `supabase/functions/execute-flow/index.ts`
+- **CASE 2**: Adicionar lógica para agentes config-based:
+  - Para cada flow ativo, se tem `config` com `aiEnabled: true`, verificar trigger direto (triggerType, triggerValue) sem depender de flow_nodes
+  - Se trigger match, entrar no modo AI: buscar histórico, chamar `callAI`, enviar resposta, setar `flow_state` com `awaitingAIResponse`
+  - Implementar `responseDelay` (sleep antes de responder)
+- **CASE 1 (awaitingAIResponse)**: Implementar `responseDelay` também
 
