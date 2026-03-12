@@ -72,6 +72,7 @@ interface AgentConfig {
   endMessage: string;
   markResolved: boolean;
   agentProfile?: string;
+  responseDelay: number;
 }
 
 // Agent profile definitions
