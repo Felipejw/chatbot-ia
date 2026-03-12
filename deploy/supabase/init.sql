@@ -1129,5 +1129,74 @@ END $$;
 ALTER TABLE public.messages REPLICA IDENTITY FULL;
 
 -- ============================================================
+-- PARTE 11: TABELA FOLLOW_UPS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.follow_ups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  contact_id uuid NOT NULL REFERENCES public.contacts(id) ON DELETE CASCADE,
+  connection_id uuid REFERENCES public.connections(id) ON DELETE SET NULL,
+  flow_id uuid REFERENCES public.chatbot_flows(id) ON DELETE SET NULL,
+  step integer NOT NULL DEFAULT 1,
+  max_steps integer NOT NULL DEFAULT 3,
+  interval_minutes integer NOT NULL DEFAULT 60,
+  mode text NOT NULL DEFAULT 'ai',
+  status text NOT NULL DEFAULT 'pending',
+  message_content text,
+  follow_up_prompt text,
+  fixed_messages jsonb DEFAULT '[]'::jsonb,
+  final_action text DEFAULT 'none',
+  transfer_queue_id uuid REFERENCES public.queues(id) ON DELETE SET NULL,
+  scheduled_at timestamptz NOT NULL,
+  sent_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- Granular columns
+  step_intervals jsonb DEFAULT '[]'::jsonb,
+  allowed_hours_start text DEFAULT '08:00',
+  allowed_hours_end text DEFAULT '20:00',
+  allowed_days text[] DEFAULT '{mon,tue,wed,thu,fri}'::text[],
+  follow_up_model text DEFAULT 'google/gemini-2.5-flash',
+  follow_up_temperature numeric DEFAULT 0.8,
+  stop_on_human_assign boolean DEFAULT true,
+  closing_message text,
+  media_url text,
+  media_type text DEFAULT 'none',
+  follow_up_prompt text -- NOTE: duplicate intentionally avoided below
+);
+
+-- Remove the duplicate follow_up_prompt if table was freshly created (it's already defined above)
+-- This is safe because IF NOT EXISTS means the table won't be recreated if it exists
+
+CREATE INDEX IF NOT EXISTS idx_follow_ups_status_scheduled ON public.follow_ups (status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_conversation ON public.follow_ups (conversation_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_contact ON public.follow_ups (contact_id);
+
+ALTER TABLE public.follow_ups ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'follow_ups' AND policyname = 'Authenticated users can manage follow ups'
+  ) THEN
+    CREATE POLICY "Authenticated users can manage follow ups"
+      ON public.follow_ups FOR ALL TO authenticated
+      USING (auth.uid() IS NOT NULL)
+      WITH CHECK (auth.uid() IS NOT NULL);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'follow_ups' AND policyname = 'Service role full access follow ups'
+  ) THEN
+    CREATE POLICY "Service role full access follow ups"
+      ON public.follow_ups FOR ALL TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;
+
+-- ============================================================
 -- FIM DO SCRIPT DE INICIALIZAÇÃO
 -- ============================================================

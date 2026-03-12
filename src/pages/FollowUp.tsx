@@ -39,7 +39,13 @@ export default function FollowUp() {
         body: { time: new Date().toISOString() },
       });
       if (error) throw error;
-      toast.success(`Processado: ${data?.processed || 0} enviados de ${data?.total || 0} pendentes`);
+      const processed = data?.processed || 0;
+      const total = data?.total || 0;
+      if (total === 0) {
+        toast.info("Nenhum follow-up pendente encontrado no banco de dados.");
+      } else {
+        toast.success(`Processado: ${processed} enviados de ${total} pendentes`);
+      }
     } catch (err: any) {
       const detail = err?.message || err?.context?.body || err?.context?.statusText || "Erro desconhecido";
       console.error("[FollowUp] Processar agora error:", err);
