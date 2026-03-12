@@ -29,6 +29,22 @@ function MetricCard({ title, value, icon: Icon, description, color }: {
 
 export default function FollowUp() {
   const { statusCounts, dailyVolume, agentEffectiveness, isLoading } = useFollowUpMetrics();
+  const [processing, setProcessing] = useState(false);
+
+  const handleProcessNow = async () => {
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-follow-ups", {
+        body: { time: new Date().toISOString() },
+      });
+      if (error) throw error;
+      toast.success(`Processado: ${data?.processed || 0} enviados de ${data?.total || 0} pendentes`);
+    } catch (err) {
+      toast.error("Erro ao processar follow-ups: " + (err instanceof Error ? err.message : "Erro desconhecido"));
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (isLoading) {
     return (
