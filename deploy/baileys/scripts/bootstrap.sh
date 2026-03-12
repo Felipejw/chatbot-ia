@@ -85,7 +85,7 @@ apt-get install -y -qq git curl wget ca-certificates gnupg lsb-release
 
 # Definir variáveis
 INSTALL_DIR="/opt/baileys"
-REPO_URL="https://github.com/Felipejw/comms-nect-ai.git"
+REPO_URL="https://github.com/Felipejw/chatbot-ia.git"
 BRANCH="main"
 
 # ==========================================

@@ -48,7 +48,7 @@ Se preferir instalar manualmente:
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/Felipejw/comms-nect-ai.git
+git clone https://github.com/Felipejw/chatbot-ia.git
 cd comms-nect-ai/deploy/baileys
 
 # Dar permissao e executar instalador
