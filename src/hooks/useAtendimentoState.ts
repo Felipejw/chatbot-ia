@@ -77,11 +77,6 @@ export function useAtendimentoState() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0);
   const [showTagPopover, setShowTagPopover] = useState(false);
-  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [scheduleTitle, setScheduleTitle] = useState("");
-  const [scheduleDescription, setScheduleDescription] = useState("");
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [scheduleTime, setScheduleTime] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tagFilter, setTagFilter] = useState<string[]>([]);
