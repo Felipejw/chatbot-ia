@@ -7,7 +7,7 @@ Servidor WhatsApp usando a biblioteca Baileys para conexao via QR Code.
 Execute apenas este comando na sua VPS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Felipejw/comms-nect-ai/main/deploy/baileys/scripts/bootstrap.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Felipejw/chatbot-ia/main/deploy/baileys/scripts/bootstrap.sh | sudo bash
 ```
 
 Este comando ira automaticamente:
