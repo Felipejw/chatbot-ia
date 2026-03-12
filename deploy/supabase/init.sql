@@ -1177,7 +1177,7 @@ DO $$ BEGIN
     SELECT 1 FROM pg_policies WHERE tablename = 'follow_ups' AND policyname = 'Authenticated users can manage follow ups'
   ) THEN
     CREATE POLICY "Authenticated users can manage follow ups"
-      ON public.follow_ups FOR ALL TO authenticated
+      ON public.follow_ups FOR ALL TO public
       USING (auth.uid() IS NOT NULL)
       WITH CHECK (auth.uid() IS NOT NULL);
   END IF;

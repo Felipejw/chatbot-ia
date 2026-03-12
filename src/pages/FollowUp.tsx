@@ -29,7 +29,7 @@ function MetricCard({ title, value, icon: Icon, description, color }: {
 }
 
 export default function FollowUp() {
-  const { statusCounts, dailyVolume, agentEffectiveness, isLoading, isError } = useFollowUpMetrics();
+  const { statusCounts, dailyVolume, agentEffectiveness, isLoading, isError, errors } = useFollowUpMetrics();
   const [processing, setProcessing] = useState(false);
 
   const handleProcessNow = async () => {
@@ -71,7 +71,7 @@ export default function FollowUp() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Não foi possível carregar as métricas de follow-up. Verifique a conexão com o banco de dados.
+            Não foi possível carregar as métricas de follow-up. Verifique se você está autenticado e se a conexão com o banco está funcionando.
           </AlertDescription>
         </Alert>
       )}
@@ -93,95 +93,101 @@ export default function FollowUp() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <MetricCard title="Enviados" value={counts.sent} icon={Send} color="text-blue-500" />
-        <MetricCard title="Respondidos" value={counts.replied} icon={MessageSquare} color="text-emerald-500" />
-        <MetricCard
-          title="Taxa de Resposta"
-          value={`${counts.responseRate}%`}
-          icon={TrendingUp}
-          color="text-primary"
-          description={`${counts.replied} de ${counts.sent} respondidos`}
-        />
-        <MetricCard title="Cancelados" value={counts.cancelled} icon={XCircle} color="text-destructive" />
-        <MetricCard title="Pendentes" value={counts.pending} icon={Clock} color="text-amber-500" />
-      </div>
+      {!errors.statusCounts && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <MetricCard title="Enviados" value={counts.sent} icon={Send} color="text-blue-500" />
+          <MetricCard title="Respondidos" value={counts.replied} icon={MessageSquare} color="text-emerald-500" />
+          <MetricCard
+            title="Taxa de Resposta"
+            value={`${counts.responseRate}%`}
+            icon={TrendingUp}
+            color="text-primary"
+            description={`${counts.replied} de ${counts.sent} respondidos`}
+          />
+          <MetricCard title="Cancelados" value={counts.cancelled} icon={XCircle} color="text-destructive" />
+          <MetricCard title="Pendentes" value={counts.pending} icon={Clock} color="text-amber-500" />
+        </div>
+      )}
 
       {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Enviados vs Respondidos (últimos 7 dias)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {dailyVolume && dailyVolume.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dailyVolume}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="date" className="text-xs" />
-                <YAxis allowDecimals={false} className="text-xs" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="replied" name="Respondidos" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-12">
-              Nenhum dado disponível nos últimos 7 dias
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {!errors.dailyVolume && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Enviados vs Respondidos (últimos 7 dias)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dailyVolume && dailyVolume.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dailyVolume}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="date" className="text-xs" />
+                  <YAxis allowDecimals={false} className="text-xs" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="replied" name="Respondidos" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-12">
+                Nenhum dado disponível nos últimos 7 dias
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Agent Ranking */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Ranking de Efetividade por Agente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {agentEffectiveness && agentEffectiveness.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Agente</TableHead>
-                  <TableHead className="text-right">Enviados</TableHead>
-                  <TableHead className="text-right">Respondidos</TableHead>
-                  <TableHead className="text-right">Taxa</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agentEffectiveness.map((agent, idx) => (
-                  <TableRow key={agent.flowId}>
-                    <TableCell className="font-medium">{idx + 1}</TableCell>
-                    <TableCell>{agent.flowName}</TableCell>
-                    <TableCell className="text-right">{agent.sent}</TableCell>
-                    <TableCell className="text-right">{agent.replied}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant={agent.rate >= 50 ? "default" : agent.rate >= 25 ? "secondary" : "outline"}
-                      >
-                        {agent.rate}%
-                      </Badge>
-                    </TableCell>
+      {!errors.agentEffectiveness && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Ranking de Efetividade por Agente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {agentEffectiveness && agentEffectiveness.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Agente</TableHead>
+                    <TableHead className="text-right">Enviados</TableHead>
+                    <TableHead className="text-right">Respondidos</TableHead>
+                    <TableHead className="text-right">Taxa</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum agente com dados de follow-up ainda
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {agentEffectiveness.map((agent, idx) => (
+                    <TableRow key={agent.flowId}>
+                      <TableCell className="font-medium">{idx + 1}</TableCell>
+                      <TableCell>{agent.flowName}</TableCell>
+                      <TableCell className="text-right">{agent.sent}</TableCell>
+                      <TableCell className="text-right">{agent.replied}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant={agent.rate >= 50 ? "default" : agent.rate >= 25 ? "secondary" : "outline"}
+                        >
+                          {agent.rate}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum agente com dados de follow-up ainda
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
