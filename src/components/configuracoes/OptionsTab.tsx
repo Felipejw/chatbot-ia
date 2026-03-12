@@ -133,6 +133,55 @@ export function OptionsTab() {
       {/* Configuração do Servidor Baileys */}
       <BaileysConfigSection />
 
+      {/* OpenAI API Key */}
+      <div className="bg-card rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Bot className="w-5 h-5" />
+          Chave da API OpenAI (ChatGPT)
+        </h3>
+        <div className="flex flex-col gap-3">
+          <Label htmlFor="openai_api_key" className="text-sm text-muted-foreground">
+            Obtenha sua chave em{" "}
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              platform.openai.com/api-keys
+            </a>
+            {" "}(plano pago)
+          </Label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                id="openai_api_key"
+                type={showOpenaiKey ? "text" : "password"}
+                placeholder="sk-..."
+                defaultValue={getSetting("openai_api_key")}
+                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                onBlur={() => {
+                  if (openaiApiKey) {
+                    createOrUpdateSetting.mutate({
+                      key: "openai_api_key",
+                      value: openaiApiKey,
+                      description: "Chave da API OpenAI para modelos ChatGPT",
+                      category: "ai",
+                    });
+                  }
+                }}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+            >
+              {showOpenaiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Usada pelo chatbot e follow-ups para modelos GPT (gpt-4o-mini, gpt-4o, gpt-4-turbo)
+          </p>
+        </div>
+      </div>
+
       {/* Google AI API Key */}
       <div className="bg-card rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
