@@ -1162,8 +1162,7 @@ CREATE TABLE IF NOT EXISTS public.follow_ups (
   stop_on_human_assign boolean DEFAULT true,
   closing_message text,
   media_url text,
-  media_type text DEFAULT 'none',
-  follow_up_prompt text -- NOTE: duplicate intentionally avoided below
+  media_type text DEFAULT 'none'
 );
 
 -- Remove the duplicate follow_up_prompt if table was freshly created (it's already defined above)
