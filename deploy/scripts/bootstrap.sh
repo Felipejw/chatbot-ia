@@ -6,7 +6,7 @@
 # ============================================
 # 
 # USO:
-#   curl -fsSL https://raw.githubusercontent.com/Felipejw/comms-nect-ai/main/deploy/scripts/bootstrap.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Felipejw/chatbot-ia/main/deploy/scripts/bootstrap.sh | sudo bash
 #
 # ============================================
 
