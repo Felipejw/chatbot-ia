@@ -1,24 +1,37 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Corrigir: Update travado + Login com "Internal server error"
 
-## ✅ Concluído
+## Problemas identificados
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+### 1. Script travado em "Verificando migrations..."
+O script `update.sh` (linha 165) faz `$DOCKER_COMPOSE up -d db` e depois entra em um loop `while` esperando `pg_isready`. Como o `init.sql` foi modificado para incluir a tabela `follow_ups`, se o banco já existia, o init.sql **não roda novamente** (Docker só executa init scripts em volumes vazios). O travamento provavelmente ocorre porque o container `db` não está subindo sozinho sem suas dependências, ou o pg_isready nunca retorna OK no tempo esperado.
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+### 2. "Internal server error" no login
+Como o script travou antes de chegar à etapa 6 (linha 199-201: `$DOCKER_COMPOSE --profile baileys up -d --force-recreate`), os containers de auth/kong/rest foram parados mas **nunca reiniciados**. O GoTrue (auth) está down, causando o erro no login.
 
-### Próximos passos do usuário
-1. Salvar a chave do Google AI em Configurações > Opções
-2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
-3. O cron job será configurado automaticamente
+### 3. backup.sh com "Permission denied"
+O script `backup.sh` não tem permissão de execução. Embora o update continue mesmo assim, gera confusão.
+
+## Solução imediata (manual na VPS)
+
+O usuário precisa rodar na VPS agora para restaurar os serviços:
+```bash
+cd /opt/sistema/deploy
+docker compose --profile baileys up -d
+```
+
+## Correções no código para evitar recorrência
+
+### A. `deploy/scripts/update.sh`
+1. **Linha 151**: Adicionar `chmod +x` no `backup.sh` antes de executar
+2. **Linhas 164-178**: Melhorar robustez da espera do banco - adicionar timeout mais curto e continuar mesmo se falhar
+3. **Mover o restart dos containers (etapa 6) para ANTES das migrations** - assim os serviços voltam primeiro, e as migrations rodam depois com tudo no ar
+
+### B. `deploy/scripts/update-remote.sh`
+Adicionar `chmod +x` nos scripts antes de executar, e garantir que o init.sql com follow_ups seja aplicado como patch SQL avulso via `docker exec`.
+
+## Arquivos a editar
+- `deploy/scripts/update.sh` — reordenar etapas + chmod + robustez
+- `deploy/scripts/update-remote.sh` — adicionar patch SQL automático para follow_ups
+
