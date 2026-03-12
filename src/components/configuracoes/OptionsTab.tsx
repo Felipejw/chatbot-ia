@@ -13,7 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Users, Globe } from "lucide-react";
+import { Loader2, RefreshCw, Users, Globe, Brain, Eye, EyeOff } from "lucide-react";
 import { BaileysConfigSection } from "./BaileysConfigSection";
 
 interface SettingOptionProps {
@@ -57,6 +57,8 @@ export function OptionsTab() {
   const { getSetting, updateSetting, createOrUpdateSetting, isLoading } = useSystemSettings();
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const [apiBaseUrl, setApiBaseUrl] = useState("");
+  const [googleApiKey, setGoogleApiKey] = useState("");
+  const [showGoogleKey, setShowGoogleKey] = useState(false);
 
   const handleChange = (key: string, value: string) => {
     updateSetting.mutate({ key, value });
@@ -129,7 +131,54 @@ export function OptionsTab() {
       {/* Configuração do Servidor Baileys */}
       <BaileysConfigSection />
 
-      {/* Ações de Manutenção */}
+      {/* Google AI API Key */}
+      <div className="bg-card rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Brain className="w-5 h-5" />
+          Chave da API Google AI (Gemini)
+        </h3>
+        <div className="flex flex-col gap-3">
+          <Label htmlFor="google_ai_api_key" className="text-sm text-muted-foreground">
+            Obtenha sua chave gratuita em{" "}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              aistudio.google.com/apikey
+            </a>
+          </Label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                id="google_ai_api_key"
+                type={showGoogleKey ? "text" : "password"}
+                placeholder="AIzaSy..."
+                defaultValue={getSetting("google_ai_api_key")}
+                onChange={(e) => setGoogleApiKey(e.target.value)}
+                onBlur={() => {
+                  if (googleApiKey) {
+                    createOrUpdateSetting.mutate({
+                      key: "google_ai_api_key",
+                      value: googleApiKey,
+                      description: "Chave da API Google AI (Gemini) para IA gratuita",
+                      category: "ai",
+                    });
+                  }
+                }}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={() => setShowGoogleKey(!showGoogleKey)}
+            >
+              {showGoogleKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Usada pelo chatbot e follow-ups para gerar respostas com IA (modelos Gemini gratuitos)
+          </p>
+        </div>
+      </div>
+
       <div className="bg-card rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Users className="w-5 h-5" />

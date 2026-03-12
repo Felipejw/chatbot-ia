@@ -671,12 +671,9 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         <Select value={config.model} onValueChange={(v) => updateConfig({ model: v })}>
                           <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                            <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                            <SelectItem value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</SelectItem>
-                            <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
-                            <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
-                            <SelectItem value="openai/gpt-5-nano">GPT-5 Nano</SelectItem>
+                            <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</SelectItem>
+                            <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                            <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Rápido)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

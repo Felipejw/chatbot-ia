@@ -477,6 +477,7 @@ CREATE TABLE IF NOT EXISTS public.chatbot_flows (
     is_active boolean DEFAULT false,
     trigger_type text DEFAULT 'keyword',
     trigger_value text,
+    config jsonb DEFAULT '{}'::jsonb,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
