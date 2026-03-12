@@ -1205,9 +1205,17 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json();
-    const { conversationId, contactId, message, connectionId, isNewConversation } = body;
+    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation } = body;
 
-    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: message?.substring(0, 50), connectionId, isNewConversation });
+    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation });
+
+    // Transcribe audio if needed
+    let message = rawMessage;
+    if (incomingMessageType === "audio" && incomingMediaUrl) {
+      console.log("[FlowExecutor] Audio message detected, attempting transcription...");
+      message = await transcribeAudio(incomingMediaUrl, body);
+      console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+    }
 
     if (!conversationId || !message) {
       return new Response(JSON.stringify({ error: "conversationId and message are required" }), {
