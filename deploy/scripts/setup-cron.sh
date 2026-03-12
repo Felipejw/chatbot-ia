@@ -93,4 +93,4 @@ else
 fi
 
 log_success "Cron job 'process-follow-ups' configurado (a cada minuto)"
-log_info "URL: ${SUPABASE_URL}/functions/v1/process-follow-ups"
+log_info "URL: ${INTERNAL_URL}/functions/v1/process-follow-ups (rede interna Docker)"

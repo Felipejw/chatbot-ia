@@ -58,11 +58,22 @@ export default function FollowUp() {
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-auto">
-      <PageHeader
-        icon={TrendingUp}
-        title="Follow-up"
-        description="Métricas e acompanhamento dos follow-ups automáticos"
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          icon={TrendingUp}
+          title="Follow-up"
+          description="Métricas e acompanhamento dos follow-ups automáticos"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleProcessNow}
+          disabled={processing}
+        >
+          {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+          Processar agora
+        </Button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
