@@ -1,33 +1,46 @@
 
 
-# Corrigir Bug "Acesso Negado" ao Logar
+# Plano: Transcrição de áudio para IA + Correção do Follow-Up
 
-## Causa Raiz
+## Problema 1: IA não "escuta" áudios
 
-O problema **não é um bug de timing/race condition**. O usuário `admin@admin.com` está com role `operator` no banco (deveria ser `super_admin`). Isso aconteceu porque a função `bootstrap-admin` usa `upsert` com `onConflict: "user_id"`, mas a constraint UNIQUE da tabela `user_roles` é no par `(user_id, role)`, não apenas em `user_id`. Por isso o upsert falhou silenciosamente e a role `operator` nunca foi atualizada para `super_admin`.
+**Causa**: O webhook envia `messageContent = "[Áudio]"` e `mediaUrl` para o `execute-flow`, mas o execute-flow **não recebe** `mediaUrl` nem `messageType` — apenas o campo `message`. Logo a IA recebe literalmente o texto "[Áudio]" e não tem como entender o conteúdo.
 
-Com role `operator` e nenhuma permissão configurada, `hasPermission('dashboard', 'view')` retorna `false` → redireciona para `/acesso-negado`.
+**Solução**: Usar a API multimodal do Gemini (que aceita áudio nativamente) ou transcrever o áudio com a API do Google antes de enviar à IA.
 
-## Plano
+### Alterações
 
-### 1. Corrigir a role no banco via migração
-Executar SQL para atualizar a role do admin para `super_admin`:
-```sql
-UPDATE user_roles SET role = 'super_admin' WHERE user_id = '33c631a4-a9c5-4623-85c2-eb7d604298df';
-```
+**`supabase/functions/baileys-webhook/index.ts`** (linha ~727)
+- Passar `messageType: msgType` e `mediaUrl` no body enviado ao `execute-flow`
 
-### 2. Corrigir a função bootstrap-admin
-Alterar de `upsert` para `DELETE` + `INSERT` para funcionar corretamente com a constraint `UNIQUE(user_id, role)`:
-```typescript
-// Antes (não funciona com unique(user_id, role)):
-await supabaseAdmin.from("user_roles").upsert({ user_id, role: "super_admin" }, { onConflict: "user_id" });
+**`supabase/functions/execute-flow/index.ts`**
+- Receber `messageType` e `mediaUrl` do request body
+- Quando `messageType === "audio"` e `mediaUrl` existe:
+  1. Baixar o áudio do storage
+  2. Enviar ao Gemini como input multimodal (áudio + texto) para transcrição inline
+  3. Usar o texto transcrito como `message` para o fluxo de IA
+- Fallback: se transcrição falhar, usar "[O contato enviou um áudio que não pôde ser transcrito]"
 
-// Depois:
-await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "super_admin" });
-```
+## Problema 2: Follow-up não envia após 5 minutos
 
-### Arquivos alterados
-- Migração SQL para corrigir a role atual
-- `supabase/functions/bootstrap-admin/index.ts` -- corrigir lógica de upsert
+**Causa provável**: O `process-follow-ups` está configurado via `pg_cron` apontando para a URL do **Lovable Cloud** (`tnazkkontuwhyhvjjytt.supabase.co`), mas na VPS do usuário o Supabase tem outra URL. O cron job precisa existir no banco da VPS apontando para a URL local.
+
+Além disso, verificando os logs do `process-follow-ups` no Lovable Cloud, ele só faz boot/shutdown sem processar nada — porque não há follow-ups na tabela do Cloud (os dados estão na VPS).
+
+### Alterações
+
+**`deploy/supabase/init.sql`**
+- Adicionar criação do cron job para `process-follow-ups` usando variáveis locais da VPS (SUPABASE_URL e ANON_KEY do `.env`)
+
+**`deploy/scripts/update-remote.sh`** (ou `bootstrap.sh`)
+- Garantir que o cron job é criado/atualizado no banco da VPS após deploy, apontando para a URL correta do Supabase local
+
+**`supabase/functions/process-follow-ups/index.ts`**
+- Adicionar logs mais detalhados para debug (quantidade de follow-ups encontrados, status)
+
+## Arquivos alterados
+- `supabase/functions/baileys-webhook/index.ts` — enviar mediaUrl e messageType ao execute-flow
+- `supabase/functions/execute-flow/index.ts` — transcrever áudio via Gemini antes de processar
+- `deploy/scripts/setup-cron.sh` (novo) — script para configurar o cron job na VPS
+- `deploy/scripts/update-remote.sh` — chamar setup-cron após deploy
 
