@@ -48,7 +48,7 @@ if [ -z "$POSTGRES_PASSWORD" ]; then
 fi
 
 log_info "Configurando cron job para follow-ups..."
-log_info "Supabase URL: $SUPABASE_URL"
+log_info "URL interna: ${INTERNAL_URL}/functions/v1/process-follow-ups"
 
 # SQL para criar/atualizar o cron job
 CRON_SQL="
