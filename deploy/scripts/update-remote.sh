@@ -167,6 +167,15 @@ else
 fi
 
 # ==========================================
+# 5.1. Configurar cron jobs (follow-ups)
+# ==========================================
+if [ -f "$DEPLOY_DIR/scripts/setup-cron.sh" ]; then
+    log_info "Configurando cron jobs..."
+    chmod +x "$DEPLOY_DIR/scripts/setup-cron.sh"
+    bash "$DEPLOY_DIR/scripts/setup-cron.sh" || log_warning "Falha ao configurar cron jobs (não crítico)"
+fi
+
+# ==========================================
 # 6. Restaurar config.js após build
 # ==========================================
 if [ -f /tmp/config.js.update.bak ]; then

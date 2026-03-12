@@ -460,6 +460,128 @@ function isOpenAIModel(model: string): boolean {
   return model.startsWith("gpt-");
 }
 
+// Transcribe audio using Google Gemini multimodal API
+async function transcribeAudio(mediaUrl: string, requestBody: any): Promise<string> {
+  const fallbackText = "[O contato enviou um áudio que não pôde ser transcrito]";
+  try {
+    // Build full URL for the media
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    let fullUrl = mediaUrl;
+    if (mediaUrl.startsWith("/storage/")) {
+      fullUrl = `${supabaseUrl}${mediaUrl}`;
+    } else if (!mediaUrl.startsWith("http")) {
+      fullUrl = `${supabaseUrl}/storage/v1/object/public/${mediaUrl}`;
+    }
+
+    console.log("[FlowExecutor] Downloading audio from:", fullUrl);
+
+    // Download the audio file
+    const audioResponse = await fetch(fullUrl);
+    if (!audioResponse.ok) {
+      console.error("[FlowExecutor] Failed to download audio:", audioResponse.status);
+      return fallbackText;
+    }
+
+    const audioBlob = await audioResponse.arrayBuffer();
+    const audioBytes = new Uint8Array(audioBlob);
+
+    // Convert to base64
+    let base64Audio = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < audioBytes.length; i += chunkSize) {
+      const chunk = audioBytes.subarray(i, i + chunkSize);
+      base64Audio += String.fromCharCode(...chunk);
+    }
+    base64Audio = btoa(base64Audio);
+
+    const contentType = audioResponse.headers.get("content-type") || "audio/ogg";
+    console.log(`[FlowExecutor] Audio downloaded: ${audioBytes.length} bytes, type: ${contentType}`);
+
+    // Try Google AI key from system_settings first
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = (await import("https://esm.sh/@supabase/supabase-js@2")).createClient(supabaseUrl, supabaseKey);
+    
+    const googleKey = await getGoogleApiKeyFromDB(supabase);
+
+    if (googleKey) {
+      console.log("[FlowExecutor] Transcribing audio with Google AI (direct key)");
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: contentType,
+                    data: base64Audio,
+                  },
+                },
+                { text: "Transcreva o conteúdo deste áudio em texto. Retorne APENAS a transcrição, sem comentários adicionais." },
+              ],
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (transcription) {
+          return `[Transcrição do áudio]: ${transcription.trim()}`;
+        }
+      } else {
+        console.error("[FlowExecutor] Google AI transcription error:", response.status, await response.text());
+      }
+    }
+
+    // Fallback: Lovable AI Gateway
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (lovableApiKey) {
+      console.log("[FlowExecutor] Transcribing audio with Lovable AI Gateway");
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: "Transcreva o conteúdo deste áudio em texto. Retorne APENAS a transcrição, sem comentários adicionais." },
+              { type: "input_audio", input_audio: { data: base64Audio, format: contentType.includes("ogg") ? "ogg" : "mp3" } },
+            ],
+          }],
+          temperature: 0.1,
+          max_tokens: 2048,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const transcription = data.choices?.[0]?.message?.content;
+        if (transcription) {
+          return `[Transcrição do áudio]: ${transcription.trim()}`;
+        }
+      } else {
+        console.error("[FlowExecutor] Lovable AI transcription error:", response.status);
+      }
+    }
+
+    console.warn("[FlowExecutor] No AI provider available for transcription");
+    return fallbackText;
+  } catch (error) {
+    console.error("[FlowExecutor] Audio transcription error:", error);
+    return fallbackText;
+  }
+}
+
 // Call OpenAI API directly
 async function callOpenAI(
   apiKey: string,
@@ -1205,9 +1327,17 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json();
-    const { conversationId, contactId, message, connectionId, isNewConversation } = body;
+    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation } = body;
 
-    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: message?.substring(0, 50), connectionId, isNewConversation });
+    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation });
+
+    // Transcribe audio if needed
+    let message = rawMessage;
+    if (incomingMessageType === "audio" && incomingMediaUrl) {
+      console.log("[FlowExecutor] Audio message detected, attempting transcription...");
+      message = await transcribeAudio(incomingMediaUrl, body);
+      console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+    }
 
     if (!conversationId || !message) {
       return new Response(JSON.stringify({ error: "conversationId and message are required" }), {

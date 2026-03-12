@@ -302,6 +302,17 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    console.log(`[FollowUp] Starting process-follow-ups at ${new Date().toISOString()}`);
+    console.log(`[FollowUp] Supabase URL: ${supabaseUrl.substring(0, 30)}...`);
+
+    // First count total pending for diagnostics
+    const { count: totalPending } = await supabase
+      .from("follow_ups")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending");
+
+    console.log(`[FollowUp] Total pending follow-ups in DB: ${totalPending}`);
+
     const { data: pendingFollowUps, error: fetchError } = await supabase
       .from("follow_ups")
       .select("*, contacts(*), conversations(*, connections(*))")
@@ -318,8 +329,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    console.log(`[FollowUp] Follow-ups due now: ${pendingFollowUps?.length || 0} (total pending: ${totalPending})`);
+
     if (!pendingFollowUps || pendingFollowUps.length === 0) {
-      return new Response(JSON.stringify({ success: true, processed: 0 }), {
+      return new Response(JSON.stringify({ success: true, processed: 0, totalPending: totalPending || 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
