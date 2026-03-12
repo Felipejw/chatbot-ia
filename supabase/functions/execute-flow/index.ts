@@ -1550,12 +1550,19 @@ const handler = async (req: Request): Promise<Response> => {
             },
           }).eq("id", conversationId);
 
-          // Apply response delay
-          const responseDelay = cfg.responseDelay || 0;
-          if (responseDelay > 0) {
-            const delayMs = Math.min(responseDelay * 1000, 30000);
-            console.log(`[FlowExecutor] Waiting ${responseDelay}s before responding...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+          // Apply response delay (fixed or random)
+          {
+            const delayMin = cfg.responseDelay || 0;
+            const delayMax = cfg.responseDelayMax || delayMin;
+            const isRandom = cfg.responseDelayMode === "random";
+            const actualDelay = isRandom && delayMax > delayMin
+              ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
+              : delayMin;
+            if (actualDelay > 0) {
+              const delayMs = Math.min(actualDelay * 1000, 120000);
+              console.log(`[FlowExecutor] Waiting ${actualDelay}s before responding (mode: ${isRandom ? "random" : "fixed"})...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
           }
 
           // Fetch history and call AI
