@@ -460,8 +460,8 @@ function isOpenAIModel(model: string): boolean {
   return model.startsWith("gpt-");
 }
 
-// Download audio from Baileys server directly (fallback when mediaUrl is null)
-async function downloadAudioFromBaileys(
+// Download media from Baileys server directly (fallback when mediaUrl is null)
+async function downloadMediaFromBaileys(
   supabase: any,
   baileysMessageId: string,
   sessionName: string
@@ -489,7 +489,7 @@ async function downloadAudioFromBaileys(
     if (keySetting?.value) headers["X-API-Key"] = keySetting.value;
 
     const url = `${baileysUrl}/sessions/${sessionName}/messages/${baileysMessageId}/media`;
-    console.log(`[FlowExecutor] Downloading audio directly from Baileys: ${url}`);
+    console.log(`[FlowExecutor] Downloading media directly from Baileys: ${url}`);
 
     const response = await fetch(url, { method: "GET", headers });
     if (!response.ok) {
@@ -508,7 +508,7 @@ async function downloadAudioFromBaileys(
         console.warn("[FlowExecutor] Baileys JSON response has no base64. Keys:", Object.keys(json));
         return null;
       }
-      return { base64: b64, contentType: mime || "audio/ogg" };
+      return { base64: b64, contentType: mime || "application/octet-stream" };
     } else {
       const arrayBuf = await response.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);
@@ -520,11 +520,132 @@ async function downloadAudioFromBaileys(
         const chunk = bytes.subarray(i, i + chunkSize);
         binaryStr += String.fromCharCode(...chunk);
       }
-      return { base64: btoa(binaryStr), contentType: respCT.split(";")[0].trim() || "audio/ogg" };
+      return { base64: btoa(binaryStr), contentType: respCT.split(";")[0].trim() || "application/octet-stream" };
     }
   } catch (err) {
     console.error("[FlowExecutor] Baileys direct download error:", err);
     return null;
+  }
+}
+
+// Download media from storage or Baileys and return base64
+async function getMediaBase64(
+  mediaUrl: string | null,
+  baileysMessageId: string | null,
+  sessionName: string,
+  supabaseClient: any
+): Promise<{ base64: string; contentType: string } | null> {
+  // Try storage first
+  if (mediaUrl) {
+    let storagePath = "";
+    if (mediaUrl.includes("/storage/v1/object/public/whatsapp-media/")) {
+      storagePath = mediaUrl.split("/storage/v1/object/public/whatsapp-media/")[1];
+    } else if (mediaUrl.startsWith("/storage/")) {
+      const match = mediaUrl.match(/whatsapp-media\/(.+)$/);
+      storagePath = match ? match[1] : "";
+    }
+
+    if (storagePath && supabaseClient) {
+      console.log(`[FlowExecutor] Downloading media from storage path: ${storagePath}`);
+      const { data: fileData, error: dlError } = await supabaseClient.storage
+        .from("whatsapp-media")
+        .download(storagePath);
+
+      if (!dlError && fileData) {
+        const bytes = new Uint8Array(await fileData.arrayBuffer());
+        let binaryStr = "";
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, i + chunkSize);
+          binaryStr += String.fromCharCode(...chunk);
+        }
+        return { base64: btoa(binaryStr), contentType: fileData.type || "application/octet-stream" };
+      }
+      console.warn("[FlowExecutor] Storage download failed:", dlError?.message);
+    }
+  }
+
+  // Fallback: download from Baileys
+  if (baileysMessageId) {
+    return await downloadMediaFromBaileys(supabaseClient, baileysMessageId, sessionName);
+  }
+
+  return null;
+}
+
+// Describe image using Gemini multimodal API
+async function describeImage(base64Image: string, contentType: string, supabaseClient: any): Promise<string> {
+  const fallbackText = "[O contato enviou uma imagem que não pôde ser analisada. Peça gentilmente que descreva o conteúdo da imagem em texto.]";
+  try {
+    // Try Google AI key from system_settings first
+    const googleKey = await getGoogleApiKeyFromDB(supabaseClient);
+
+    if (googleKey) {
+      console.log("[FlowExecutor] Describing image with Google AI (direct key)");
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [
+                { inlineData: { mimeType: contentType, data: base64Image } },
+                { text: "Descreva objetivamente e de forma concisa o conteúdo desta imagem. Inclua textos visíveis, objetos, pessoas e contexto relevante. Retorne APENAS a descrição, sem comentários adicionais." },
+              ],
+            }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const description = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (description) return description.trim();
+      } else {
+        console.error("[FlowExecutor] Google AI image description error:", response.status);
+      }
+    }
+
+    // Fallback: Lovable AI Gateway
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (lovableApiKey) {
+      console.log("[FlowExecutor] Describing image with Lovable AI Gateway");
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: "Descreva objetivamente e de forma concisa o conteúdo desta imagem. Inclua textos visíveis, objetos, pessoas e contexto relevante. Retorne APENAS a descrição." },
+              { type: "image_url", image_url: { url: `data:${contentType};base64,${base64Image}` } },
+            ],
+          }],
+          temperature: 0.2,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const description = data.choices?.[0]?.message?.content;
+        if (description) return description.trim();
+      } else {
+        console.error("[FlowExecutor] Lovable AI image description error:", response.status);
+      }
+    }
+
+    return fallbackText;
+  } catch (error) {
+    console.error("[FlowExecutor] Image description error:", error);
+    return fallbackText;
   }
 }
 
