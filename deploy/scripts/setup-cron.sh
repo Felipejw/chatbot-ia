@@ -31,13 +31,14 @@ else
 fi
 
 # Variáveis necessárias
-SUPABASE_URL="${API_EXTERNAL_URL:-https://${DOMAIN}}"
-ANON_KEY="${ANON_KEY}"
+# Use internal Docker URL for pg_cron (avoids external DNS/TLS issues)
+INTERNAL_URL="http://kong:8000"
+SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
-if [ -z "$ANON_KEY" ]; then
-    log_error "ANON_KEY não definida no .env"
+if [ -z "$SERVICE_ROLE_KEY" ]; then
+    log_error "SERVICE_ROLE_KEY não definida no .env"
     exit 1
 fi
 
