@@ -32,7 +32,7 @@ if [ "$EUID" -ne 0 ]; then
     log_error "Execute como root!"
     echo ""
     echo "Uso correto:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/Felipejw/comms-nect-ai/main/deploy/baileys/scripts/bootstrap.sh | sudo bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/Felipejw/chatbot-ia/main/deploy/baileys/scripts/bootstrap.sh | sudo bash"
     echo ""
     exit 1
 fi
