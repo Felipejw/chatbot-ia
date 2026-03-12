@@ -6,7 +6,7 @@
 # ============================================
 # 
 # USO:
-#   curl -fsSL https://raw.githubusercontent.com/Felipejw/comms-nect-ai/main/deploy/scripts/bootstrap.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Felipejw/chatbot-ia/main/deploy/scripts/bootstrap.sh | sudo bash
 #
 # ============================================
 
@@ -21,7 +21,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configurações
-REPO_URL="https://github.com/Felipejw/comms-nect-ai.git"
+REPO_URL="https://github.com/Felipejw/chatbot-ia.git"
 INSTALL_DIR="/opt/sistema"
 BRANCH="main"
 
