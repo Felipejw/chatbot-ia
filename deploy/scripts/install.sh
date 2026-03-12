@@ -1087,9 +1087,14 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     USER_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
     
     if [ -n "$USER_ID" ]; then
-        # Atualizar role para admin
-        $DOCKER_COMPOSE exec -T db psql -U postgres -d postgres \
-            -c "UPDATE user_roles SET role = 'admin' WHERE user_id = '$USER_ID';" 2>/dev/null || true
+        # Inserir role admin (INSERT ON CONFLICT pois o trigger pode não ter rodado)
+        $DOCKER_COMPOSE exec -T db psql -U postgres -d postgres -c "
+            INSERT INTO public.user_roles (user_id, role) VALUES ('$USER_ID', 'admin')
+            ON CONFLICT (user_id, role) DO UPDATE SET role = 'admin';
+            
+            INSERT INTO public.profiles (user_id, name, email) VALUES ('$USER_ID', '$ADMIN_NAME', '$ADMIN_EMAIL')
+            ON CONFLICT (user_id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email;
+        " 2>/dev/null || true
         log_success "Usuário admin criado com sucesso!"
         ADMIN_CREATED=true
     fi
