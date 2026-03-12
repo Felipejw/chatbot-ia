@@ -1454,16 +1454,53 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json();
-    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation } = body;
+    const { conversationId, contactId, message: rawMessage, messageType: incomingMessageType, mediaUrl: incomingMediaUrl, connectionId, isNewConversation, baileysMessageId } = body;
 
-    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation });
+    console.log("[FlowExecutor] Received request:", { conversationId, contactId, messagePreview: rawMessage?.substring(0, 50), messageType: incomingMessageType, mediaUrl: incomingMediaUrl?.substring(0, 60), connectionId, isNewConversation, baileysMessageId });
+
+    // Create supabase client early for audio download
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Transcribe audio if needed
     let message = rawMessage;
-    if (incomingMessageType === "audio" && incomingMediaUrl) {
-      console.log("[FlowExecutor] Audio message detected, attempting transcription...");
-      message = await transcribeAudio(incomingMediaUrl, body);
-      console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+    if (incomingMessageType === "audio") {
+      console.log("[FlowExecutor] Audio message detected, mediaUrl:", incomingMediaUrl || "NULL", ", baileysMessageId:", baileysMessageId || "NULL");
+
+      let audioMediaUrl = incomingMediaUrl;
+
+      // If mediaUrl is null, try downloading directly from Baileys server
+      if (!audioMediaUrl && baileysMessageId) {
+        console.log("[FlowExecutor] mediaUrl is null, attempting Baileys direct download...");
+
+        // Get session name from connection
+        let sessionName = "default";
+        if (connectionId) {
+          const { data: conn } = await supabase.from("connections").select("session_data, name").eq("id", connectionId).single();
+          if (conn) {
+            const sd = conn.session_data as any;
+            sessionName = sd?.sessionName || conn.name.toLowerCase().replace(/\s+/g, "_");
+          }
+        }
+
+        const audioData = await downloadAudioFromBaileys(supabase, baileysMessageId, sessionName);
+        if (audioData) {
+          // Pass base64 directly to transcribeAudio
+          body._audioBase64 = audioData.base64;
+          body._audioContentType = audioData.contentType;
+          audioMediaUrl = "__direct__"; // marker so we enter transcription
+        }
+      }
+
+      if (audioMediaUrl || body._audioBase64) {
+        console.log("[FlowExecutor] Attempting transcription...");
+        message = await transcribeAudio(audioMediaUrl === "__direct__" ? null : audioMediaUrl, body, supabase);
+        console.log("[FlowExecutor] Transcription result:", message?.substring(0, 100));
+      } else {
+        console.warn("[FlowExecutor] No audio source available, using fallback message");
+        message = "[O contato enviou um áudio. Peça gentilmente que repita a mensagem em texto, explicando que você precisa da mensagem escrita para poder ajudar melhor.]";
+      }
     }
 
     if (!conversationId || !message) {
