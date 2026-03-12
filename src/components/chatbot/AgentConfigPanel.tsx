@@ -26,6 +26,8 @@ import { useQueues } from "@/hooks/useQueues";
 import { useUsers } from "@/hooks/useUsers";
 import { useWhatsAppConnections } from "@/hooks/useWhatsAppConnections";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -345,6 +347,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
   const { data: users } = useUsers();
   const { connections } = useWhatsAppConnections();
   const isMobile = useIsMobile();
+  const { getSetting } = useSystemSettings();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -689,6 +692,24 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         </Select>
                       </div>
                     </FieldCard>
+
+                    {/* API Key Warning */}
+                    {(() => {
+                      const isGemini = !config.model.startsWith("gpt");
+                      const requiredKey = isGemini ? "google_ai_api_key" : "openai_api_key";
+                      const keyValue = getSetting(requiredKey);
+                      if (!keyValue) {
+                        return (
+                          <Alert variant="destructive" className="border-destructive/50">
+                            <AlertDescription className="text-sm">
+                              ⚠️ A chave <strong>{isGemini ? "Google AI (Gemini)" : "OpenAI"}</strong> não está configurada. 
+                              Vá em <strong>Configurações → Opções</strong> e preencha o campo "{isGemini ? "Chave API Google" : "Chave API OpenAI"}" para que a IA funcione.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     <FieldCard>
                       <div className="space-y-2">
