@@ -134,10 +134,6 @@ if ! grep -q 'config.js' "$DEPLOY_DIR/frontend/dist/index.html" 2>/dev/null; the
     log_success "config.js injetado no index.html"
 fi
 
-# Recarregar Nginx para servir o conteúdo novo
-log_info "Recarregando Nginx..."
-docker exec app-nginx nginx -s reload 2>/dev/null && log_success "Nginx recarregado" || log_warning "Não foi possível recarregar Nginx (será reiniciado adiante)"
-
 log_success "Frontend deployado"
 
 # ==========================================
@@ -148,6 +144,7 @@ log_info "Fazendo backup antes de reiniciar..."
 cd "$DEPLOY_DIR"
 
 if [ -f "scripts/backup.sh" ]; then
+    chmod +x "scripts/backup.sh"
     ./scripts/backup.sh || {
         log_warning "Backup automático falhou. Continuando mesmo assim..."
     }
@@ -157,44 +154,7 @@ else
 fi
 
 # ==========================================
-# 5. Executar Migrations de Atualização
-# ==========================================
-log_info "Verificando migrations..."
-
-# Iniciar apenas o banco de dados
-$DOCKER_COMPOSE up -d db 2>/dev/null || true
-
-# Aguardar banco estar pronto
-max_attempts=30
-attempt=0
-log_info "Aguardando banco de dados..."
-while ! $DOCKER_COMPOSE exec -T db pg_isready -U postgres &>/dev/null; do
-    attempt=$((attempt + 1))
-    if [ $attempt -ge $max_attempts ]; then
-        log_warning "Banco de dados não respondeu a tempo. Pulando migrations."
-        break
-    fi
-    sleep 2
-done
-
-# Executar migrations se existirem
-if [ $attempt -lt $max_attempts ]; then
-    if [ -f "supabase/migrations_update.sql" ]; then
-        log_info "Executando migrations de atualização..."
-        $DOCKER_COMPOSE exec -T db psql -U postgres -d ${POSTGRES_DB:-postgres} \
-            -f /docker-entrypoint-initdb.d/migrations_update.sql || {
-            log_warning "Algumas migrations podem ter falhado (normal se já executadas)"
-        }
-        mkdir -p supabase/migrations_applied
-        mv supabase/migrations_update.sql "supabase/migrations_applied/update_$(date +%Y%m%d_%H%M%S).sql"
-        log_success "Migrations executadas"
-    else
-        log_info "Nenhuma migration de atualização encontrada"
-    fi
-fi
-
-# ==========================================
-# 6. Reiniciar TODOS os containers
+# 5. Reiniciar TODOS os containers (ANTES das migrations)
 # ==========================================
 log_info "Reiniciando todos os containers..."
 
@@ -203,7 +163,7 @@ $DOCKER_COMPOSE --profile baileys up -d --force-recreate
 log_success "Containers reiniciados"
 
 # ==========================================
-# 7. Aguardar Serviços
+# 6. Aguardar Serviços
 # ==========================================
 log_info "Aguardando serviços iniciarem..."
 
@@ -220,6 +180,40 @@ for service in db auth rest storage nginx; do
         services_ok=false
     fi
 done
+
+# ==========================================
+# 7. Executar Migrations de Atualização (com containers já rodando)
+# ==========================================
+log_info "Verificando migrations..."
+
+# Aguardar banco estar pronto (com timeout curto)
+max_attempts=15
+attempt=0
+log_info "Aguardando banco de dados..."
+while ! $DOCKER_COMPOSE exec -T db pg_isready -U postgres &>/dev/null; do
+    attempt=$((attempt + 1))
+    if [ $attempt -ge $max_attempts ]; then
+        log_warning "Banco de dados não respondeu a tempo. Pulando migrations."
+        break
+    fi
+    sleep 2
+done
+
+# Executar migrations se existirem e banco estiver pronto
+if [ $attempt -lt $max_attempts ]; then
+    if [ -f "supabase/migrations_update.sql" ]; then
+        log_info "Executando migrations de atualização..."
+        $DOCKER_COMPOSE exec -T db psql -U postgres -d ${POSTGRES_DB:-postgres} \
+            -f /docker-entrypoint-initdb.d/migrations_update.sql || {
+            log_warning "Algumas migrations podem ter falhado (normal se já executadas)"
+        }
+        mkdir -p supabase/migrations_applied
+        mv supabase/migrations_update.sql "supabase/migrations_applied/update_$(date +%Y%m%d_%H%M%S).sql"
+        log_success "Migrations executadas"
+    else
+        log_info "Nenhuma migration de atualização encontrada"
+    fi
+fi
 
 # ==========================================
 # 8. Verificar Saúde do Baileys
@@ -246,7 +240,13 @@ if [ $RETRY -eq $MAX_RETRIES ]; then
 fi
 
 # ==========================================
-# 9. Limpar Recursos
+# 9. Recarregar Nginx para servir conteúdo novo
+# ==========================================
+log_info "Recarregando Nginx..."
+docker exec app-nginx nginx -s reload 2>/dev/null && log_success "Nginx recarregado" || log_warning "Não foi possível recarregar Nginx"
+
+# ==========================================
+# 10. Limpar Recursos
 # ==========================================
 log_info "Limpando recursos não utilizados..."
 
@@ -255,12 +255,12 @@ docker system prune -f 2>/dev/null || true
 log_success "Limpeza concluída"
 
 # ==========================================
-# 10. Atualizar Registro de Versão
+# 11. Atualizar Registro de Versão
 # ==========================================
 cp VERSION VERSION.old 2>/dev/null || true
 
 # ==========================================
-# 11. Resumo
+# 12. Resumo
 # ==========================================
 echo ""
 if [ "$services_ok" = true ]; then

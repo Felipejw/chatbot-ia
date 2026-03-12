@@ -152,6 +152,14 @@ if [ -f /tmp/kong.yml.update.bak ]; then
 fi
 
 # ==========================================
+# 4.1. Garantir permissões de execução nos scripts
+# ==========================================
+log_info "Corrigindo permissões dos scripts..."
+chmod +x "$DEPLOY_DIR/scripts/"*.sh 2>/dev/null || true
+chmod +x "$DEPLOY_DIR/baileys/scripts/"*.sh 2>/dev/null || true
+log_success "Permissões corrigidas"
+
+# ==========================================
 # 5. Executar update.sh existente
 # ==========================================
 log_info "Executando atualização completa..."
@@ -173,6 +181,41 @@ if [ -f "$DEPLOY_DIR/scripts/setup-cron.sh" ]; then
     log_info "Configurando cron jobs..."
     chmod +x "$DEPLOY_DIR/scripts/setup-cron.sh"
     bash "$DEPLOY_DIR/scripts/setup-cron.sh" || log_warning "Falha ao configurar cron jobs (não crítico)"
+fi
+
+# ==========================================
+# 5.2. Aplicar patch SQL para tabelas novas (follow_ups etc.)
+# ==========================================
+log_info "Aplicando patches de banco de dados..."
+
+# Detectar Docker Compose
+if docker compose version &> /dev/null; then
+    DC="docker compose"
+else
+    DC="docker-compose"
+fi
+
+cd "$DEPLOY_DIR"
+
+# Aguardar banco estar pronto
+for i in $(seq 1 10); do
+    if $DC exec -T db pg_isready -U postgres &>/dev/null; then
+        break
+    fi
+    sleep 2
+done
+
+# Aplicar init.sql como patch idempotente (usa IF NOT EXISTS)
+if $DC exec -T db pg_isready -U postgres &>/dev/null; then
+    if [ -f "$DEPLOY_DIR/supabase/init.sql" ]; then
+        log_info "Aplicando init.sql como patch idempotente..."
+        $DC exec -T db psql -U supabase_admin -d postgres < "$DEPLOY_DIR/supabase/init.sql" 2>&1 | \
+            grep -v "already exists" | grep -v "^$" | head -20 || true
+        log_success "Patch SQL aplicado"
+    fi
+else
+    log_warning "Banco não disponível para patch SQL. Execute manualmente:"
+    log_warning "  docker exec -i supabase-db psql -U supabase_admin -d postgres < $DEPLOY_DIR/supabase/init.sql"
 fi
 
 # ==========================================
