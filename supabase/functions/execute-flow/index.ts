@@ -282,7 +282,7 @@ async function callLovableAI(
         model: model || "google/gemini-2.5-flash",
         messages,
         temperature: temperature || 0.7,
-        max_tokens: maxTokens || 1024,
+        max_tokens: maxTokens || 4096,
       }),
     });
 
