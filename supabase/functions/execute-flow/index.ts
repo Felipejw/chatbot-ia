@@ -53,6 +53,43 @@ interface BaileysConfig {
   sessionName: string;
 }
 
+// Split long messages into multiple WhatsApp-friendly chunks
+function splitLongMessage(text: string, maxLength = 4000): string[] {
+  if (text.length <= maxLength) return [text];
+  
+  const chunks: string[] = [];
+  let remaining = text;
+  
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLength) {
+      chunks.push(remaining);
+      break;
+    }
+    
+    // Try to split at paragraph break
+    let splitIndex = remaining.lastIndexOf("\n\n", maxLength);
+    if (splitIndex < maxLength * 0.3) {
+      // Try single newline
+      splitIndex = remaining.lastIndexOf("\n", maxLength);
+    }
+    if (splitIndex < maxLength * 0.3) {
+      // Try sentence end
+      splitIndex = remaining.lastIndexOf(". ", maxLength);
+      if (splitIndex > 0) splitIndex += 1; // include the dot
+    }
+    if (splitIndex < maxLength * 0.3) {
+      // Hard cut at space
+      splitIndex = remaining.lastIndexOf(" ", maxLength);
+    }
+    if (splitIndex <= 0) splitIndex = maxLength;
+    
+    chunks.push(remaining.substring(0, splitIndex).trim());
+    remaining = remaining.substring(splitIndex).trim();
+  }
+  
+  return chunks;
+}
+
 // Load Baileys config from system_settings
 async function loadBaileysConfig(supabase: any, connection: any): Promise<BaileysConfig | null> {
   const { data: urlSetting } = await supabase
@@ -217,7 +254,7 @@ async function callGoogleAI(
           systemInstruction: { parts: [{ text: fullSystemPrompt }] },
           generationConfig: {
             temperature: temperature || 0.7,
-            maxOutputTokens: maxTokens || 1024,
+            maxOutputTokens: maxTokens || 4096,
           },
         }),
       }
@@ -282,7 +319,7 @@ async function callLovableAI(
         model: model || "google/gemini-2.5-flash",
         messages,
         temperature: temperature || 0.7,
-        max_tokens: maxTokens || 1024,
+        max_tokens: maxTokens || 4096,
       }),
     });
 
@@ -1283,7 +1320,7 @@ async function executeFlowFromNode(
           const systemPrompt = currentNode.data.systemPrompt as string || "Você é um assistente útil.";
           const model = currentNode.data.model as string || "google/gemini-2.5-flash";
           const temperature = (currentNode.data.temperature as number) ?? 0.7;
-          const maxTokens = (currentNode.data.maxTokens as number) || 1024;
+          const maxTokens = (currentNode.data.maxTokens as number) || 4096;
           const knowledgeBase = currentNode.data.knowledgeBase as string;
           const useOwnApiKey = currentNode.data.useOwnApiKey as boolean;
           const googleApiKey = currentNode.data.googleApiKey as string;
@@ -1295,7 +1332,12 @@ async function executeFlowFromNode(
             knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase
           );
 
-          await sendWhatsAppMessage(baileysConfig, phone, aiResponse);
+          // Split long AI responses into multiple messages
+          const aiChunks = splitLongMessage(aiResponse);
+          for (let i = 0; i < aiChunks.length; i++) {
+            await sendWhatsAppMessage(baileysConfig, phone, aiChunks[i]);
+            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1000));
+          }
           
           await supabase.from("messages").insert({
             conversation_id: conversationId,
@@ -1807,7 +1849,12 @@ const handler = async (req: Request): Promise<Response> => {
 
         const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase);
 
-        await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
+        // Split long AI responses into multiple messages
+        const aiChunks = splitLongMessage(aiResponse);
+        for (let i = 0; i < aiChunks.length; i++) {
+          await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
+          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1000));
+        }
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
         // Auto-tag conversation based on AI interaction
