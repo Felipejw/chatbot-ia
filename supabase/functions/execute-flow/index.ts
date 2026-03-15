@@ -1332,7 +1332,12 @@ async function executeFlowFromNode(
             knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase
           );
 
-          await sendWhatsAppMessage(baileysConfig, phone, aiResponse);
+          // Split long AI responses into multiple messages
+          const aiChunks = splitLongMessage(aiResponse);
+          for (let i = 0; i < aiChunks.length; i++) {
+            await sendWhatsAppMessage(baileysConfig, phone, aiChunks[i]);
+            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1000));
+          }
           
           await supabase.from("messages").insert({
             conversation_id: conversationId,
