@@ -217,7 +217,7 @@ async function callGoogleAI(
           systemInstruction: { parts: [{ text: fullSystemPrompt }] },
           generationConfig: {
             temperature: temperature || 0.7,
-            maxOutputTokens: maxTokens || 1024,
+            maxOutputTokens: maxTokens || 4096,
           },
         }),
       }
