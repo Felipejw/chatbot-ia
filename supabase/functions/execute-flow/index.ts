@@ -1283,7 +1283,7 @@ async function executeFlowFromNode(
           const systemPrompt = currentNode.data.systemPrompt as string || "Você é um assistente útil.";
           const model = currentNode.data.model as string || "google/gemini-2.5-flash";
           const temperature = (currentNode.data.temperature as number) ?? 0.7;
-          const maxTokens = (currentNode.data.maxTokens as number) || 1024;
+          const maxTokens = (currentNode.data.maxTokens as number) || 4096;
           const knowledgeBase = currentNode.data.knowledgeBase as string;
           const useOwnApiKey = currentNode.data.useOwnApiKey as boolean;
           const googleApiKey = currentNode.data.googleApiKey as string;
