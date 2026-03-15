@@ -53,6 +53,43 @@ interface BaileysConfig {
   sessionName: string;
 }
 
+// Split long messages into multiple WhatsApp-friendly chunks
+function splitLongMessage(text: string, maxLength = 4000): string[] {
+  if (text.length <= maxLength) return [text];
+  
+  const chunks: string[] = [];
+  let remaining = text;
+  
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLength) {
+      chunks.push(remaining);
+      break;
+    }
+    
+    // Try to split at paragraph break
+    let splitIndex = remaining.lastIndexOf("\n\n", maxLength);
+    if (splitIndex < maxLength * 0.3) {
+      // Try single newline
+      splitIndex = remaining.lastIndexOf("\n", maxLength);
+    }
+    if (splitIndex < maxLength * 0.3) {
+      // Try sentence end
+      splitIndex = remaining.lastIndexOf(". ", maxLength);
+      if (splitIndex > 0) splitIndex += 1; // include the dot
+    }
+    if (splitIndex < maxLength * 0.3) {
+      // Hard cut at space
+      splitIndex = remaining.lastIndexOf(" ", maxLength);
+    }
+    if (splitIndex <= 0) splitIndex = maxLength;
+    
+    chunks.push(remaining.substring(0, splitIndex).trim());
+    remaining = remaining.substring(splitIndex).trim();
+  }
+  
+  return chunks;
+}
+
 // Load Baileys config from system_settings
 async function loadBaileysConfig(supabase: any, connection: any): Promise<BaileysConfig | null> {
   const { data: urlSetting } = await supabase
