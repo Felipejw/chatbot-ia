@@ -320,6 +320,23 @@ export function OptionsTab() {
               { value: "always", label: "Sempre que alguém ligar" },
             ]}
           />
+          <SettingOption
+            label="Auto-tagging por IA (classificar conversa automaticamente)"
+            settingKey="auto_tag_enabled"
+            value={getSetting("auto_tag_enabled") || "false"}
+            onChange={(v) => {
+              createOrUpdateSetting.mutate({
+                key: "auto_tag_enabled",
+                value: v,
+                description: "Habilita classificação automática de conversas por IA usando as tags cadastradas",
+                category: "ai",
+              });
+            }}
+            options={[
+              { value: "true", label: "Habilitado" },
+              { value: "false", label: "Desabilitado" },
+            ]}
+          />
         </div>
       </div>
       </div>
