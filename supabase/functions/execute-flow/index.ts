@@ -2131,7 +2131,6 @@ const handler = async (req: Request): Promise<Response> => {
                 model: cfg.model || "google/gemini-2.5-flash",
                 temperature: cfg.temperature ?? 0.7,
                 maxTokens: cfg.maxTokens || 4096,
-                knowledgeBase: cfg.knowledgeBase || "",
               },
             },
           }).eq("id", conversationId);
