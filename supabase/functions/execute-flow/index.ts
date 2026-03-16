@@ -941,9 +941,7 @@ async function callOpenAI(
   knowledgeBase?: string,
   conversationHistory?: ChatMessage[]
 ): Promise<string> {
-  const fullPrompt = knowledgeBase
-    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
-    : systemPrompt;
+  const fullPrompt = buildFullSystemPrompt(systemPrompt, knowledgeBase);
 
   const messages: Array<{ role: string; content: string }> = [
     { role: "system", content: fullPrompt },
