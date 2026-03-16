@@ -624,5 +624,13 @@ export async function getContactInfo(sessionName: string, jid: string) {
   }
 }
 
+// Send presence update (composing, paused, available)
+export async function sendPresence(sessionName: string, to: string, presence: 'composing' | 'paused' | 'available') {
+  const session = sessions.get(sessionName);
+  if (!session || session.status !== 'connected') return;
+  const jid = formatJid(to);
+  await session.sock.sendPresenceUpdate(presence, jid);
+}
+
 // NOTA: restoreSessions() agora e chamado pelo index.ts no callback do app.listen
 // para garantir que o servidor esteja pronto antes de restaurar sessoes.

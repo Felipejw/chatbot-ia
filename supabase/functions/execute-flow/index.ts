@@ -132,6 +132,19 @@ async function loadBaileysConfig(supabase: any, connection: any): Promise<Bailey
   return { serverUrl, apiKey, sessionName };
 }
 
+// Send typing presence ("composing...") before each message
+async function sendTypingPresence(config: BaileysConfig, phone: string) {
+  try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (config.apiKey) headers["X-API-Key"] = config.apiKey;
+    await fetch(`${config.serverUrl}/sessions/${config.sessionName}/presence`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ to: phone, presence: "composing" }),
+    });
+  } catch (_e) { /* silently ignore */ }
+}
+
 // Send WhatsApp message through Baileys API
 async function sendWhatsAppMessage(
   config: BaileysConfig,
@@ -1349,8 +1362,9 @@ async function executeFlowFromNode(
           // Split long AI responses into multiple messages
           const aiChunks = splitLongMessage(aiResponse);
           for (let i = 0; i < aiChunks.length; i++) {
+            await sendTypingPresence(baileysConfig, phone);
+            await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
             await sendWhatsAppMessage(baileysConfig, phone, aiChunks[i]);
-            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           }
           
           await supabase.from("messages").insert({
@@ -1866,8 +1880,9 @@ const handler = async (req: Request): Promise<Response> => {
         // Split long AI responses into multiple messages
         const aiChunks = splitLongMessage(aiResponse);
         for (let i = 0; i < aiChunks.length; i++) {
+          await sendTypingPresence(baileysConfig, formattedPhone);
+          await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
         }
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
@@ -2101,8 +2116,9 @@ const handler = async (req: Request): Promise<Response> => {
 
           const aiChunks = splitLongMessage(aiResponse);
           for (let i = 0; i < aiChunks.length; i++) {
+            await sendTypingPresence(baileysConfig, formattedPhone);
+            await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
             await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           }
           await supabase.from("messages").insert({
             conversation_id: conversationId,

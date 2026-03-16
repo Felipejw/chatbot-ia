@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
-import { createSession, getSession, getAllSessions, deleteSession, sendTextMessage, sendMediaMessage, getQrCode, restoreSessions, downloadMedia, getContactInfo } from './baileys.js';
+import { createSession, getSession, getAllSessions, deleteSession, sendTextMessage, sendMediaMessage, getQrCode, restoreSessions, downloadMedia, getContactInfo, sendPresence } from './baileys.js';
 import { logger } from './logger.js';
 
 dotenv.config();
@@ -199,6 +199,28 @@ app.post('/sessions/:name/send/media', async (req: Request, res: Response) => {
     res.json({ success: true, data: result });
   } catch (error) {
     logger.error({ error }, 'Error sending media message');
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+// ==========================================
+// Rotas de Presenca
+// ==========================================
+
+// Enviar indicador de digitando/online
+app.post('/sessions/:name/presence', async (req: Request, res: Response) => {
+  try {
+    const { to, presence } = req.body;
+    
+    if (!to || !presence) {
+      return res.status(400).json({ success: false, error: 'to and presence are required' });
+    }
+    
+    const sessionName = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+    await sendPresence(sessionName, to, presence);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, 'Error sending presence');
     res.status(500).json({ success: false, error: (error as Error).message });
   }
 });
