@@ -870,10 +870,11 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             { label: "Curta", value: 250, desc: "1-2 frases diretas", icon: AlignLeft },
                             { label: "Média", value: 500, desc: "3-5 frases completas", icon: AlignCenter },
                             { label: "Longa", value: 1000, desc: "Detalhada e explicativa", icon: AlignJustify },
+                            { label: "Completa", value: 4096, desc: "Recomendado p/ Gemini 2.5", icon: Expand },
                             { label: "Personalizado", value: -1, desc: "Defina manualmente", icon: Pencil },
                           ].map((preset) => {
                             const isSelected = preset.value === -1
-                              ? ![250, 500, 1000].includes(config.maxTokens)
+                              ? ![250, 500, 1000, 4096].includes(config.maxTokens)
                               : config.maxTokens === preset.value;
                             const PresetIcon = preset.icon;
                             return (
