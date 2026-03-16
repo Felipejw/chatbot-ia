@@ -53,41 +53,52 @@ interface BaileysConfig {
   sessionName: string;
 }
 
-// Split long messages into multiple WhatsApp-friendly chunks
-function splitLongMessage(text: string, maxLength = 4000): string[] {
-  if (text.length <= maxLength) return [text];
+// Split AI responses into 2-3 human-like message chunks
+// Always tries to split into multiple messages for a natural feel
+function splitLongMessage(text: string, _maxLength = 4000): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [trimmed];
   
-  const chunks: string[] = [];
-  let remaining = text;
+  // Split by double newlines (paragraphs)
+  const paragraphs = trimmed.split(/\n\n+/).filter(p => p.trim());
   
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLength) {
-      chunks.push(remaining);
-      break;
-    }
-    
-    // Try to split at paragraph break
-    let splitIndex = remaining.lastIndexOf("\n\n", maxLength);
-    if (splitIndex < maxLength * 0.3) {
-      // Try single newline
-      splitIndex = remaining.lastIndexOf("\n", maxLength);
-    }
-    if (splitIndex < maxLength * 0.3) {
-      // Try sentence end
-      splitIndex = remaining.lastIndexOf(". ", maxLength);
-      if (splitIndex > 0) splitIndex += 1; // include the dot
-    }
-    if (splitIndex < maxLength * 0.3) {
-      // Hard cut at space
-      splitIndex = remaining.lastIndexOf(" ", maxLength);
-    }
-    if (splitIndex <= 0) splitIndex = maxLength;
-    
-    chunks.push(remaining.substring(0, splitIndex).trim());
-    remaining = remaining.substring(splitIndex).trim();
+  // If only 1 paragraph and short, send as-is
+  if (paragraphs.length <= 1 && trimmed.length < 300) {
+    return [trimmed];
   }
   
-  return chunks;
+  // Target: 2-3 chunks for natural human feel
+  const targetChunks = paragraphs.length >= 4 ? 3 : (paragraphs.length >= 2 ? 2 : 1);
+  
+  if (targetChunks === 1) {
+    // Single paragraph but long — split at sentence boundaries
+    const sentences = trimmed.match(/[^.!?]+[.!?]+[\s]*/g) || [trimmed];
+    if (sentences.length >= 3) {
+      const mid = Math.ceil(sentences.length / 2);
+      return [
+        sentences.slice(0, mid).join("").trim(),
+        sentences.slice(mid).join("").trim()
+      ].filter(c => c);
+    }
+    return [trimmed];
+  }
+  
+  if (targetChunks === 2) {
+    const mid = Math.ceil(paragraphs.length / 2);
+    return [
+      paragraphs.slice(0, mid).join("\n\n").trim(),
+      paragraphs.slice(mid).join("\n\n").trim()
+    ].filter(c => c);
+  }
+  
+  // 3 chunks
+  const third = Math.ceil(paragraphs.length / 3);
+  const twoThirds = Math.ceil((paragraphs.length * 2) / 3);
+  return [
+    paragraphs.slice(0, third).join("\n\n").trim(),
+    paragraphs.slice(third, twoThirds).join("\n\n").trim(),
+    paragraphs.slice(twoThirds).join("\n\n").trim()
+  ].filter(c => c);
 }
 
 // Load Baileys config from system_settings
