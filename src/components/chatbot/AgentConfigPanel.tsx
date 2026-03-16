@@ -211,7 +211,7 @@ const defaultConfig: AgentConfig = {
   model: "google/gemini-2.5-flash",
   systemPrompt: "Você é um assistente virtual amigável e prestativo.",
   temperature: 0.7,
-  maxTokens: 500,
+  maxTokens: 4096,
   knowledgeBase: "",
   connectionId: "",
   transferEnabled: false,
@@ -865,15 +865,16 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         <FieldLabel description="Define o tamanho máximo que cada resposta da IA pode ter">
                           Tamanho máximo das respostas
                         </FieldLabel>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                           {[
                             { label: "Curta", value: 250, desc: "1-2 frases diretas", icon: AlignLeft },
                             { label: "Média", value: 500, desc: "3-5 frases completas", icon: AlignCenter },
                             { label: "Longa", value: 1000, desc: "Detalhada e explicativa", icon: AlignJustify },
+                            { label: "Completa", value: 4096, desc: "Recomendado p/ Gemini 2.5", icon: Expand },
                             { label: "Personalizado", value: -1, desc: "Defina manualmente", icon: Pencil },
                           ].map((preset) => {
                             const isSelected = preset.value === -1
-                              ? ![250, 500, 1000].includes(config.maxTokens)
+                              ? ![250, 500, 1000, 4096].includes(config.maxTokens)
                               : config.maxTokens === preset.value;
                             const PresetIcon = preset.icon;
                             return (
@@ -896,7 +897,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             );
                           })}
                         </div>
-                        {![250, 500, 1000].includes(config.maxTokens) && (
+                        {![250, 500, 1000, 4096].includes(config.maxTokens) && (
                           <Input
                             type="number"
                             value={config.maxTokens}

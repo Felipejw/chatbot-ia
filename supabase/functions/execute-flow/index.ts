@@ -317,7 +317,7 @@ async function callGoogleAI(
           systemInstruction: { parts: [{ text: fullSystemPrompt }] },
           generationConfig: {
             temperature: temperature || 0.7,
-            maxOutputTokens: maxTokens || 4096,
+            maxOutputTokens: model.includes("2.5") ? Math.max(maxTokens || 4096, 8192) : (maxTokens || 4096),
           },
         }),
       }
@@ -330,7 +330,9 @@ async function callGoogleAI(
     }
 
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Não consegui gerar uma resposta.";
+    const candidate = data.candidates?.[0];
+    console.log(`[FlowExecutor] Google AI response: ${candidate?.content?.parts?.[0]?.text?.length || 0} chars, finishReason: ${candidate?.finishReason}, model: ${model}`);
+    return candidate?.content?.parts?.[0]?.text || "Não consegui gerar uma resposta.";
   } catch (error) {
     console.error("[FlowExecutor] Error calling Google AI:", error);
     return "Desculpe, ocorreu um erro ao processar sua mensagem.";
