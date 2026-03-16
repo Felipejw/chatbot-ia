@@ -1867,7 +1867,7 @@ const handler = async (req: Request): Promise<Response> => {
         const aiChunks = splitLongMessage(aiResponse);
         for (let i = 0; i < aiChunks.length; i++) {
           await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
+          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
         }
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
