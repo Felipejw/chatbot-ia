@@ -2049,7 +2049,7 @@ const handler = async (req: Request): Promise<Response> => {
                 systemPrompt: cfg.systemPrompt || "Você é um assistente virtual amigável.",
                 model: cfg.model || "google/gemini-2.5-flash",
                 temperature: cfg.temperature ?? 0.7,
-                maxTokens: cfg.maxTokens || 500,
+                maxTokens: cfg.maxTokens || 4096,
                 knowledgeBase: cfg.knowledgeBase || "",
               },
             },
