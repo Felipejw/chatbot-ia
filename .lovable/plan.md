@@ -1,29 +1,31 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Correção: IA formata links com Markdown (colchetes/parênteses) no WhatsApp
 
-## ✅ Concluído
+## Problema
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+A IA está respondendo com links em formato Markdown `[https://url](https://url)` que não funciona no WhatsApp. O WhatsApp precisa de URLs em texto puro para auto-linkar.
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+## Causa
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+Falta uma regra explícita no `buildFullSystemPrompt` instruindo a IA a **nunca usar formatação Markdown** para links.
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+## Alterações
+
+### 1. `supabase/functions/execute-flow/index.ts` — `buildFullSystemPrompt`
+
+Adicionar regra 6 nas `=== REGRAS ===`:
+
+```
+6. NUNCA formate links com Markdown. NÃO use [texto](url) nem (url). Envie links como texto puro. Ex: https://exemplo.com
+```
+
+### 2. `supabase/functions/test-agent/index.ts` — `buildFullSystemPrompt`
+
+Mesma regra adicionada para manter consistência no ambiente de teste.
+
+| Arquivo | Mudança |
+|---|---|
+| `execute-flow/index.ts` | Adicionar regra anti-Markdown no prompt do sistema |
+| `test-agent/index.ts` | Mesma regra anti-Markdown |
+
