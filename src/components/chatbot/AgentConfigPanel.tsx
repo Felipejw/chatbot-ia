@@ -355,6 +355,12 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
   const [config, setConfig] = useState<AgentConfig>(defaultConfig);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
+  const [testMessage, setTestMessage] = useState("");
+  const [testHistory, setTestHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testDiagnostics, setTestDiagnostics] = useState<any>(null);
+  const testScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (flowData?.flow) {
