@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, ShoppingCart, Headphones, CalendarCheck, Target, UserCheck, Pencil, Sparkles, Expand, ChevronDown, Crosshair, Scale, Lightbulb, AlignLeft, AlignCenter, AlignJustify } from "lucide-react";
+import { Save, Loader2, Settings, Zap, Brain, MessageCircle, ArrowRightLeft, XCircle, RotateCcw, Plus, Trash2, Clock, Calendar, Thermometer, ShoppingCart, Headphones, CalendarCheck, Target, UserCheck, Pencil, Sparkles, Expand, ChevronDown, Crosshair, Scale, Lightbulb, AlignLeft, AlignCenter, AlignJustify, Play, Send, Bot, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
