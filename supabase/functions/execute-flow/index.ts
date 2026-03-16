@@ -317,7 +317,7 @@ async function callGoogleAI(
           systemInstruction: { parts: [{ text: fullSystemPrompt }] },
           generationConfig: {
             temperature: temperature || 0.7,
-            maxOutputTokens: maxTokens || 4096,
+            maxOutputTokens: model.includes("2.5") ? Math.max(maxTokens || 4096, 8192) : (maxTokens || 4096),
           },
         }),
       }
