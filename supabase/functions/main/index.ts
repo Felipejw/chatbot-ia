@@ -36,6 +36,7 @@ const VALID_FUNCTIONS = new Set([
   'send-meta-message',
   'send-whatsapp',
   'sync-contacts',
+  'test-agent',
   'update-lid-contacts',
   'update-user-email',
 ]);

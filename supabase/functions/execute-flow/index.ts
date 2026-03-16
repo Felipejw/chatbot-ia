@@ -1951,15 +1951,9 @@ const handler = async (req: Request): Promise<Response> => {
         // Cancel existing pending follow-ups and schedule new one if enabled
         await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
 
-        // Check if flow has follow-up enabled in config
+        // Check if flow has follow-up enabled (reuse latestCfg, no extra fetch)
         try {
-          const { data: flowConfig } = await supabase
-            .from("chatbot_flows")
-            .select("config")
-            .eq("id", flowState.flowId)
-            .single();
-
-          const cfg = flowConfig?.config as any;
+          const cfg = latestCfg;
           if (cfg?.followUpEnabled) {
             // Calculate interval: prioritize stepConfigs[0], fallback to followUpIntervalMinutes, default 60
             const stepConfigs = cfg.followUpStepConfigs as any[] | null;
