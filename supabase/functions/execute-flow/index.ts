@@ -239,7 +239,7 @@ async function callGoogleAI(
   conversationHistory?: ChatMessage[]
 ): Promise<string> {
   const fullSystemPrompt = knowledgeBase 
-    ? `${systemPrompt}\n\n### Base de conhecimento:\n${knowledgeBase}`
+    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
     : systemPrompt;
 
   try {
