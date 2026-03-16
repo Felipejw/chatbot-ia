@@ -865,7 +865,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         <FieldLabel description="Define o tamanho máximo que cada resposta da IA pode ter">
                           Tamanho máximo das respostas
                         </FieldLabel>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                           {[
                             { label: "Curta", value: 250, desc: "1-2 frases diretas", icon: AlignLeft },
                             { label: "Média", value: 500, desc: "3-5 frases completas", icon: AlignCenter },
