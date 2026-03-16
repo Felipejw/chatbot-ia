@@ -2116,8 +2116,9 @@ const handler = async (req: Request): Promise<Response> => {
 
           const aiChunks = splitLongMessage(aiResponse);
           for (let i = 0; i < aiChunks.length; i++) {
+            await sendTypingPresence(baileysConfig, formattedPhone);
+            await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
             await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           }
           await supabase.from("messages").insert({
             conversation_id: conversationId,
