@@ -1,29 +1,31 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Correção: Teste de Agente retorna "Nenhum provedor disponível"
 
-## ✅ Concluído
+## Causa raiz
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+A edge function `test-agent` tem dois problemas:
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+1. **Sem fallback para OpenAI** — Se o modelo é Gemini mas a chamada à API do Google falha (ex: chave inválida, erro de rede), o código tenta apenas o Lovable AI Gateway como fallback. Na VPS, o `LOVABLE_API_KEY` não existe → cai na mensagem "Nenhum provedor disponível". A chave OpenAI do usuário (visível no screenshot) nunca é consultada.
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+2. **Erros silenciosos** — Se a chamada à API Google retorna erro (status != 200), o código simplesmente ignora sem logar o motivo. Impossível debugar.
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+## Alterações
+
+### `supabase/functions/test-agent/index.ts`
+
+1. **Adicionar fallback para OpenAI**: Após falhar o Google, tentar a chave `openai_api_key` da `system_settings` antes do Lovable Gateway
+2. **Logar erros das chamadas de API**: Se Google ou OpenAI retornarem erro, logar status + body para diagnóstico
+3. **Incluir info de debug no diagnóstico**: Retornar qual provedor foi usado (ou por que nenhum funcionou)
+
+```typescript
+// Ordem de tentativas:
+// 1. Google AI (se modelo não é gpt-*)
+// 2. OpenAI (se modelo é gpt-* OU se Google falhou)  ← NOVO
+// 3. Lovable AI Gateway (fallback final)
+```
+
+| Arquivo | Mudança |
+|---|---|
+| `supabase/functions/test-agent/index.ts` | Adicionar fallback OpenAI, logging de erros, diagnóstico de provedor |
+
