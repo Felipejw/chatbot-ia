@@ -206,7 +206,22 @@ interface ChatMessage {
   content: string;
 }
 
-// Fetch conversation history for AI context
+// Patterns that indicate a contaminated bot response (placeholders, templates)
+const CONTAMINATED_PATTERNS = [
+  /\[\*.*?\*\]/,           // [*INSERIR LINK*], [*texto*]
+  /\[INSERIR/i,            // [INSERIR ...]
+  /INSERIR\s+(AQUI|LINK|URL|PREÇO|VALOR|NOME)/i,
+  /substituir\s+este\s+texto/i,
+  /\{(link|url|preco|valor|nome|produto|site)\}/i, // {link}, {url}
+  /SEU[\s_]+(LINK|SITE|URL)/i,
+  /coloque\s+aqui/i,
+];
+
+function isContaminatedMessage(content: string): boolean {
+  return CONTAMINATED_PATTERNS.some(pattern => pattern.test(content));
+}
+
+// Fetch conversation history for AI context — sanitized
 async function fetchConversationHistory(
   supabase: any,
   conversationId: string,
@@ -227,17 +242,40 @@ async function fetchConversationHistory(
 
     const history: ChatMessage[] = messages
       .reverse()
+      .filter((msg: any) => {
+        // Keep all user messages; filter out contaminated bot messages
+        if (msg.sender_type === "contact") return true;
+        return !isContaminatedMessage(msg.content || "");
+      })
       .map((msg: any) => ({
         role: msg.sender_type === "contact" ? "user" : "assistant",
         content: msg.content,
       }));
 
-    console.log(`[FlowExecutor] Loaded ${history.length} messages for context`);
+    console.log(`[FlowExecutor] Loaded ${history.length} messages for context (filtered from ${messages.length})`);
     return history;
   } catch (error) {
     console.error("[FlowExecutor] Error in fetchConversationHistory:", error);
     return [];
   }
+}
+
+// Build a reinforced system prompt that forces the AI to use knowledge base facts literally
+function buildFullSystemPrompt(systemPrompt: string, knowledgeBase?: string): string {
+  if (!knowledgeBase) return systemPrompt;
+
+  return `${systemPrompt}
+
+=== REGRAS ABSOLUTAS ===
+1. As INFORMAÇÕES OFICIAIS abaixo são FATOS REAIS da empresa. Use-os LITERALMENTE nas suas respostas.
+2. NUNCA use placeholders como [INSERIR LINK], [*texto*], {link}, "SEU LINK AQUI" ou qualquer variação.
+3. NUNCA invente dados. Se a informação não estiver abaixo, diga que vai verificar.
+4. Quando o cliente perguntar link, preço, valor, garantia, nome do produto — responda com o dado EXATO das informações oficiais.
+5. COPIE e COLE os valores. Não reformule links, não arredonde preços, não resuma nomes de produtos.
+
+=== INFORMAÇÕES OFICIAIS (dados reais — use EXATAMENTE como escritos) ===
+${knowledgeBase}
+=== FIM DAS INFORMAÇÕES OFICIAIS ===`;
 }
 
 // Call Google AI Studio API directly (for user's own API key)
@@ -251,9 +289,7 @@ async function callGoogleAI(
   knowledgeBase?: string,
   conversationHistory?: ChatMessage[]
 ): Promise<string> {
-  const fullSystemPrompt = knowledgeBase 
-    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
-    : systemPrompt;
+  const fullSystemPrompt = buildFullSystemPrompt(systemPrompt, knowledgeBase);
 
   try {
     console.log("[FlowExecutor] Calling Google AI Studio with model:", model);
@@ -317,9 +353,7 @@ async function callLovableAI(
     return "Desculpe, não foi possível processar sua mensagem.";
   }
 
-  const fullSystemPrompt = knowledgeBase 
-    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
-    : systemPrompt;
+  const fullSystemPrompt = buildFullSystemPrompt(systemPrompt, knowledgeBase);
 
   try {
     console.log("[FlowExecutor] Calling Lovable AI with model:", model);
@@ -911,9 +945,7 @@ async function callOpenAI(
   knowledgeBase?: string,
   conversationHistory?: ChatMessage[]
 ): Promise<string> {
-  const fullPrompt = knowledgeBase
-    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
-    : systemPrompt;
+  const fullPrompt = buildFullSystemPrompt(systemPrompt, knowledgeBase);
 
   const messages: Array<{ role: string; content: string }> = [
     { role: "system", content: fullPrompt },
