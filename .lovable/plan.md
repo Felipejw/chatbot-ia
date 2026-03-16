@@ -1,24 +1,47 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Simplificar prompt: campo único + parar de "vou verificar"
 
-## ✅ Concluído
+## Problema identificado
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+1. **A instrução no backend manda a IA dizer "vou verificar"** — linha 273 do `execute-flow/index.ts`: `"Se a informação não estiver abaixo, diga que vai verificar"`. Isso causa exatamente o comportamento reportado.
+2. **Dois campos separados (prompt + base de conhecimento)** confundem a configuração. O usuário quer apenas um campo.
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+## Alterações
 
-### Próximos passos do usuário
-1. Salvar a chave do Google AI em Configurações > Opções
-2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
-3. O cron job será configurado automaticamente
+### 1. `src/components/chatbot/AgentConfigPanel.tsx` — Unificar campos
+
+- Remover o card "Base de conhecimento" (linhas 912-925)
+- No campo "Prompt do sistema", ao salvar pela primeira vez após a mudança, mesclar automaticamente o conteúdo existente de `knowledgeBase` ao final do `systemPrompt` (se `knowledgeBase` não estiver vazio)
+- Aumentar o textarea do prompt para `rows={16}` para acomodar mais conteúdo
+- Atualizar placeholder e label para deixar claro que tudo vai nesse campo
+
+### 2. `supabase/functions/execute-flow/index.ts` — Corrigir `buildFullSystemPrompt`
+
+- Mesclar `knowledgeBase` no prompt sem as regras que mandam "dizer que vai verificar"
+- Quando a IA não souber algo, instruir: **"responda de forma breve e neutra, sem prometer verificar ou retornar depois"**
+- Simplificar as regras para:
+
+```
+REGRAS:
+1. Use TODAS as informações do prompt acima nas suas respostas.
+2. NUNCA use placeholders como [INSERIR], {link}, "SEU LINK AQUI".
+3. Se não souber algo, dê uma resposta curta e neutra. 
+   NUNCA diga "vou verificar", "vou consultar" ou "já te retorno".
+4. Copie valores literais (links, preços, nomes) exatamente como estão.
+```
+
+### 3. Migração automática no frontend
+
+No `useEffect` que carrega o config, se `knowledgeBase` tiver conteúdo:
+- Concatenar ao `systemPrompt` com separador claro
+- Limpar `knowledgeBase`
+- Marcar `hasChanges = true` para que o usuário salve
+
+## Arquivos alterados
+
+| Arquivo | Mudança |
+|---|---|
+| `AgentConfigPanel.tsx` | Remover campo "Base de conhecimento", migrar conteúdo para prompt, textarea maior |
+| `execute-flow/index.ts` | Corrigir `buildFullSystemPrompt` — remover instrução de "vou verificar", resposta neutra |
+
