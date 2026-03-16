@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// Build the full system prompt (same logic as execute-flow)
 function buildFullSystemPrompt(systemPrompt: string): string {
   return `${systemPrompt}
 
@@ -41,7 +40,6 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch latest flow config
     const { data: flowData, error: flowError } = await supabase
       .from("chatbot_flows")
       .select("config, name")
@@ -63,7 +61,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fullPrompt = buildFullSystemPrompt(systemPrompt);
 
-    // Build messages array
     const messages: Array<{ role: string; content: string }> = [
       { role: "system", content: fullPrompt },
     ];
@@ -76,8 +73,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     messages.push({ role: "user", content: message });
 
-    // Diagnostic info
-    const diagnostics = {
+    const diagnostics: any = {
       flowName: flowData.name,
       model,
       temperature,
@@ -85,13 +81,15 @@ const handler = async (req: Request): Promise<Response> => {
       promptLength: systemPrompt.length,
       promptPreview: systemPrompt.substring(0, 300),
       historyCount: history?.length || 0,
+      provider: null,
+      errors: [],
     };
 
-    console.log("[test-agent] Config:", JSON.stringify(diagnostics));
+    console.log("[test-agent] Config:", JSON.stringify({ ...diagnostics, errors: undefined }));
 
     let aiResponse = "";
 
-    // Try Google AI key first
+    // 1. Try Google AI (for non-GPT models)
     if (!isOpenAIModel(model)) {
       const { data: googleKeySetting } = await supabase
         .from("system_settings")
@@ -109,53 +107,120 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
 
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${googleKeySetting.value}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents,
-              systemInstruction: { parts: [{ text: fullPrompt }] },
-              generationConfig: { temperature, maxOutputTokens: maxTokens },
-            }),
-          }
-        );
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${googleKeySetting.value}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents,
+                systemInstruction: { parts: [{ text: fullPrompt }] },
+                generationConfig: { temperature, maxOutputTokens: maxTokens },
+              }),
+            }
+          );
 
-        if (resp.ok) {
-          const data = await resp.json();
-          aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (resp.ok) {
+            const data = await resp.json();
+            aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (aiResponse) diagnostics.provider = "google";
+          } else {
+            const errBody = await resp.text();
+            console.error("[test-agent] Google AI error:", resp.status, errBody);
+            diagnostics.errors.push(`Google AI: ${resp.status} - ${errBody.substring(0, 200)}`);
+          }
+        } catch (e) {
+          console.error("[test-agent] Google AI fetch error:", e);
+          diagnostics.errors.push(`Google AI fetch: ${e instanceof Error ? e.message : String(e)}`);
         }
+      } else {
+        diagnostics.errors.push("Google AI: chave não configurada");
       }
     }
 
-    // Fallback: Lovable AI Gateway
+    // 2. Try OpenAI (for GPT models OR as fallback)
+    if (!aiResponse) {
+      const { data: openaiKeySetting } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "openai_api_key")
+        .maybeSingle();
+
+      if (openaiKeySetting?.value) {
+        const openaiModel = isOpenAIModel(model) ? model : "gpt-4o-mini";
+        try {
+          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${openaiKeySetting.value}`,
+            },
+            body: JSON.stringify({
+              model: openaiModel,
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+            }),
+          });
+
+          if (resp.ok) {
+            const data = await resp.json();
+            aiResponse = data.choices?.[0]?.message?.content || "";
+            if (aiResponse) diagnostics.provider = "openai";
+          } else {
+            const errBody = await resp.text();
+            console.error("[test-agent] OpenAI error:", resp.status, errBody);
+            diagnostics.errors.push(`OpenAI: ${resp.status} - ${errBody.substring(0, 200)}`);
+          }
+        } catch (e) {
+          console.error("[test-agent] OpenAI fetch error:", e);
+          diagnostics.errors.push(`OpenAI fetch: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      } else {
+        diagnostics.errors.push("OpenAI: chave não configurada");
+      }
+    }
+
+    // 3. Fallback: Lovable AI Gateway
     if (!aiResponse) {
       const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
       if (lovableApiKey) {
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${lovableApiKey}`,
-          },
-          body: JSON.stringify({
-            model: model || "google/gemini-2.5-flash",
-            messages,
-            temperature,
-            max_tokens: maxTokens,
-          }),
-        });
+        try {
+          const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${lovableApiKey}`,
+            },
+            body: JSON.stringify({
+              model: model || "google/gemini-2.5-flash",
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+            }),
+          });
 
-        if (resp.ok) {
-          const data = await resp.json();
-          aiResponse = data.choices?.[0]?.message?.content || "";
+          if (resp.ok) {
+            const data = await resp.json();
+            aiResponse = data.choices?.[0]?.message?.content || "";
+            if (aiResponse) diagnostics.provider = "lovable";
+          } else {
+            const errBody = await resp.text();
+            console.error("[test-agent] Lovable AI error:", resp.status, errBody);
+            diagnostics.errors.push(`Lovable AI: ${resp.status} - ${errBody.substring(0, 200)}`);
+          }
+        } catch (e) {
+          console.error("[test-agent] Lovable AI fetch error:", e);
+          diagnostics.errors.push(`Lovable AI fetch: ${e instanceof Error ? e.message : String(e)}`);
         }
+      } else {
+        diagnostics.errors.push("Lovable AI: LOVABLE_API_KEY não configurada");
       }
     }
 
     if (!aiResponse) {
-      aiResponse = "Nenhum provedor de IA disponível. Configure a chave em Configurações > Opções.";
+      aiResponse = "Nenhum provedor de IA disponível. Erros: " + diagnostics.errors.join(" | ");
     }
 
     return new Response(
