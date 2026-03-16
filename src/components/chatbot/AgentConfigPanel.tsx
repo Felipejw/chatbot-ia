@@ -211,7 +211,7 @@ const defaultConfig: AgentConfig = {
   model: "google/gemini-2.5-flash",
   systemPrompt: "Você é um assistente virtual amigável e prestativo.",
   temperature: 0.7,
-  maxTokens: 500,
+  maxTokens: 4096,
   knowledgeBase: "",
   connectionId: "",
   transferEnabled: false,
