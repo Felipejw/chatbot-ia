@@ -495,10 +495,99 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
             </div>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2 shadow-sm">
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {hasChanges ? "Salvar" : "Salvo"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Dialog open={testOpen} onOpenChange={setTestOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2" onClick={() => setTestOpen(true)}>
+                <Play className="w-4 h-4" />
+                Testar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-primary" />
+                  Testar Agente — {name}
+                </DialogTitle>
+              </DialogHeader>
+              <div ref={testScrollRef} className="flex-1 overflow-y-auto space-y-3 p-3 bg-muted/30 rounded-lg min-h-[250px] max-h-[400px]">
+                {testHistory.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Envie uma mensagem para testar o agente com a configuração atual.
+                  </p>
+                )}
+                {testHistory.map((msg, i) => (
+                  <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && <Bot className="w-5 h-5 text-primary shrink-0 mt-1" />}
+                    <div className={`rounded-xl px-3 py-2 text-sm max-w-[80%] ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border"
+                    }`}>
+                      {msg.content}
+                    </div>
+                    {msg.role === "user" && <User className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />}
+                  </div>
+                ))}
+                {testLoading && (
+                  <div className="flex gap-2 items-center">
+                    <Bot className="w-5 h-5 text-primary shrink-0" />
+                    <div className="bg-card border border-border rounded-xl px-3 py-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  </div>
+                )}
+              </div>
+              {testDiagnostics && (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground w-full">
+                      <Settings className="w-3 h-3" /> Diagnóstico <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="text-xs font-mono bg-muted/50 rounded p-2 space-y-1">
+                      <p><strong>Modelo:</strong> {testDiagnostics.model}</p>
+                      <p><strong>Temperatura:</strong> {testDiagnostics.temperature}</p>
+                      <p><strong>Prompt ({testDiagnostics.promptLength} chars):</strong></p>
+                      <p className="text-muted-foreground truncate">{testDiagnostics.promptPreview}</p>
+                      <p><strong>Histórico:</strong> {testDiagnostics.historyCount} msgs</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  placeholder="Digite uma mensagem de teste..."
+                  onKeyDown={(e) => e.key === "Enter" && handleTestSend()}
+                  disabled={testLoading}
+                />
+                <Button size="icon" onClick={handleTestSend} disabled={testLoading || !testMessage.trim()}>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => { setTestHistory([]); setTestDiagnostics(null); }}
+                >
+                  Limpar conversa
+                </Button>
+                <p className="text-[10px] text-muted-foreground self-center">
+                  Usa a config salva no banco (salve antes de testar)
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2 shadow-sm">
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {hasChanges ? "Salvar" : "Salvo"}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="general" className={`flex-1 flex ${isMobile ? "flex-col" : "flex-row"} overflow-hidden`}>
