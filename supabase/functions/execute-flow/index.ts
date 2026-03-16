@@ -132,6 +132,19 @@ async function loadBaileysConfig(supabase: any, connection: any): Promise<Bailey
   return { serverUrl, apiKey, sessionName };
 }
 
+// Send typing presence ("composing...") before each message
+async function sendTypingPresence(config: BaileysConfig, phone: string) {
+  try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (config.apiKey) headers["X-API-Key"] = config.apiKey;
+    await fetch(`${config.serverUrl}/sessions/${config.sessionName}/presence`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ to: phone, presence: "composing" }),
+    });
+  } catch (_e) { /* silently ignore */ }
+}
+
 // Send WhatsApp message through Baileys API
 async function sendWhatsAppMessage(
   config: BaileysConfig,

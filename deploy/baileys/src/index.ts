@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
-import { createSession, getSession, getAllSessions, deleteSession, sendTextMessage, sendMediaMessage, getQrCode, restoreSessions, downloadMedia, getContactInfo } from './baileys.js';
+import { createSession, getSession, getAllSessions, deleteSession, sendTextMessage, sendMediaMessage, getQrCode, restoreSessions, downloadMedia, getContactInfo, sendPresence } from './baileys.js';
 import { logger } from './logger.js';
 
 dotenv.config();
