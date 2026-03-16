@@ -112,7 +112,7 @@ Diretrizes:
 - Crie senso de urgência quando apropriado (ofertas limitadas, últimas unidades)
 - Use linguagem acessível e informal (mas profissional)
 - Sempre ofereça um próximo passo claro (enviar catálogo, agendar demo, fechar pedido)
-- Nunca invente informações sobre produtos — se não souber, diga que vai verificar
+- Nunca invente informações sobre produtos — se não souber, dê uma resposta curta e neutra
 - Responda rápido e de forma concisa, como numa conversa real de WhatsApp`,
   },
   {
@@ -365,7 +365,16 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
       const saved = (flow as any).config as Partial<AgentConfig> | null;
       if (saved && typeof saved === "object") {
-        setConfig({ ...defaultConfig, ...saved });
+        const merged = { ...defaultConfig, ...saved };
+        // Migração automática: mesclar base de conhecimento no prompt
+        if (merged.knowledgeBase && merged.knowledgeBase.trim()) {
+          merged.systemPrompt = `${merged.systemPrompt}\n\n=== INFORMAÇÕES DA EMPRESA ===\n${merged.knowledgeBase.trim()}`;
+          merged.knowledgeBase = "";
+          setConfig(merged);
+          setHasChanges(true);
+          return;
+        }
+        setConfig(merged);
       } else {
         setConfig({
           ...defaultConfig,
@@ -766,8 +775,8 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                     <FieldCard>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <FieldLabel description="Instruções que definem a personalidade e comportamento da IA">
-                            Prompt do sistema
+                          <FieldLabel description="Todas as instruções, informações da empresa, links, preços e regras que a IA deve seguir. Coloque tudo aqui.">
+                            Prompt da IA
                           </FieldLabel>
                           <Dialog>
                             <DialogTrigger asChild>
@@ -778,12 +787,12 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
                               <DialogHeader>
-                                <DialogTitle>Prompt do sistema</DialogTitle>
+                                <DialogTitle>Prompt da IA</DialogTitle>
                               </DialogHeader>
                               <Textarea
                                 value={config.systemPrompt}
                                 onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
-                                placeholder="Descreva como a IA deve se comportar, o tom de voz, regras específicas..."
+                                placeholder={"Escreva aqui TUDO que a IA precisa saber:\n\n- Quem ela é e como deve se comportar\n- Informações da empresa (links, preços, produtos)\n- Regras de atendimento\n- O que responder para cada tipo de pergunta"}
                                 className="flex-1 font-mono text-sm resize-none"
                               />
                               <div className="text-xs text-muted-foreground text-right">
@@ -795,8 +804,8 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                         <Textarea
                           value={config.systemPrompt}
                           onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
-                          placeholder="Descreva como a IA deve se comportar, o tom de voz, regras específicas..."
-                          rows={12}
+                          placeholder={"Escreva aqui TUDO que a IA precisa saber:\n\n- Quem ela é e como deve se comportar\n- Informações da empresa (links, preços, produtos)\n- Regras de atendimento\n- O que responder para cada tipo de pergunta"}
+                          rows={16}
                           className="font-mono text-sm"
                         />
                         <div className="text-xs text-muted-foreground text-right">
@@ -909,20 +918,6 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                       </div>
                     </FieldCard>
 
-                    <FieldCard>
-                      <div className="space-y-2">
-                        <FieldLabel description="Informações de referência que a IA deve considerar ao responder">
-                          Base de conhecimento
-                        </FieldLabel>
-                        <Textarea
-                          value={config.knowledgeBase}
-                          onChange={(e) => updateConfig({ knowledgeBase: e.target.value })}
-                          placeholder="Cole aqui informações que a IA deve usar como referência..."
-                          rows={4}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </FieldCard>
 
                     <FieldCard>
                       <div className="space-y-4">
