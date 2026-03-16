@@ -258,20 +258,24 @@ async function fetchConversationHistory(
     console.error("[FlowExecutor] Error in fetchConversationHistory:", error);
     return [];
   }
+}
 
-    const history: ChatMessage[] = messages
-      .reverse()
-      .map((msg: any) => ({
-        role: msg.sender_type === "contact" ? "user" : "assistant",
-        content: msg.content,
-      }));
+// Build a reinforced system prompt that forces the AI to use knowledge base facts literally
+function buildFullSystemPrompt(systemPrompt: string, knowledgeBase?: string): string {
+  if (!knowledgeBase) return systemPrompt;
 
-    console.log(`[FlowExecutor] Loaded ${history.length} messages for context`);
-    return history;
-  } catch (error) {
-    console.error("[FlowExecutor] Error in fetchConversationHistory:", error);
-    return [];
-  }
+  return `${systemPrompt}
+
+=== REGRAS ABSOLUTAS ===
+1. As INFORMAÇÕES OFICIAIS abaixo são FATOS REAIS da empresa. Use-os LITERALMENTE nas suas respostas.
+2. NUNCA use placeholders como [INSERIR LINK], [*texto*], {link}, "SEU LINK AQUI" ou qualquer variação.
+3. NUNCA invente dados. Se a informação não estiver abaixo, diga que vai verificar.
+4. Quando o cliente perguntar link, preço, valor, garantia, nome do produto — responda com o dado EXATO das informações oficiais.
+5. COPIE e COLE os valores. Não reformule links, não arredonde preços, não resuma nomes de produtos.
+
+=== INFORMAÇÕES OFICIAIS (dados reais — use EXATAMENTE como escritos) ===
+${knowledgeBase}
+=== FIM DAS INFORMAÇÕES OFICIAIS ===`;
 }
 
 // Call Google AI Studio API directly (for user's own API key)
