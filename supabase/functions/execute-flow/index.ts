@@ -1887,34 +1887,40 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Handle AI response (continue conversation with AI)
       if (flowState.awaitingAIResponse && flowState.aiNodeData) {
-        // ALWAYS re-fetch latest config from chatbot_flows to pick up prompt/model changes immediately
+        // ALWAYS re-fetch latest config from chatbot_flows (single query for all fields)
         let systemPrompt = flowState.aiNodeData.systemPrompt;
         let model = flowState.aiNodeData.model;
         let temperature = flowState.aiNodeData.temperature;
         let maxTokens = flowState.aiNodeData.maxTokens;
         const { useOwnApiKey, googleApiKey } = flowState.aiNodeData;
+        let latestCfg: any = null;
 
         try {
           const { data: latestFlowData } = await supabase.from("chatbot_flows").select("config").eq("id", flowState.flowId).single();
-          const latestCfg = latestFlowData?.config as any;
+          latestCfg = latestFlowData?.config as any;
           if (latestCfg) {
             systemPrompt = latestCfg.systemPrompt || systemPrompt;
             model = latestCfg.model || model;
             temperature = latestCfg.temperature ?? temperature;
             maxTokens = latestCfg.maxTokens || maxTokens;
-            console.log("[FlowExecutor] RESUME: using LATEST config from chatbot_flows (not cached)");
           }
         } catch (e) {
           console.log("[FlowExecutor] RESUME: failed to fetch latest config, using cached:", e);
         }
 
-        // Apply response delay from flow config (fixed or random)
-        try {
-          const { data: flowCfgData } = await supabase.from("chatbot_flows").select("config").eq("id", flowState.flowId).single();
-          const fCfg = flowCfgData?.config as any;
-          const delayMin = fCfg?.responseDelay || 0;
-          const delayMax = fCfg?.responseDelayMax || delayMin;
-          const isRandom = fCfg?.responseDelayMode === "random";
+        // Diagnostic log: show effective config being sent to AI
+        console.log("[FlowExecutor] RESUME effective config:", {
+          promptLength: systemPrompt.length,
+          promptPreview: systemPrompt.substring(0, 200),
+          model,
+          historyWillFetch: true,
+        });
+
+        // Apply response delay from the SAME config (no duplicate fetch)
+        {
+          const delayMin = latestCfg?.responseDelay || 0;
+          const delayMax = latestCfg?.responseDelayMax || delayMin;
+          const isRandom = latestCfg?.responseDelayMode === "random";
           const actualDelay = isRandom && delayMax > delayMin
             ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
             : delayMin;
@@ -1923,9 +1929,10 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`[FlowExecutor] Waiting ${actualDelay}s before AI response (mode: ${isRandom ? "random" : "fixed"})...`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
           }
-        } catch {}
+        }
 
         const conversationHistory = await fetchConversationHistory(supabase, conversationId, 10);
+        console.log("[FlowExecutor] RESUME historyCount:", conversationHistory.length);
 
         const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, "", useOwnApiKey, googleApiKey, conversationHistory, supabase);
 
@@ -1944,15 +1951,9 @@ const handler = async (req: Request): Promise<Response> => {
         // Cancel existing pending follow-ups and schedule new one if enabled
         await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("status", "pending");
 
-        // Check if flow has follow-up enabled in config
+        // Check if flow has follow-up enabled (reuse latestCfg, no extra fetch)
         try {
-          const { data: flowConfig } = await supabase
-            .from("chatbot_flows")
-            .select("config")
-            .eq("id", flowState.flowId)
-            .single();
-
-          const cfg = flowConfig?.config as any;
+          const cfg = latestCfg;
           if (cfg?.followUpEnabled) {
             // Calculate interval: prioritize stepConfigs[0], fallback to followUpIntervalMinutes, default 60
             const stepConfigs = cfg.followUpStepConfigs as any[] | null;
