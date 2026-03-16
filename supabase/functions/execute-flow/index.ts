@@ -285,9 +285,7 @@ async function callGoogleAI(
   knowledgeBase?: string,
   conversationHistory?: ChatMessage[]
 ): Promise<string> {
-  const fullSystemPrompt = knowledgeBase 
-    ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
-    : systemPrompt;
+  const fullSystemPrompt = buildFullSystemPrompt(systemPrompt, knowledgeBase);
 
   try {
     console.log("[FlowExecutor] Calling Google AI Studio with model:", model);
