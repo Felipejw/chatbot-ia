@@ -18,7 +18,12 @@
 - **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
 - **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-### Próximos passos do usuário
-1. Salvar a chave do Google AI em Configurações > Opções
-2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
-3. O cron job será configurado automaticamente
+### 3. Correção: IA ignora prompt atualizado
+- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
+- Qualquer edição no prompt aplica imediatamente em conversas ativas
+
+### 4. Prevenção de problemas recorrentes
+- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
+- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
+- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
+- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
