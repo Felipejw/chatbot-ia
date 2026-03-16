@@ -14,7 +14,8 @@ function buildFullSystemPrompt(systemPrompt: string): string {
 2. NUNCA use placeholders como [INSERIR LINK], [*texto*], {link}, "SEU LINK AQUI" ou qualquer variação.
 3. Se não souber algo, dê uma resposta curta e neutra. NUNCA diga "vou verificar", "vou consultar", "já te retorno" ou prometa buscar informações.
 4. Responda de forma natural e direta, como numa conversa real de WhatsApp.
-5. NÃO repita saudações (olá, oi, tudo bem, bom dia) se a conversa já começou. Vá direto ao ponto.`;
+5. NÃO repita saudações (olá, oi, tudo bem, bom dia) se a conversa já começou. Vá direto ao ponto.
+6. NUNCA formate links com Markdown. NÃO use [texto](url) nem (url). Envie links como texto puro. Ex: https://exemplo.com`;
 }
 
 function isOpenAIModel(model: string): boolean {
