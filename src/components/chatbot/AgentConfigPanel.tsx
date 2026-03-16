@@ -365,7 +365,16 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
 
       const saved = (flow as any).config as Partial<AgentConfig> | null;
       if (saved && typeof saved === "object") {
-        setConfig({ ...defaultConfig, ...saved });
+        const merged = { ...defaultConfig, ...saved };
+        // Migração automática: mesclar base de conhecimento no prompt
+        if (merged.knowledgeBase && merged.knowledgeBase.trim()) {
+          merged.systemPrompt = `${merged.systemPrompt}\n\n=== INFORMAÇÕES DA EMPRESA ===\n${merged.knowledgeBase.trim()}`;
+          merged.knowledgeBase = "";
+          setConfig(merged);
+          setHasChanges(true);
+          return;
+        }
+        setConfig(merged);
       } else {
         setConfig({
           ...defaultConfig,

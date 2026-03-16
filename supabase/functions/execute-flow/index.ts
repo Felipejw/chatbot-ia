@@ -260,22 +260,19 @@ async function fetchConversationHistory(
   }
 }
 
-// Build a reinforced system prompt that forces the AI to use knowledge base facts literally
+// Build the full system prompt, merging knowledge base into the prompt if present
 function buildFullSystemPrompt(systemPrompt: string, knowledgeBase?: string): string {
-  if (!knowledgeBase) return systemPrompt;
+  const basePrompt = knowledgeBase 
+    ? `${systemPrompt}\n\n=== INFORMAÇÕES DA EMPRESA (use EXATAMENTE como escritas) ===\n${knowledgeBase}\n=== FIM DAS INFORMAÇÕES ===`
+    : systemPrompt;
 
-  return `${systemPrompt}
+  return `${basePrompt}
 
-=== REGRAS ABSOLUTAS ===
-1. As INFORMAÇÕES OFICIAIS abaixo são FATOS REAIS da empresa. Use-os LITERALMENTE nas suas respostas.
+=== REGRAS ===
+1. Use TODAS as informações acima nas suas respostas. Copie valores literais (links, preços, nomes) EXATAMENTE como estão.
 2. NUNCA use placeholders como [INSERIR LINK], [*texto*], {link}, "SEU LINK AQUI" ou qualquer variação.
-3. NUNCA invente dados. Se a informação não estiver abaixo, diga que vai verificar.
-4. Quando o cliente perguntar link, preço, valor, garantia, nome do produto — responda com o dado EXATO das informações oficiais.
-5. COPIE e COLE os valores. Não reformule links, não arredonde preços, não resuma nomes de produtos.
-
-=== INFORMAÇÕES OFICIAIS (dados reais — use EXATAMENTE como escritos) ===
-${knowledgeBase}
-=== FIM DAS INFORMAÇÕES OFICIAIS ===`;
+3. Se não souber algo, dê uma resposta curta e neutra. NUNCA diga "vou verificar", "vou consultar", "já te retorno" ou prometa buscar informações.
+4. Responda de forma natural e direta, como numa conversa real de WhatsApp.`;
 }
 
 // Call Google AI Studio API directly (for user's own API key)
