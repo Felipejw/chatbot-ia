@@ -423,6 +423,35 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
     }
   };
 
+  const handleTestSend = async () => {
+    if (!testMessage.trim() || testLoading) return;
+    const userMsg = testMessage.trim();
+    setTestMessage("");
+    const newHistory = [...testHistory, { role: "user" as const, content: userMsg }];
+    setTestHistory(newHistory);
+    setTestLoading(true);
+    setTestDiagnostics(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("test-agent", {
+        body: {
+          flowId,
+          message: userMsg,
+          history: newHistory.slice(0, -1), // send previous history (not including current msg)
+        },
+      });
+
+      if (error) throw error;
+      setTestHistory([...newHistory, { role: "assistant", content: data.response }]);
+      setTestDiagnostics(data.diagnostics);
+      setTimeout(() => testScrollRef.current?.scrollTo({ top: testScrollRef.current.scrollHeight, behavior: "smooth" }), 100);
+    } catch (err: any) {
+      setTestHistory([...newHistory, { role: "assistant", content: `❌ Erro: ${err.message}` }]);
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   const otherFlows = allFlows?.filter((f) => f.id !== flowId) || [];
 
   if (isLoading) {
