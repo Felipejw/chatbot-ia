@@ -897,7 +897,7 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                             );
                           })}
                         </div>
-                        {![250, 500, 1000].includes(config.maxTokens) && (
+                        {![250, 500, 1000, 4096].includes(config.maxTokens) && (
                           <Input
                             type="number"
                             value={config.maxTokens}
