@@ -1887,7 +1887,26 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Handle AI response (continue conversation with AI)
       if (flowState.awaitingAIResponse && flowState.aiNodeData) {
-        const { systemPrompt, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey } = flowState.aiNodeData;
+        // ALWAYS re-fetch latest config from chatbot_flows to pick up prompt/model changes immediately
+        let systemPrompt = flowState.aiNodeData.systemPrompt;
+        let model = flowState.aiNodeData.model;
+        let temperature = flowState.aiNodeData.temperature;
+        let maxTokens = flowState.aiNodeData.maxTokens;
+        const { useOwnApiKey, googleApiKey } = flowState.aiNodeData;
+
+        try {
+          const { data: latestFlowData } = await supabase.from("chatbot_flows").select("config").eq("id", flowState.flowId).single();
+          const latestCfg = latestFlowData?.config as any;
+          if (latestCfg) {
+            systemPrompt = latestCfg.systemPrompt || systemPrompt;
+            model = latestCfg.model || model;
+            temperature = latestCfg.temperature ?? temperature;
+            maxTokens = latestCfg.maxTokens || maxTokens;
+            console.log("[FlowExecutor] RESUME: using LATEST config from chatbot_flows (not cached)");
+          }
+        } catch (e) {
+          console.log("[FlowExecutor] RESUME: failed to fetch latest config, using cached:", e);
+        }
 
         // Apply response delay from flow config (fixed or random)
         try {
@@ -1908,7 +1927,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         const conversationHistory = await fetchConversationHistory(supabase, conversationId, 10);
 
-        const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, knowledgeBase, useOwnApiKey, googleApiKey, conversationHistory, supabase);
+        const aiResponse = await callAI(systemPrompt, message, model, temperature, maxTokens, "", useOwnApiKey, googleApiKey, conversationHistory, supabase);
 
         // Split long AI responses into multiple messages
         const aiChunks = splitLongMessage(aiResponse);
