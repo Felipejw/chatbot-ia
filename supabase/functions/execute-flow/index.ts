@@ -54,51 +54,54 @@ interface BaileysConfig {
 }
 
 // Split AI responses into 2-3 human-like message chunks
-// Always tries to split into multiple messages for a natural feel
+// Simulates natural human typing by splitting into multiple messages
 function splitLongMessage(text: string, _maxLength = 4000): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [trimmed];
-  
-  // Split by double newlines (paragraphs)
-  const paragraphs = trimmed.split(/\n\n+/).filter(p => p.trim());
-  
-  // If only 1 paragraph and short, send as-is
-  if (paragraphs.length <= 1 && trimmed.length < 300) {
-    return [trimmed];
+
+  // Very short messages (greetings, confirmations) — send as-is
+  if (trimmed.length < 150) return [trimmed];
+
+  // Step 1: Try splitting by double newlines (paragraphs)
+  let segments = trimmed.split(/\n\n+/).filter(p => p.trim());
+
+  // Step 2: If only 1 segment, try single newlines
+  if (segments.length <= 1) {
+    segments = trimmed.split(/\n/).filter(p => p.trim());
   }
-  
-  // Target: 2-3 chunks for natural human feel
-  const targetChunks = paragraphs.length >= 4 ? 3 : (paragraphs.length >= 2 ? 2 : 1);
-  
-  if (targetChunks === 1) {
-    // Single paragraph but long — split at sentence boundaries
-    const sentences = trimmed.match(/[^.!?]+[.!?]+[\s]*/g) || [trimmed];
-    if (sentences.length >= 3) {
-      const mid = Math.ceil(sentences.length / 2);
-      return [
-        sentences.slice(0, mid).join("").trim(),
-        sentences.slice(mid).join("").trim()
-      ].filter(c => c);
+
+  // Step 3: If still 1 segment, split by sentences
+  if (segments.length <= 1) {
+    const sentences = trimmed.match(/[^.!?]+[.!?]+[\s]*/g);
+    if (sentences && sentences.length >= 2) {
+      segments = sentences.map(s => s.trim()).filter(s => s);
+    } else {
+      return [trimmed]; // Can't split meaningfully
     }
-    return [trimmed];
   }
-  
-  if (targetChunks === 2) {
-    const mid = Math.ceil(paragraphs.length / 2);
-    return [
-      paragraphs.slice(0, mid).join("\n\n").trim(),
-      paragraphs.slice(mid).join("\n\n").trim()
-    ].filter(c => c);
+
+  // Determine target chunks: 150-600 chars → 2, 600+ → 3
+  const targetChunks = trimmed.length > 600 && segments.length >= 3 ? 3 : 2;
+
+  // Distribute segments into balanced chunks
+  const chunks: string[] = [];
+  const segPerChunk = Math.ceil(segments.length / targetChunks);
+
+  for (let i = 0; i < targetChunks; i++) {
+    const start = i * segPerChunk;
+    const end = Math.min(start + segPerChunk, segments.length);
+    if (start >= segments.length) break;
+    const separator = trimmed.includes("\n\n") ? "\n\n" : "\n";
+    const chunk = segments.slice(start, end).join(separator).trim();
+    if (chunk) chunks.push(chunk);
   }
-  
-  // 3 chunks
-  const third = Math.ceil(paragraphs.length / 3);
-  const twoThirds = Math.ceil((paragraphs.length * 2) / 3);
-  return [
-    paragraphs.slice(0, third).join("\n\n").trim(),
-    paragraphs.slice(third, twoThirds).join("\n\n").trim(),
-    paragraphs.slice(twoThirds).join("\n\n").trim()
-  ].filter(c => c);
+
+  return chunks.length > 0 ? chunks : [trimmed];
+}
+
+// Calculates a human-like typing delay based on chunk size
+function humanTypingDelay(chunk: string): number {
+  return Math.min(chunk.length * 15, 2000) + 800 + Math.random() * 1500;
 }
 
 // Load Baileys config from system_settings
@@ -1347,7 +1350,7 @@ async function executeFlowFromNode(
           const aiChunks = splitLongMessage(aiResponse);
           for (let i = 0; i < aiChunks.length; i++) {
             await sendWhatsAppMessage(baileysConfig, phone, aiChunks[i]);
-            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
+            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           }
           
           await supabase.from("messages").insert({
@@ -1864,7 +1867,7 @@ const handler = async (req: Request): Promise<Response> => {
         const aiChunks = splitLongMessage(aiResponse);
         for (let i = 0; i < aiChunks.length; i++) {
           await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
+          if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
         }
         await supabase.from("messages").insert({ conversation_id: conversationId, content: aiResponse, sender_type: "bot", message_type: "text" });
 
@@ -2099,7 +2102,7 @@ const handler = async (req: Request): Promise<Response> => {
           const aiChunks = splitLongMessage(aiResponse);
           for (let i = 0; i < aiChunks.length; i++) {
             await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
-            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
+            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, humanTypingDelay(aiChunks[i])));
           }
           await supabase.from("messages").insert({
             conversation_id: conversationId,
