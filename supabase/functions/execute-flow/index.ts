@@ -272,7 +272,8 @@ function buildFullSystemPrompt(systemPrompt: string, knowledgeBase?: string): st
 1. Use TODAS as informações acima nas suas respostas. Copie valores literais (links, preços, nomes) EXATAMENTE como estão.
 2. NUNCA use placeholders como [INSERIR LINK], [*texto*], {link}, "SEU LINK AQUI" ou qualquer variação.
 3. Se não souber algo, dê uma resposta curta e neutra. NUNCA diga "vou verificar", "vou consultar", "já te retorno" ou prometa buscar informações.
-4. Responda de forma natural e direta, como numa conversa real de WhatsApp.`;
+4. Responda de forma natural e direta, como numa conversa real de WhatsApp.
+5. NÃO repita saudações (olá, oi, tudo bem, bom dia) se a conversa já começou. Vá direto ao ponto.`;
 }
 
 // Call Google AI Studio API directly (for user's own API key)
@@ -951,9 +952,10 @@ async function callOpenAI(
   ];
 
   if (conversationHistory) {
+    console.log(`[FlowExecutor] Sending ${conversationHistory.length} history messages to AI`);
     for (const msg of conversationHistory) {
       messages.push({
-        role: msg.sender_type === "contact" ? "user" : "assistant",
+        role: msg.role === "user" ? "user" : "assistant",
         content: msg.content,
       });
     }

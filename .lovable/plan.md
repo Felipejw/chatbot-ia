@@ -1,36 +1,24 @@
 
 
-# Correção: IA não mostra link e repete "olá" toda mensagem
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Causa raiz
+## ✅ Concluído
 
-### Bug 1 — `callOpenAI` usa campo errado no histórico (linha 955)
-```typescript
-// ERRADO — sender_type não existe em ChatMessage, sempre undefined → tudo vira "assistant"
-role: msg.sender_type === "contact" ? "user" : "assistant",
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-// CORRETO
-role: msg.role,
-```
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-O histórico inteiro é enviado como mensagens do assistente. A IA não consegue distinguir perguntas do cliente das suas próprias respostas. Resultado: ignora perguntas e repete padrões antigos.
-
-### Bug 2 — Nenhuma regra contra repetir saudações
-O prompt do sistema não instrui a IA a evitar cumprimentar novamente quando a conversa já está em andamento. Com o histórico bugado, isso piora.
-
-## Alterações
-
-### 1. `supabase/functions/execute-flow/index.ts` — `callOpenAI` (linha 955)
-Trocar `msg.sender_type === "contact" ? "user" : "assistant"` por `msg.role`.
-
-### 2. `supabase/functions/execute-flow/index.ts` — `buildFullSystemPrompt`
-Adicionar regra 5: "NÃO repita saudações (olá, oi, tudo bem) se a conversa já começou. Vá direto ao ponto."
-
-### 3. `supabase/functions/execute-flow/index.ts` — Log de debug no `callOpenAI`
-Adicionar log do histórico enviado para facilitar debug futuro.
-
-## Resultado esperado
-- OpenAI recebe histórico correto (user/assistant) → consegue responder perguntas sobre link, preço etc.
-- IA para de cumprimentar a cada mensagem
-- Funciona igual para todos os provedores (Google, Lovable, OpenAI)
-
+### Próximos passos do usuário
+1. Salvar a chave do Google AI em Configurações > Opções
+2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
+3. O cron job será configurado automaticamente
