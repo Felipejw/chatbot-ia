@@ -951,9 +951,10 @@ async function callOpenAI(
   ];
 
   if (conversationHistory) {
+    console.log(`[FlowExecutor] Sending ${conversationHistory.length} history messages to AI`);
     for (const msg of conversationHistory) {
       messages.push({
-        role: msg.sender_type === "contact" ? "user" : "assistant",
+        role: msg.role === "user" ? "user" : "assistant",
         content: msg.content,
       });
     }
