@@ -1,24 +1,37 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Correção: IA ignora base de conhecimento (links, preços, etc.)
 
-## ✅ Concluído
+## Problema raiz
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+A base de conhecimento é anexada ao system prompt com um cabeçalho fraco: `### Base de conhecimento:\n{conteúdo}`. A IA interpreta isso como informação de referência secundária e gera respostas genéricas com placeholders como `[*INSERIR O SEU LINK DE COMPRA AQUI*]` em vez de usar os dados reais (link, preço, nome do produto).
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+Isso acontece em **3 funções** que montam o prompt:
+- `callGoogleAI` (linha 241-243)
+- `callLovableAI` (linha 307-309)
+- `callOpenAI` (linha 901-903)
 
-### Próximos passos do usuário
-1. Salvar a chave do Google AI em Configurações > Opções
-2. Rodar `update-remote.sh` na VPS para aplicar as mudanças
-3. O cron job será configurado automaticamente
+## Correção
+
+Trocar o cabeçalho genérico por uma instrução explícita e imperativa que force a IA a usar as informações literalmente.
+
+### Arquivo: `supabase/functions/execute-flow/index.ts`
+
+**Em `callGoogleAI` (linhas 241-243), `callLovableAI` (linhas 307-309) e `callOpenAI` (linhas 901-903):**
+
+Substituir:
+```typescript
+const fullSystemPrompt = knowledgeBase 
+  ? `${systemPrompt}\n\n### Base de conhecimento:\n${knowledgeBase}`
+  : systemPrompt;
+```
+
+Por:
+```typescript
+const fullSystemPrompt = knowledgeBase 
+  ? `${systemPrompt}\n\n---\nINFORMAÇÕES OBRIGATÓRIAS (use EXATAMENTE como estão, NUNCA substitua por placeholders, NUNCA invente dados diferentes):\n\n${knowledgeBase}`
+  : systemPrompt;
+```
+
+Essa mudança simples faz a IA tratar o conteúdo da base de conhecimento como dados factuais obrigatórios — links, preços, nomes — em vez de "material de referência" que pode ser resumido ou substituído por templates.
+
