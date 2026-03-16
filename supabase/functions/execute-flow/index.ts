@@ -206,7 +206,22 @@ interface ChatMessage {
   content: string;
 }
 
-// Fetch conversation history for AI context
+// Patterns that indicate a contaminated bot response (placeholders, templates)
+const CONTAMINATED_PATTERNS = [
+  /\[\*.*?\*\]/,           // [*INSERIR LINK*], [*texto*]
+  /\[INSERIR/i,            // [INSERIR ...]
+  /INSERIR\s+(AQUI|LINK|URL|PREÇO|VALOR|NOME)/i,
+  /substituir\s+este\s+texto/i,
+  /\{(link|url|preco|valor|nome|produto|site)\}/i, // {link}, {url}
+  /SEU[\s_]+(LINK|SITE|URL)/i,
+  /coloque\s+aqui/i,
+];
+
+function isContaminatedMessage(content: string): boolean {
+  return CONTAMINATED_PATTERNS.some(pattern => pattern.test(content));
+}
+
+// Fetch conversation history for AI context — sanitized
 async function fetchConversationHistory(
   supabase: any,
   conversationId: string,
@@ -224,6 +239,25 @@ async function fetchConversationHistory(
       console.error("[FlowExecutor] Error fetching history:", error);
       return [];
     }
+
+    const history: ChatMessage[] = messages
+      .reverse()
+      .filter((msg: any) => {
+        // Keep all user messages; filter out contaminated bot messages
+        if (msg.sender_type === "contact") return true;
+        return !isContaminatedMessage(msg.content || "");
+      })
+      .map((msg: any) => ({
+        role: msg.sender_type === "contact" ? "user" : "assistant",
+        content: msg.content,
+      }));
+
+    console.log(`[FlowExecutor] Loaded ${history.length} messages for context (filtered from ${messages.length})`);
+    return history;
+  } catch (error) {
+    console.error("[FlowExecutor] Error in fetchConversationHistory:", error);
+    return [];
+  }
 
     const history: ChatMessage[] = messages
       .reverse()
