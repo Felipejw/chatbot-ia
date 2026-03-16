@@ -909,20 +909,6 @@ export function AgentConfigPanel({ flowId }: AgentConfigPanelProps) {
                       </div>
                     </FieldCard>
 
-                    <FieldCard>
-                      <div className="space-y-2">
-                        <FieldLabel description="Informações de referência que a IA deve considerar ao responder">
-                          Base de conhecimento
-                        </FieldLabel>
-                        <Textarea
-                          value={config.knowledgeBase}
-                          onChange={(e) => updateConfig({ knowledgeBase: e.target.value })}
-                          placeholder="Cole aqui informações que a IA deve usar como referência..."
-                          rows={4}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </FieldCard>
 
                     <FieldCard>
                       <div className="space-y-4">
