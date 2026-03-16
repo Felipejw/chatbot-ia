@@ -2049,7 +2049,7 @@ const handler = async (req: Request): Promise<Response> => {
                 systemPrompt: cfg.systemPrompt || "Você é um assistente virtual amigável.",
                 model: cfg.model || "google/gemini-2.5-flash",
                 temperature: cfg.temperature ?? 0.7,
-                maxTokens: cfg.maxTokens || 500,
+                maxTokens: cfg.maxTokens || 4096,
                 knowledgeBase: cfg.knowledgeBase || "",
               },
             },
@@ -2077,7 +2077,7 @@ const handler = async (req: Request): Promise<Response> => {
             message,
             cfg.model || "google/gemini-2.5-flash",
             cfg.temperature ?? 0.7,
-            cfg.maxTokens || 500,
+            cfg.maxTokens || 4096,
             cfg.knowledgeBase || "",
             false,
             undefined,
@@ -2085,7 +2085,11 @@ const handler = async (req: Request): Promise<Response> => {
             supabase
           );
 
-          await sendWhatsAppMessage(baileysConfig, formattedPhone, aiResponse);
+          const aiChunks = splitLongMessage(aiResponse);
+          for (let i = 0; i < aiChunks.length; i++) {
+            await sendWhatsAppMessage(baileysConfig, formattedPhone, aiChunks[i]);
+            if (i < aiChunks.length - 1) await new Promise(r => setTimeout(r, 1000));
+          }
           await supabase.from("messages").insert({
             conversation_id: conversationId,
             content: aiResponse,
