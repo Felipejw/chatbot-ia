@@ -1,25 +1,29 @@
 
 
-# Ajustes no Disparo em Massa
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Mudanças
+## ✅ Concluído
 
-### 1. Limite diário até 30.000
-No `CampaignConfigPanel.tsx` linha 683, o slider atual tem `max={1000}`. Alterar para `max={30000}` e ajustar o `step` para 100 para facilitar a navegação.
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-### 2. Horário 24h
-Adicionar um checkbox/switch "Enviar 24 horas" acima dos campos de horário. Quando ativado, seta `allowedHoursStart = "00:00"` e `allowedHoursEnd = "23:59"` e esconde os inputs de horário.
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-### 3. Variações — Confirmação
-Sim, as variações estão funcionando corretamente de forma randômica. No `execute-campaign/index.ts` linhas 228-232, o código junta a mensagem principal + variações num array e escolhe aleatoriamente com `Math.floor(Math.random() * allMessages.length)`. Nenhuma alteração necessária.
+### 3. Correção: IA ignora prompt atualizado
+- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
+- Qualquer edição no prompt aplica imediatamente em conversas ativas
 
-### 4. Duplicar campanha na sidebar
-Adicionar botão "Duplicar" no hover de cada item da sidebar (`CampaignSidebar.tsx`). Ao clicar, cria uma nova campanha copiando todos os campos da original (nome + " (cópia)", mensagem, variações, configs) e seleciona a nova.
-
-## Arquivos alterados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/campanhas/CampaignConfigPanel.tsx` | Slider max=30000, step=100. Switch "24 horas" no horário |
-| `src/components/campanhas/CampaignSidebar.tsx` | Botão duplicar com ícone Copy no hover de cada campanha |
-
+### 4. Prevenção de problemas recorrentes
+- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
+- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
+- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
+- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`

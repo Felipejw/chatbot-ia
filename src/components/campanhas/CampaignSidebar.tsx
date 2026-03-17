@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Trash2, Play, Pause, ChevronLeft, ChevronRight, Send } from "lucide-react";
+import { Plus, Search, Trash2, Play, Pause, ChevronLeft, ChevronRight, Send, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,6 +68,24 @@ export function CampaignSidebar({
   const handleDelete = async (id: string) => {
     if (selectedCampaignId === id) onSelectCampaign(null);
     await deleteCampaign.mutateAsync(id);
+  };
+
+  const handleDuplicate = async (campaign: Campaign, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const result = await createCampaign.mutateAsync({
+      name: `${campaign.name} (cópia)`,
+      message: campaign.message,
+      message_variations: campaign.message_variations ?? undefined,
+      use_variations: campaign.use_variations ?? undefined,
+      use_buttons: campaign.use_buttons ?? undefined,
+      buttons: campaign.buttons as Array<{ id: string; text: string }> | undefined,
+      min_interval: campaign.min_interval ?? undefined,
+      max_interval: campaign.max_interval ?? undefined,
+      template_id: campaign.template_id ?? undefined,
+      flow_id: campaign.flow_id ?? undefined,
+      created_by: user?.id,
+    });
+    if (result?.id) onSelectCampaign(result.id);
   };
 
   const handleToggleStatus = async (campaign: Campaign, e: React.MouseEvent) => {
@@ -182,6 +200,20 @@ export function CampaignSidebar({
                         )}
                       </Button>
                     )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => handleDuplicate(campaign, e)}
+                          disabled={createCampaign.isPending}
+                        >
+                          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicar</TooltipContent>
+                    </Tooltip>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button

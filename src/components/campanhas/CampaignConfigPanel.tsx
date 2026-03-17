@@ -679,24 +679,48 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label>Limite diário de envios: {dailyLimit}</Label>
-                  <Slider value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={1000} step={10} />
+                  <Label>Limite diário de envios: {dailyLimit.toLocaleString()}</Label>
+                  <Slider value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={30000} step={100} />
                   <p className="text-xs text-muted-foreground">Pausa automaticamente ao atingir este limite por dia. Recomendado: 200-300.</p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label>Horário permitido para envio</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Início</Label>
-                      <Input type="time" value={allowedHoursStart} onChange={(e) => { setAllowedHoursStart(e.target.value); markChanged(); }} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Fim</Label>
-                      <Input type="time" value={allowedHoursEnd} onChange={(e) => { setAllowedHoursEnd(e.target.value); markChanged(); }} />
+                  <div className="flex items-center justify-between">
+                    <Label>Horário permitido para envio</Label>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">24 horas</Label>
+                      <Switch
+                        checked={allowedHoursStart === "00:00" && allowedHoursEnd === "23:59"}
+                        onCheckedChange={(v) => {
+                          if (v) {
+                            setAllowedHoursStart("00:00");
+                            setAllowedHoursEnd("23:59");
+                          } else {
+                            setAllowedHoursStart("08:00");
+                            setAllowedHoursEnd("20:00");
+                          }
+                          markChanged();
+                        }}
+                      />
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">Mensagens só serão enviadas dentro deste horário.</p>
+                  {!(allowedHoursStart === "00:00" && allowedHoursEnd === "23:59") && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Início</Label>
+                        <Input type="time" value={allowedHoursStart} onChange={(e) => { setAllowedHoursStart(e.target.value); markChanged(); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Fim</Label>
+                        <Input type="time" value={allowedHoursEnd} onChange={(e) => { setAllowedHoursEnd(e.target.value); markChanged(); }} />
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {allowedHoursStart === "00:00" && allowedHoursEnd === "23:59"
+                      ? "Envio permitido 24 horas por dia."
+                      : "Mensagens só serão enviadas dentro deste horário."}
+                  </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
