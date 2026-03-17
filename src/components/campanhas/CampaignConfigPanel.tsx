@@ -914,7 +914,6 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                           {cc.replied_at && (
                             <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600 ml-1">Respondida</Badge>
                           )}
-                          </Badge>
                           {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
                         </div>
                       </div>
