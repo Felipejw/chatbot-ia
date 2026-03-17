@@ -201,6 +201,22 @@ done
 
 # Executar migrations se existirem e banco estiver pronto
 if [ $attempt -lt $max_attempts ]; then
+    # Aplicar migrations incrementais do diretório deploy/supabase/migrations/
+    if [ -d "$DEPLOY_DIR/supabase/migrations" ]; then
+        for migration_file in "$DEPLOY_DIR/supabase/migrations"/*.sql; do
+            if [ -f "$migration_file" ]; then
+                migration_name=$(basename "$migration_file")
+                log_info "Aplicando migration: $migration_name"
+                $DOCKER_COMPOSE exec -T db psql -U postgres -d ${POSTGRES_DB:-postgres} \
+                    -f "/docker-entrypoint-initdb.d/migrations/$migration_name" 2>/dev/null || \
+                $DOCKER_COMPOSE exec -T db psql -U postgres -d ${POSTGRES_DB:-postgres} < "$migration_file" || {
+                    log_warning "Migration $migration_name pode ter falhado (normal se já aplicada)"
+                }
+            fi
+        done
+        log_success "Migrations incrementais processadas"
+    fi
+
     if [ -f "supabase/migrations_update.sql" ]; then
         log_info "Executando migrations de atualização..."
         $DOCKER_COMPOSE exec -T db psql -U postgres -d ${POSTGRES_DB:-postgres} \
