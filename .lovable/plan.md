@@ -1,29 +1,26 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Diagnóstico: Follow-up só envia ao clicar "Processar agora"
 
-## ✅ Concluído
+## O que está acontecendo
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+O cron job **está funcionando corretamente** — os logs mostram que `process-follow-ups` executa a cada minuto. Porém, ele encontra **0 follow-ups pendentes** porque os follow-ups criados antes da correção de intervalo tinham `scheduled_at` configurado para **60 minutos** no futuro (o bug que acabamos de corrigir).
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+O fluxo é:
+1. Contato envia mensagem → `execute-flow` cria follow-up com `scheduled_at = now + 60min` (bug antigo)
+2. Cron roda a cada minuto → verifica `scheduled_at <= now()` → encontra 0 (ainda não chegou a hora)
+3. Usuário clica "Processar agora" depois de ~60min → agora `scheduled_at` já passou → processa
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+## A correção já foi aplicada
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+A mudança de prioridade no `execute-flow/index.ts` (`firstStepInterval || cfg.followUpIntervalMinutes || 60`) já foi feita. **Novos** follow-ups serão agendados com o intervalo correto (2 minutos).
+
+## O que falta
+
+Nenhuma mudança de código é necessária. O sistema já está corrigido. O usuário precisa:
+
+1. **Testar com uma nova conversa** — enviar uma mensagem para o agente e aguardar 2 minutos
+2. Os follow-ups antigos (criados com o bug de 60min) já foram processados ou cancelados
+
+**Não há mudanças de código a implementar.** A correção anterior já resolve este problema para novos follow-ups.
+
