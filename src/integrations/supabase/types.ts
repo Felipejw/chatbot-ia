@@ -135,6 +135,7 @@ export type Database = {
           last_error: string | null
           next_retry_at: string | null
           read_at: string | null
+          replied_at: string | null
           retry_count: number | null
           sent_at: string | null
           status: string | null
@@ -148,6 +149,7 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           read_at?: string | null
+          replied_at?: string | null
           retry_count?: number | null
           sent_at?: string | null
           status?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           read_at?: string | null
+          replied_at?: string | null
           retry_count?: number | null
           sent_at?: string | null
           status?: string | null
@@ -196,6 +199,8 @@ export type Database = {
           failed_count: number | null
           flow_id: string | null
           id: string
+          long_pause_every: number | null
+          long_pause_minutes: number | null
           max_consecutive_failures: number | null
           max_interval: number | null
           media_type: string | null
@@ -205,13 +210,17 @@ export type Database = {
           min_interval: number | null
           name: string
           read_count: number | null
+          replied_count: number | null
           scheduled_at: string | null
           sent_count: number | null
+          shuffle_contacts: boolean | null
           status: Database["public"]["Enums"]["campaign_status"]
           template_id: string | null
           updated_at: string
           use_buttons: boolean | null
           use_variations: boolean | null
+          warmup_daily_increment: number | null
+          warmup_enabled: boolean | null
         }
         Insert: {
           allowed_hours_end?: string | null
@@ -226,6 +235,8 @@ export type Database = {
           failed_count?: number | null
           flow_id?: string | null
           id?: string
+          long_pause_every?: number | null
+          long_pause_minutes?: number | null
           max_consecutive_failures?: number | null
           max_interval?: number | null
           media_type?: string | null
@@ -235,13 +246,17 @@ export type Database = {
           min_interval?: number | null
           name: string
           read_count?: number | null
+          replied_count?: number | null
           scheduled_at?: string | null
           sent_count?: number | null
+          shuffle_contacts?: boolean | null
           status?: Database["public"]["Enums"]["campaign_status"]
           template_id?: string | null
           updated_at?: string
           use_buttons?: boolean | null
           use_variations?: boolean | null
+          warmup_daily_increment?: number | null
+          warmup_enabled?: boolean | null
         }
         Update: {
           allowed_hours_end?: string | null
@@ -256,6 +271,8 @@ export type Database = {
           failed_count?: number | null
           flow_id?: string | null
           id?: string
+          long_pause_every?: number | null
+          long_pause_minutes?: number | null
           max_consecutive_failures?: number | null
           max_interval?: number | null
           media_type?: string | null
@@ -265,13 +282,17 @@ export type Database = {
           min_interval?: number | null
           name?: string
           read_count?: number | null
+          replied_count?: number | null
           scheduled_at?: string | null
           sent_count?: number | null
+          shuffle_contacts?: boolean | null
           status?: Database["public"]["Enums"]["campaign_status"]
           template_id?: string | null
           updated_at?: string
           use_buttons?: boolean | null
           use_variations?: boolean | null
+          warmup_daily_increment?: number | null
+          warmup_enabled?: boolean | null
         }
         Relationships: [
           {
@@ -1437,6 +1458,10 @@ export type Database = {
       }
       increment_campaign_read: {
         Args: { campaign_id: string; was_delivered?: boolean }
+        Returns: undefined
+      }
+      increment_campaign_replied: {
+        Args: { campaign_id: string }
         Returns: undefined
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
