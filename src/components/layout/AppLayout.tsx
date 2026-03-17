@@ -8,6 +8,7 @@ import { Menu, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { usePresence } from "@/hooks/usePresence";
+import { useFollowUpPoller } from "@/hooks/useFollowUpPoller";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
@@ -15,6 +16,7 @@ export function AppLayout() {
   const { getSetting } = useSystemSettings();
   const { theme, setTheme } = useTheme();
   usePresence();
+  useFollowUpPoller();
   
   const platformName = getSetting("platform_name") || "WhatzApp IA";
 

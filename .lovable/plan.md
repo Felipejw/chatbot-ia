@@ -1,26 +1,29 @@
 
 
-# Fix: Follow-up não processa automaticamente na VPS + Envio pela conexão errada
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Diagnóstico
+## ✅ Concluído
 
-Existem **dois problemas**:
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-### 1. Follow-up não processa sozinho na VPS
-O cron do Lovable Cloud roda a cada minuto, mas encontra **0 dados** (os dados estão no banco da VPS). Na VPS, o `setup-cron.sh` precisa ter sido executado manualmente para configurar `pg_cron`. Se não foi executado (ou se `pg_cron`/`pg_net` não estão disponíveis), o follow-up só processa quando você clica "Processar agora".
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-**Solução**: Adicionar um **polling automático no frontend** como fallback. Quando o usuário está logado, a página de Atendimento (que fica aberta) vai chamar `process-follow-ups` a cada 60 segundos automaticamente. Isso garante o processamento independente de `pg_cron`.
+### 3. Correção: IA ignora prompt atualizado
+- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
+- Qualquer edição no prompt aplica imediatamente em conversas ativas
 
-### 2. Follow-up envia pela conexão errada
-O `process-follow-ups` busca a conexão via `conversations(*, connections(*))`. Se a conversa não tem `connection_id` ou se a conexão original está offline, ele usa a conexão padrão (`is_default = true`). Quando você tem múltiplos WhatsApps conectados, isso faz o follow-up ser enviado pelo WhatsApp errado.
-
-**Solução**: O follow-up já salva `connection_id` no registro. Priorizar usar a `connection_id` do follow-up em vez da conexão da conversa, para garantir que a mensagem saia pelo mesmo WhatsApp que originou o atendimento.
-
-## Mudanças
-
-| Arquivo | Mudança |
-|---|---|
-| `src/hooks/useFollowUpPoller.ts` | **Novo**: Hook que chama `process-follow-ups` a cada 60s enquanto o usuário está logado |
-| `src/components/layout/AppLayout.tsx` | Adicionar o hook de polling |
-| `supabase/functions/process-follow-ups/index.ts` | Priorizar `followUp.connection_id` sobre `conversation.connections` para garantir envio pela conexão correta |
-
+### 4. Prevenção de problemas recorrentes
+- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
+- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
+- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
+- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
