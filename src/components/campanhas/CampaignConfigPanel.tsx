@@ -108,6 +108,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [maxConsecutiveFailures, setMaxConsecutiveFailures] = useState(5);
   const [selectedConnectionId, setSelectedConnectionId] = useState("");
   const [connections, setConnections] = useState<Array<{id: string; name: string; status: string | null; phone_number: string | null}>>([]);
+  const [warmupEnabled, setWarmupEnabled] = useState(false);
+  const [warmupDailyIncrement, setWarmupDailyIncrement] = useState(50);
+  const [longPauseEvery, setLongPauseEvery] = useState(0);
+  const [longPauseMinutes, setLongPauseMinutes] = useState(10);
+  const [shuffleContacts, setShuffleContacts] = useState(false);
 
   // Contacts
   const [contactSource, setContactSource] = useState<"list" | "paste" | "file">("list");
