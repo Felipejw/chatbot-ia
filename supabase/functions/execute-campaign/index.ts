@@ -127,6 +127,17 @@ const handler = async (req: Request): Promise<Response> => {
 
       const remainingToday = dailyLimit - (sentToday || 0);
 
+      // --- Anti-ban: Warmup logic ---
+      let effectiveLimit = remainingToday;
+      if (campaign.warmup_enabled) {
+        const createdAt = new Date(campaign.created_at);
+        const daysSinceCreation = Math.floor((Date.now() - createdAt.getTime()) / (86400000));
+        const warmupIncrement = campaign.warmup_daily_increment || 50;
+        const warmupLimit = warmupIncrement * (daysSinceCreation + 1);
+        effectiveLimit = Math.min(remainingToday, warmupLimit);
+        console.log(`[execute-campaign] Warmup: day ${daysSinceCreation + 1}, limit ${warmupLimit}, effective ${effectiveLimit}`);
+      }
+
       // --- Determine connection ---
       let connectionId = campaign.connection_id;
       if (!connectionId) {
@@ -153,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("campaign_id", campaign.id)
         .or(`status.eq.pending,and(status.eq.failed,next_retry_at.lte.${now})`)
         .order("created_at", { ascending: true })
-        .limit(Math.min(50, remainingToday));
+        .limit(Math.min(50, effectiveLimit));
 
       if (pcError) {
         console.error(`[execute-campaign] Error fetching contacts for ${campaign.id}:`, pcError.message);
