@@ -404,11 +404,12 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
       {/* Tabs Content */}
       <Tabs defaultValue="message" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-4 mt-3 grid grid-cols-5 w-auto">
+        <TabsList className="mx-4 mt-3 grid grid-cols-6 w-auto">
           <TabsTrigger value="message" className="text-xs">Mensagem</TabsTrigger>
           <TabsTrigger value="media" className="text-xs">Mídia</TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs">Contatos</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs">Config</TabsTrigger>
+          <TabsTrigger value="review" className="text-xs">Revisão</TabsTrigger>
           <TabsTrigger value="metrics" className="text-xs">Métricas</TabsTrigger>
         </TabsList>
 
