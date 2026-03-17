@@ -222,12 +222,15 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         max_interval: maxInterval,
       });
 
-      // Save flow_id separately since hook type might not include it
-      if (selectedFlowId) {
-        await supabase.from("campaigns").update({
-          flow_id: selectedFlowId && selectedFlowId !== "none" ? selectedFlowId : null,
-        }).eq("id", campaignId);
-      }
+      // Save extra fields
+      await supabase.from("campaigns").update({
+        flow_id: selectedFlowId && selectedFlowId !== "none" ? selectedFlowId : null,
+        daily_limit: dailyLimit,
+        allowed_hours_start: allowedHoursStart,
+        allowed_hours_end: allowedHoursEnd,
+        max_consecutive_failures: maxConsecutiveFailures,
+        connection_id: selectedConnectionId && selectedConnectionId !== "none" ? selectedConnectionId : null,
+      }).eq("id", campaignId);
 
       setHasChanges(false);
       toast.success("Disparo salvo!");
