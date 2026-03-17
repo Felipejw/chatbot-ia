@@ -129,6 +129,13 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
   const activeFlows = flows.filter((f) => f.is_active);
 
+  // Load connections
+  useEffect(() => {
+    supabase.from("connections").select("id, name, status, phone_number").then(({data}) => {
+      if (data) setConnections(data);
+    });
+  }, []);
+
   // Load campaign data
   useEffect(() => {
     if (!campaign) return;
@@ -144,8 +151,40 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     setMaxInterval(campaign.max_interval || 60);
     setScheduleEnabled(!!campaign.scheduled_at);
     setScheduledAt(campaign.scheduled_at ? new Date(campaign.scheduled_at).toISOString().slice(0, 16) : "");
+    setDailyLimit(campaign.daily_limit ?? 200);
+    setAllowedHoursStart(campaign.allowed_hours_start || "08:00");
+    setAllowedHoursEnd(campaign.allowed_hours_end || "20:00");
+    setMaxConsecutiveFailures(campaign.max_consecutive_failures ?? 5);
+    setSelectedConnectionId(campaign.connection_id || "");
     setHasChanges(false);
   }, [campaign]);
+
+  // Load campaign contacts stats
+  useEffect(() => {
+    if (!campaignId) return;
+    const loadStats = async () => {
+      const { data } = await supabase
+        .from("campaign_contacts")
+        .select("id, status, sent_at, last_error, contact:contacts(name, phone)")
+        .eq("campaign_id", campaignId);
+      if (!data) return;
+      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,total:data.length};
+      const list: typeof campaignContactsList = [];
+      for (const row of data) {
+        const s = row.status || "pending";
+        if (s === "pending") stats.pending++;
+        else if (s === "sent" || s === "sending") stats.sent++;
+        else if (s === "delivered") stats.delivered++;
+        else if (s === "read") stats.read++;
+        else if (s === "failed") stats.failed++;
+        const c = row.contact as any;
+        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, last_error: row.last_error});
+      }
+      setCampaignContactStats(stats);
+      setCampaignContactsList(list);
+    };
+    loadStats();
+  }, [campaignId, campaign?.updated_at]);
 
   const markChanged = useCallback(() => setHasChanges(true), []);
 
