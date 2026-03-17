@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { adminWrite } from '@/lib/adminWrite';
 import { toast } from 'sonner';
 
 export interface Campaign {
