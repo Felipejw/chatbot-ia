@@ -102,6 +102,12 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [maxInterval, setMaxInterval] = useState(60);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [dailyLimit, setDailyLimit] = useState(200);
+  const [allowedHoursStart, setAllowedHoursStart] = useState("08:00");
+  const [allowedHoursEnd, setAllowedHoursEnd] = useState("20:00");
+  const [maxConsecutiveFailures, setMaxConsecutiveFailures] = useState(5);
+  const [selectedConnectionId, setSelectedConnectionId] = useState("");
+  const [connections, setConnections] = useState<Array<{id: string; name: string; status: string | null; phone_number: string | null}>>([]);
 
   // Contacts
   const [contactSource, setContactSource] = useState<"list" | "paste" | "file">("list");
@@ -117,7 +123,18 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Campaign contacts metrics
+  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,total:0});
+  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; last_error:string|null}>>([]);
+
   const activeFlows = flows.filter((f) => f.is_active);
+
+  // Load connections
+  useEffect(() => {
+    supabase.from("connections").select("id, name, status, phone_number").then(({data}) => {
+      if (data) setConnections(data);
+    });
+  }, []);
 
   // Load campaign data
   useEffect(() => {
@@ -134,8 +151,40 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     setMaxInterval(campaign.max_interval || 60);
     setScheduleEnabled(!!campaign.scheduled_at);
     setScheduledAt(campaign.scheduled_at ? new Date(campaign.scheduled_at).toISOString().slice(0, 16) : "");
+    setDailyLimit(campaign.daily_limit ?? 200);
+    setAllowedHoursStart(campaign.allowed_hours_start || "08:00");
+    setAllowedHoursEnd(campaign.allowed_hours_end || "20:00");
+    setMaxConsecutiveFailures(campaign.max_consecutive_failures ?? 5);
+    setSelectedConnectionId(campaign.connection_id || "");
     setHasChanges(false);
   }, [campaign]);
+
+  // Load campaign contacts stats
+  useEffect(() => {
+    if (!campaignId) return;
+    const loadStats = async () => {
+      const { data } = await supabase
+        .from("campaign_contacts")
+        .select("id, status, sent_at, last_error, contact:contacts(name, phone)")
+        .eq("campaign_id", campaignId);
+      if (!data) return;
+      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,total:data.length};
+      const list: typeof campaignContactsList = [];
+      for (const row of data) {
+        const s = row.status || "pending";
+        if (s === "pending") stats.pending++;
+        else if (s === "sent" || s === "sending") stats.sent++;
+        else if (s === "delivered") stats.delivered++;
+        else if (s === "read") stats.read++;
+        else if (s === "failed") stats.failed++;
+        const c = row.contact as any;
+        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, last_error: row.last_error});
+      }
+      setCampaignContactStats(stats);
+      setCampaignContactsList(list);
+    };
+    loadStats();
+  }, [campaignId, campaign?.updated_at]);
 
   const markChanged = useCallback(() => setHasChanges(true), []);
 
@@ -173,12 +222,15 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         max_interval: maxInterval,
       });
 
-      // Save flow_id separately since hook type might not include it
-      if (selectedFlowId) {
-        await supabase.from("campaigns").update({
-          flow_id: selectedFlowId && selectedFlowId !== "none" ? selectedFlowId : null,
-        }).eq("id", campaignId);
-      }
+      // Save extra fields
+      await supabase.from("campaigns").update({
+        flow_id: selectedFlowId && selectedFlowId !== "none" ? selectedFlowId : null,
+        daily_limit: dailyLimit,
+        allowed_hours_start: allowedHoursStart,
+        allowed_hours_end: allowedHoursEnd,
+        max_consecutive_failures: maxConsecutiveFailures,
+        connection_id: selectedConnectionId && selectedConnectionId !== "none" ? selectedConnectionId : null,
+      }).eq("id", campaignId);
 
       setHasChanges(false);
       toast.success("Disparo salvo!");
@@ -574,9 +626,30 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 pt-4 mt-0">
+            {/* Connection Selection */}
             <div className="border rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
+                <Send className="w-4 h-4 text-primary" />
+                <Label className="font-medium">Conexão para Envio</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">Selecione qual WhatsApp conectado usar para este disparo.</p>
+              <Select value={selectedConnectionId} onValueChange={(v) => { setSelectedConnectionId(v); markChanged(); }}>
+                <SelectTrigger><SelectValue placeholder="Usar conexão padrão" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Usar conexão padrão</SelectItem>
+                  {connections.filter(c => c.status === "connected").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} {c.phone_number ? `(${c.phone_number})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* AI Agent */}
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
                 <Label className="font-medium">Agente de IA</Label>
               </div>
               <p className="text-sm text-muted-foreground">Selecione um agente para processar respostas dos contatos.</p>
@@ -589,10 +662,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
               </Select>
             </div>
 
+            {/* Anti-ban Security */}
             <div className="border rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <Label className="font-medium">Configurações de Segurança</Label>
+                <Label className="font-medium">Proteção Anti-Ban</Label>
               </div>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -603,6 +677,33 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                   <Label>Intervalo máximo: {maxInterval}s</Label>
                   <Slider value={[maxInterval]} onValueChange={([v]) => { setMaxInterval(v); if (v < minInterval) setMinInterval(v); markChanged(); }} min={10} max={300} step={5} />
                 </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Limite diário de envios: {dailyLimit}</Label>
+                  <Slider value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={1000} step={10} />
+                  <p className="text-xs text-muted-foreground">Pausa automaticamente ao atingir este limite por dia. Recomendado: 200-300.</p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Horário permitido para envio</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Início</Label>
+                      <Input type="time" value={allowedHoursStart} onChange={(e) => { setAllowedHoursStart(e.target.value); markChanged(); }} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Fim</Label>
+                      <Input type="time" value={allowedHoursEnd} onChange={(e) => { setAllowedHoursEnd(e.target.value); markChanged(); }} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Mensagens só serão enviadas dentro deste horário.</p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Pausa por falhas consecutivas: {maxConsecutiveFailures}</Label>
+                  <Slider value={[maxConsecutiveFailures]} onValueChange={([v]) => { setMaxConsecutiveFailures(v); markChanged(); }} min={1} max={20} step={1} />
+                  <p className="text-xs text-muted-foreground">Pausa a campanha automaticamente após {maxConsecutiveFailures} falhas seguidas.</p>
+                </div>
               </div>
               <div className="bg-muted rounded-lg p-3 space-y-2">
                 <p className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" />Dicas para evitar banimento</p>
@@ -610,12 +711,14 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                   <li>• Use intervalos de 60-180 segundos entre mensagens</li>
                   <li>• Ative variações de mensagem para humanizar</li>
                   <li>• Limite envios a 200-300 contatos por dia</li>
-                  <li>• Evite envios fora do horário comercial</li>
+                  <li>• Envie apenas no horário comercial (08:00 - 20:00)</li>
                   <li>• Use {"{{nome}}"} para personalizar</li>
+                  <li>• Use uma conexão dedicada para disparos em massa</li>
                 </ul>
               </div>
             </div>
 
+            {/* Schedule */}
             <div className="border rounded-lg p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -634,8 +737,66 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
           </TabsContent>
 
           {/* Metrics Tab */}
-          <TabsContent value="metrics" className="pt-4 mt-0">
-            <CampaignMetricsDashboard />
+          <TabsContent value="metrics" className="space-y-6 pt-4 mt-0">
+            {/* Campaign-specific stats */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Pendentes", value: campaignContactStats.pending, color: "text-muted-foreground" },
+                { label: "Enviadas", value: campaignContactStats.sent, color: "text-primary" },
+                { label: "Entregues", value: campaignContactStats.delivered, color: "text-blue-500" },
+                { label: "Lidas", value: campaignContactStats.read, color: "text-success" },
+                { label: "Falhas", value: campaignContactStats.failed, color: "text-destructive" },
+                { label: "Total", value: campaignContactStats.total, color: "text-foreground" },
+              ].map((stat) => (
+                <div key={stat.label} className="border rounded-lg p-3 text-center">
+                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            {campaignContactStats.total > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progresso</span>
+                  <span>{Math.round(((campaignContactStats.sent + campaignContactStats.delivered + campaignContactStats.read) / campaignContactStats.total) * 100)}%</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${((campaignContactStats.sent + campaignContactStats.delivered + campaignContactStats.read) / campaignContactStats.total) * 100}%` }} />
+                </div>
+              </div>
+            )}
+
+            {/* Contact list with status */}
+            <div className="space-y-2">
+              <Label className="font-medium">Contatos ({campaignContactsList.length})</Label>
+              {campaignContactsList.length === 0 ? (
+                <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum contato adicionado ainda</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px] border rounded-lg">
+                  <div className="divide-y">
+                    {campaignContactsList.map((cc) => (
+                      <div key={cc.id} className="flex items-center justify-between p-3">
+                        <div>
+                          <p className="text-sm font-medium">{cc.contact_name}</p>
+                          <p className="text-xs text-muted-foreground">{cc.contact_phone || "—"}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={cc.status === "sent" || cc.status === "delivered" || cc.status === "read" ? "default" : cc.status === "failed" ? "destructive" : "secondary"} className="text-xs">
+                            {cc.status === "pending" ? "Pendente" : cc.status === "sending" ? "Enviando" : cc.status === "sent" ? "Enviada" : cc.status === "delivered" ? "Entregue" : cc.status === "read" ? "Lida" : "Falha"}
+                          </Badge>
+                          {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
           </TabsContent>
         </ScrollArea>
       </Tabs>

@@ -1,44 +1,29 @@
 
 
-# Melhorias no Disparo em Massa: Anti-Ban, Configurações e Dashboard
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Problemas identificados
+## ✅ Concluído
 
-1. **Faltam opções anti-ban**: Só tem intervalos e variações. Faltam: limite diário, horário permitido, pausa automática por falhas, seleção de conexão
-2. **Dashboard mostra métricas globais**: O `CampaignMetricsDashboard` mostra métricas de TODAS as campanhas, não da campanha selecionada. Deveria mostrar os dados específicos da campanha aberta
-3. **Faltam configurações úteis**: Conexão específica para envio, limite de envios por dia, pausa automática ao detectar falhas consecutivas
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-## Mudanças
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-### 1. Aba Config — Novas opções anti-ban
+### 3. Correção: IA ignora prompt atualizado
+- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
+- Qualquer edição no prompt aplica imediatamente em conversas ativas
 
-| Opção | Descrição |
-|---|---|
-| **Limite diário** | Máximo de mensagens por dia (ex: 200). Após atingir, pausa automaticamente |
-| **Horário permitido** | Horário de início e fim para envio (ex: 08:00 - 20:00) |
-| **Pausa por falhas** | Número de falhas consecutivas antes de pausar automaticamente (ex: 5) |
-| **Conexão de envio** | Selecionar qual WhatsApp conectado usar (em vez de usar o default) |
-
-Requer adicionar colunas na tabela `campaigns`: `daily_limit`, `allowed_hours_start`, `allowed_hours_end`, `max_consecutive_failures`, `connection_id`.
-
-### 2. Aba Métricas — Dashboard específico da campanha
-
-Substituir o dashboard global por um que mostra os dados da campanha selecionada:
-- Contadores: Pendentes, Enviadas, Entregues, Lidas, Falhas (vindos de `campaign_contacts`)
-- Barra de progresso geral
-- Lista de contatos com status individual
-- Manter o dashboard global acessível como visão geral
-
-### 3. Edge function `execute-campaign` — Respeitar novas configs
-
-Atualizar para verificar: limite diário, horário permitido, pausa por falhas consecutivas, e usar `connection_id` da campanha.
-
-## Arquivos alterados
-
-| Arquivo | Mudança |
-|---|---|
-| DB Migration | Adicionar colunas `daily_limit`, `allowed_hours_start`, `allowed_hours_end`, `max_consecutive_failures`, `connection_id` na tabela `campaigns` |
-| `src/components/campanhas/CampaignConfigPanel.tsx` | Adicionar campos na aba Config (conexão, limite diário, horário, pausa por falhas) e refatorar aba Métricas para mostrar dados da campanha selecionada |
-| `src/hooks/useCampaigns.ts` | Atualizar interface `Campaign` e mutations com novos campos |
-| `supabase/functions/execute-campaign/index.ts` | Respeitar `connection_id`, `daily_limit`, horário permitido, pausa por falhas consecutivas |
-
+### 4. Prevenção de problemas recorrentes
+- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
+- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
+- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
+- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`

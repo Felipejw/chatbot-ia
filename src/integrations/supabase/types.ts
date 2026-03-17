@@ -184,14 +184,19 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          allowed_hours_end: string | null
+          allowed_hours_start: string | null
           buttons: Json | null
+          connection_id: string | null
           created_at: string
           created_by: string | null
+          daily_limit: number | null
           delivered_count: number | null
           description: string | null
           failed_count: number | null
           flow_id: string | null
           id: string
+          max_consecutive_failures: number | null
           max_interval: number | null
           media_type: string | null
           media_url: string | null
@@ -209,14 +214,19 @@ export type Database = {
           use_variations: boolean | null
         }
         Insert: {
+          allowed_hours_end?: string | null
+          allowed_hours_start?: string | null
           buttons?: Json | null
+          connection_id?: string | null
           created_at?: string
           created_by?: string | null
+          daily_limit?: number | null
           delivered_count?: number | null
           description?: string | null
           failed_count?: number | null
           flow_id?: string | null
           id?: string
+          max_consecutive_failures?: number | null
           max_interval?: number | null
           media_type?: string | null
           media_url?: string | null
@@ -234,14 +244,19 @@ export type Database = {
           use_variations?: boolean | null
         }
         Update: {
+          allowed_hours_end?: string | null
+          allowed_hours_start?: string | null
           buttons?: Json | null
+          connection_id?: string | null
           created_at?: string
           created_by?: string | null
+          daily_limit?: number | null
           delivered_count?: number | null
           description?: string | null
           failed_count?: number | null
           flow_id?: string | null
           id?: string
+          max_consecutive_failures?: number | null
           max_interval?: number | null
           media_type?: string | null
           media_url?: string | null
@@ -259,6 +274,13 @@ export type Database = {
           use_variations?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_flow_id_fkey"
             columns: ["flow_id"]

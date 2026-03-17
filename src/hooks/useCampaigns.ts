@@ -26,6 +26,11 @@ export interface Campaign {
   max_interval: number | null;
   template_id: string | null;
   flow_id: string | null;
+  daily_limit: number | null;
+  allowed_hours_start: string | null;
+  allowed_hours_end: string | null;
+  max_consecutive_failures: number | null;
+  connection_id: string | null;
 }
 
 export interface CampaignContact {
