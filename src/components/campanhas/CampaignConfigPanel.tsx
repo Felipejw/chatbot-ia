@@ -129,8 +129,8 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   // Campaign contacts metrics
-  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,total:0});
-  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; last_error:string|null}>>([]);
+  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; replied: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,replied:0,total:0});
+  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; replied_at:string|null; last_error:string|null}>>([]);
 
   const activeFlows = flows.filter((f) => f.is_active);
 
