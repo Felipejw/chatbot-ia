@@ -200,6 +200,20 @@ export function CampaignSidebar({
                         )}
                       </Button>
                     )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => handleDuplicate(campaign, e)}
+                          disabled={createCampaign.isPending}
+                        >
+                          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicar</TooltipContent>
+                    </Tooltip>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
