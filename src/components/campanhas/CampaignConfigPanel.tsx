@@ -231,10 +231,6 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         use_variations: useVariations,
         min_interval: minInterval,
         max_interval: maxInterval,
-      });
-
-      // Save extra fields
-      await supabase.from("campaigns").update({
         flow_id: selectedFlowId && selectedFlowId !== "none" ? selectedFlowId : null,
         daily_limit: dailyLimit,
         allowed_hours_start: allowedHoursStart,
@@ -246,7 +242,7 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         long_pause_every: longPauseEvery,
         long_pause_minutes: longPauseMinutes,
         shuffle_contacts: shuffleContacts,
-      }).eq("id", campaignId);
+      });
 
       setHasChanges(false);
       toast.success("Disparo salvo!");
