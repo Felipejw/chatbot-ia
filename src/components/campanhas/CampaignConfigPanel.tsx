@@ -102,6 +102,12 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [maxInterval, setMaxInterval] = useState(60);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [dailyLimit, setDailyLimit] = useState(200);
+  const [allowedHoursStart, setAllowedHoursStart] = useState("08:00");
+  const [allowedHoursEnd, setAllowedHoursEnd] = useState("20:00");
+  const [maxConsecutiveFailures, setMaxConsecutiveFailures] = useState(5);
+  const [selectedConnectionId, setSelectedConnectionId] = useState("");
+  const [connections, setConnections] = useState<Array<{id: string; name: string; status: string | null; phone_number: string | null}>>([]);
 
   // Contacts
   const [contactSource, setContactSource] = useState<"list" | "paste" | "file">("list");
@@ -116,6 +122,10 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Campaign contacts metrics
+  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,total:0});
+  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; last_error:string|null}>>([]);
 
   const activeFlows = flows.filter((f) => f.is_active);
 
