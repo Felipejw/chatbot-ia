@@ -16,6 +16,7 @@ export interface Campaign {
   delivered_count: number;
   read_count: number;
   failed_count: number;
+  replied_count: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -32,16 +33,22 @@ export interface Campaign {
   allowed_hours_end: string | null;
   max_consecutive_failures: number | null;
   connection_id: string | null;
+  warmup_enabled: boolean | null;
+  warmup_daily_increment: number | null;
+  long_pause_every: number | null;
+  long_pause_minutes: number | null;
+  shuffle_contacts: boolean | null;
 }
 
 export interface CampaignContact {
   id: string;
   campaign_id: string;
   contact_id: string;
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed' | 'replied';
   sent_at: string | null;
   delivered_at: string | null;
   read_at: string | null;
+  replied_at: string | null;
   retry_count: number | null;
   last_error: string | null;
   next_retry_at: string | null;
@@ -173,14 +180,15 @@ export function useUpdateCampaign() {
       id: string; name?: string; description?: string; message?: string; media_url?: string; media_type?: string;
       status?: Campaign['status']; scheduled_at?: string; message_variations?: string[]; use_variations?: boolean;
       use_buttons?: boolean; buttons?: Array<{ id: string; text: string }>; min_interval?: number; max_interval?: number;
+      flow_id?: string | null; daily_limit?: number; allowed_hours_start?: string; allowed_hours_end?: string;
+      max_consecutive_failures?: number; connection_id?: string | null; warmup_enabled?: boolean;
+      warmup_daily_increment?: number; long_pause_every?: number; long_pause_minutes?: number; shuffle_contacts?: boolean;
     }) => {
-      const { data, error } = await supabase.from('campaigns').update(input).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
+      const result = await adminWrite({ table: 'campaigns', operation: 'update', data: input, filters: { id } });
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast.success('Campanha atualizada com sucesso!');
     },
     onError: (error: Error) => { toast.error('Erro ao atualizar campanha: ' + error.message); },
   });
@@ -191,8 +199,7 @@ export function useDeleteCampaign() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('campaigns').delete().eq('id', id);
-      if (error) throw error;
+      await adminWrite({ table: 'campaigns', operation: 'delete', filters: { id } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -212,8 +219,7 @@ export function useAddContactsToCampaign() {
         contact_id,
       }));
 
-      const { error } = await supabase.from('campaign_contacts').insert(inserts);
-      if (error) throw error;
+      await adminWrite({ table: 'campaign_contacts', operation: 'insert', data: inserts });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['campaign-contacts', variables.campaignId] });

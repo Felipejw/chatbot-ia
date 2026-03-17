@@ -161,11 +161,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     setAllowedHoursEnd(campaign.allowed_hours_end || "20:00");
     setMaxConsecutiveFailures(campaign.max_consecutive_failures ?? 5);
     setSelectedConnectionId(campaign.connection_id || "");
-    setWarmupEnabled((campaign as any).warmup_enabled ?? false);
-    setWarmupDailyIncrement((campaign as any).warmup_daily_increment ?? 50);
-    setLongPauseEvery((campaign as any).long_pause_every ?? 0);
-    setLongPauseMinutes((campaign as any).long_pause_minutes ?? 10);
-    setShuffleContacts((campaign as any).shuffle_contacts ?? false);
+    setWarmupEnabled(campaign.warmup_enabled ?? false);
+    setWarmupDailyIncrement(campaign.warmup_daily_increment ?? 50);
+    setLongPauseEvery(campaign.long_pause_every ?? 0);
+    setLongPauseMinutes(campaign.long_pause_minutes ?? 10);
+    setShuffleContacts(campaign.shuffle_contacts ?? false);
     setHasChanges(false);
   }, [campaign]);
 
