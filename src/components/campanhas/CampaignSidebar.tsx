@@ -70,6 +70,24 @@ export function CampaignSidebar({
     await deleteCampaign.mutateAsync(id);
   };
 
+  const handleDuplicate = async (campaign: Campaign, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const result = await createCampaign.mutateAsync({
+      name: `${campaign.name} (cópia)`,
+      message: campaign.message,
+      message_variations: campaign.message_variations ?? undefined,
+      use_variations: campaign.use_variations ?? undefined,
+      use_buttons: campaign.use_buttons ?? undefined,
+      buttons: campaign.buttons as Array<{ id: string; text: string }> | undefined,
+      min_interval: campaign.min_interval ?? undefined,
+      max_interval: campaign.max_interval ?? undefined,
+      template_id: campaign.template_id ?? undefined,
+      flow_id: campaign.flow_id ?? undefined,
+      created_by: user?.id,
+    });
+    if (result?.id) onSelectCampaign(result.id);
+  };
+
   const handleToggleStatus = async (campaign: Campaign, e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = campaign.status === "active" ? "paused" : "active";
