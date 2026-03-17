@@ -16,6 +16,7 @@ export function AppLayout() {
   const { getSetting } = useSystemSettings();
   const { theme, setTheme } = useTheme();
   usePresence();
+  useFollowUpPoller();
   
   const platformName = getSetting("platform_name") || "WhatzApp IA";
 

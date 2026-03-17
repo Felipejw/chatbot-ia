@@ -416,7 +416,29 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        let activeConnection = connection;
+        // Priority: followUp.connection_id > conversation.connections > default connection
+        let activeConnection = null;
+        
+        // 1. Try the connection saved directly on the follow-up record
+        if (followUp.connection_id) {
+          const { data: fuConn } = await supabase
+            .from("connections")
+            .select("*")
+            .eq("id", followUp.connection_id)
+            .maybeSingle();
+          if (fuConn && fuConn.status === "connected") {
+            activeConnection = fuConn;
+            console.log(`[FollowUp] Using follow-up's own connection: ${fuConn.name} (${fuConn.id})`);
+          }
+        }
+        
+        // 2. Fallback to conversation's connection
+        if (!activeConnection && connection) {
+          activeConnection = connection;
+          console.log(`[FollowUp] Using conversation's connection: ${connection.name} (${connection.id})`);
+        }
+        
+        // 3. Last resort: default connection
         if (!activeConnection) {
           const { data: defaultConn } = await supabase
             .from("connections")
@@ -425,6 +447,7 @@ const handler = async (req: Request): Promise<Response> => {
             .eq("status", "connected")
             .maybeSingle();
           activeConnection = defaultConn;
+          if (defaultConn) console.log(`[FollowUp] Using default connection: ${defaultConn.name} (${defaultConn.id})`);
         }
 
         if (!activeConnection) continue;
