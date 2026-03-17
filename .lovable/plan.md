@@ -1,28 +1,29 @@
 
 
-# Fix: Follow-up System Not Sending Messages
+# Transcrição de áudio para IA + Correção do Follow-Up
 
-## Root Cause
+## ✅ Concluído
 
-Two problems identified:
+### 1. Transcrição de áudio via Gemini
+- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
+- **`execute-flow`**: Nova função `transcribeAudio()` que:
+  1. Baixa o áudio do storage
+  2. Converte para base64
+  3. Envia ao Gemini como input multimodal para transcrição
+  4. Fallback para Lovable AI Gateway
+  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
 
-1. **`process-follow-ups` is NOT registered in either router** (`main/index.ts` for Cloud, `index.ts` for VPS). The cron job on Cloud calls the function directly (works), but the "Processar agora" button uses `supabase.functions.invoke()` which goes through the router → gets 404 → shows the error in the screenshot.
+### 2. Correção do Follow-Up na VPS
+- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
+- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
+- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
 
-2. **On VPS, `process-follow-ups` is also missing from the VPS router** (`index.ts`), so even the cron job on VPS fails when routing through the main entry point.
+### 3. Correção: IA ignora prompt atualizado
+- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
+- Qualquer edição no prompt aplica imediatamente em conversas ativas
 
-The metrics showing "Respondidos: 4, Enviados: 0" is actually correct — the contacts replied before follow-ups were due, so they went from `pending` → `replied` directly (the webhook in `baileys-webhook` handles this). But since no follow-ups were ever actually sent (the function can't execute properly), "Enviados" stays at 0.
-
-## Changes
-
-| File | Change |
-|---|---|
-| `supabase/functions/main/index.ts` | Add `'process-follow-ups'` to `VALID_FUNCTIONS` set |
-| `supabase/functions/index.ts` | Add `'process-follow-ups'` to `VALID_FUNCTIONS` set |
-| Redeploy `process-follow-ups` | Ensure the edge function is deployed and accessible |
-
-Both routers need the entry so the function can be called from:
-- The "Processar agora" button (via `supabase.functions.invoke`)
-- The VPS cron job (via the main router)
-
-This is a 2-line fix across 2 files.
-
+### 4. Prevenção de problemas recorrentes
+- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
+- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
+- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
+- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`

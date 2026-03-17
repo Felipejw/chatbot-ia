@@ -29,6 +29,7 @@ const VALID_FUNCTIONS = new Set([
   'google-calendar',
   'merge-duplicate-contacts',
   'meta-api-webhook',
+  'process-follow-ups',
   'process-schedules',
   'reset-user-password',
   'resolve-lid-contact',
