@@ -695,8 +695,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label>Limite diário de envios: {dailyLimit.toLocaleString()}</Label>
-                  <Slider value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={30000} step={100} />
+                  <Label>Limite diário de envios</Label>
+                  <div className="flex items-center gap-3">
+                    <Slider className="flex-1" value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={30000} step={100} />
+                    <Input type="number" className="w-24" min={10} max={30000} value={dailyLimit} onChange={(e) => { const v = Math.max(10, Math.min(30000, Number(e.target.value) || 10)); setDailyLimit(v); markChanged(); }} />
+                  </div>
                   <p className="text-xs text-muted-foreground">Pausa automaticamente ao atingir este limite por dia. Recomendado: 200-300.</p>
                 </div>
                 <Separator />
