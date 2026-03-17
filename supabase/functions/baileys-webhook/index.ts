@@ -716,6 +716,30 @@ const handler = async (req: Request): Promise<Response> => {
         } catch (fuError) {
           console.error("[Baileys Webhook] Error cancelling follow-ups:", fuError);
         }
+
+        // Track campaign replies
+        try {
+          const { data: campaignContact } = await supabaseClient
+            .from("campaign_contacts")
+            .select("id, campaign_id, replied_at")
+            .eq("contact_id", contact.id)
+            .in("status", ["sent", "delivered", "read"])
+            .is("replied_at", null)
+            .order("sent_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (campaignContact) {
+            await supabaseClient
+              .from("campaign_contacts")
+              .update({ replied_at: new Date().toISOString() })
+              .eq("id", campaignContact.id);
+            await supabaseClient.rpc("increment_campaign_replied", { campaign_id: campaignContact.campaign_id });
+            console.log(`[Baileys Webhook] Marked campaign contact ${campaignContact.id} as replied`);
+          }
+        } catch (campErr) {
+          console.error("[Baileys Webhook] Error tracking campaign reply:", campErr);
+        }
       }
 
       // ---- Trigger chatbot flow (only for incoming messages, not fromMe) ----

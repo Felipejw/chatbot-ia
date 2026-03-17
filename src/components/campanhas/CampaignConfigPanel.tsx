@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Plus, X, Upload, ClipboardPaste, Users, Tag, Image, FileVideo, FileText,
-  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3
+  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3, Download, Shuffle, Timer, TrendingUp
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [maxConsecutiveFailures, setMaxConsecutiveFailures] = useState(5);
   const [selectedConnectionId, setSelectedConnectionId] = useState("");
   const [connections, setConnections] = useState<Array<{id: string; name: string; status: string | null; phone_number: string | null}>>([]);
+  const [warmupEnabled, setWarmupEnabled] = useState(false);
+  const [warmupDailyIncrement, setWarmupDailyIncrement] = useState(50);
+  const [longPauseEvery, setLongPauseEvery] = useState(0);
+  const [longPauseMinutes, setLongPauseMinutes] = useState(10);
+  const [shuffleContacts, setShuffleContacts] = useState(false);
 
   // Contacts
   const [contactSource, setContactSource] = useState<"list" | "paste" | "file">("list");
@@ -124,8 +129,8 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   // Campaign contacts metrics
-  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,total:0});
-  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; last_error:string|null}>>([]);
+  const [campaignContactStats, setCampaignContactStats] = useState<{pending: number; sent: number; delivered: number; read: number; failed: number; replied: number; total: number}>({pending:0,sent:0,delivered:0,read:0,failed:0,replied:0,total:0});
+  const [campaignContactsList, setCampaignContactsList] = useState<Array<{id:string; contact_name:string; contact_phone:string|null; status:string; sent_at:string|null; replied_at:string|null; last_error:string|null}>>([]);
 
   const activeFlows = flows.filter((f) => f.is_active);
 
@@ -156,6 +161,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     setAllowedHoursEnd(campaign.allowed_hours_end || "20:00");
     setMaxConsecutiveFailures(campaign.max_consecutive_failures ?? 5);
     setSelectedConnectionId(campaign.connection_id || "");
+    setWarmupEnabled((campaign as any).warmup_enabled ?? false);
+    setWarmupDailyIncrement((campaign as any).warmup_daily_increment ?? 50);
+    setLongPauseEvery((campaign as any).long_pause_every ?? 0);
+    setLongPauseMinutes((campaign as any).long_pause_minutes ?? 10);
+    setShuffleContacts((campaign as any).shuffle_contacts ?? false);
     setHasChanges(false);
   }, [campaign]);
 
@@ -165,20 +175,21 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     const loadStats = async () => {
       const { data } = await supabase
         .from("campaign_contacts")
-        .select("id, status, sent_at, last_error, contact:contacts(name, phone)")
+        .select("id, status, sent_at, replied_at, last_error, contact:contacts(name, phone)")
         .eq("campaign_id", campaignId);
       if (!data) return;
-      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,total:data.length};
+      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,replied:0,total:data.length};
       const list: typeof campaignContactsList = [];
       for (const row of data) {
-        const s = row.status || "pending";
+        const s = (row as any).status || "pending";
         if (s === "pending") stats.pending++;
         else if (s === "sent" || s === "sending") stats.sent++;
         else if (s === "delivered") stats.delivered++;
         else if (s === "read") stats.read++;
         else if (s === "failed") stats.failed++;
-        const c = row.contact as any;
-        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, last_error: row.last_error});
+        if ((row as any).replied_at) stats.replied++;
+        const c = (row as any).contact as any;
+        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, replied_at: (row as any).replied_at, last_error: row.last_error});
       }
       setCampaignContactStats(stats);
       setCampaignContactsList(list);
@@ -230,6 +241,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         allowed_hours_end: allowedHoursEnd,
         max_consecutive_failures: maxConsecutiveFailures,
         connection_id: selectedConnectionId && selectedConnectionId !== "none" ? selectedConnectionId : null,
+        warmup_enabled: warmupEnabled,
+        warmup_daily_increment: warmupDailyIncrement,
+        long_pause_every: longPauseEvery,
+        long_pause_minutes: longPauseMinutes,
+        shuffle_contacts: shuffleContacts,
       }).eq("id", campaignId);
 
       setHasChanges(false);
@@ -679,8 +695,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label>Limite diário de envios: {dailyLimit.toLocaleString()}</Label>
-                  <Slider value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={30000} step={100} />
+                  <Label>Limite diário de envios</Label>
+                  <div className="flex items-center gap-3">
+                    <Slider className="flex-1" value={[dailyLimit]} onValueChange={([v]) => { setDailyLimit(v); markChanged(); }} min={10} max={30000} step={100} />
+                    <Input type="number" className="w-24" min={10} max={30000} value={dailyLimit} onChange={(e) => { const v = Math.max(10, Math.min(30000, Number(e.target.value) || 10)); setDailyLimit(v); markChanged(); }} />
+                  </div>
                   <p className="text-xs text-muted-foreground">Pausa automaticamente ao atingir este limite por dia. Recomendado: 200-300.</p>
                 </div>
                 <Separator />
@@ -729,13 +748,67 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                   <p className="text-xs text-muted-foreground">Pausa a campanha automaticamente após {maxConsecutiveFailures} falhas seguidas.</p>
                 </div>
               </div>
+              {/* Advanced Anti-Ban */}
+              <Separator />
+              <div className="space-y-4">
+                <p className="text-sm font-medium flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Proteção Avançada</p>
+                
+                {/* Warmup */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm">Aquecimento gradual</Label>
+                    <p className="text-xs text-muted-foreground">Aumenta envios progressivamente a cada dia</p>
+                  </div>
+                  <Switch checked={warmupEnabled} onCheckedChange={(v) => { setWarmupEnabled(v); markChanged(); }} />
+                </div>
+                {warmupEnabled && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                    <Label className="text-xs">Incremento diário: {warmupDailyIncrement}</Label>
+                    <Slider value={[warmupDailyIncrement]} onValueChange={([v]) => { setWarmupDailyIncrement(v); markChanged(); }} min={10} max={500} step={10} />
+                    <p className="text-xs text-muted-foreground">Começa com {warmupDailyIncrement} envios e aumenta {warmupDailyIncrement} a cada dia.</p>
+                  </div>
+                )}
+
+                {/* Long Pause */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-4 h-4 text-muted-foreground" />
+                    <Label className="text-sm">Pausa longa a cada X mensagens</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">A cada (msgs)</Label>
+                      <Input type="number" min={0} max={500} value={longPauseEvery} onChange={(e) => { setLongPauseEvery(Number(e.target.value) || 0); markChanged(); }} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Pausa (min)</Label>
+                      <Input type="number" min={1} max={60} value={longPauseMinutes} onChange={(e) => { setLongPauseMinutes(Number(e.target.value) || 10); markChanged(); }} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{longPauseEvery > 0 ? `Pausa de ${longPauseMinutes} minutos a cada ${longPauseEvery} mensagens enviadas.` : "Desativado (defina um valor > 0)."}</p>
+                </div>
+
+                {/* Shuffle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shuffle className="w-4 h-4 text-muted-foreground" />
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Randomizar ordem</Label>
+                      <p className="text-xs text-muted-foreground">Embaralha a lista de contatos</p>
+                    </div>
+                  </div>
+                  <Switch checked={shuffleContacts} onCheckedChange={(v) => { setShuffleContacts(v); markChanged(); }} />
+                </div>
+              </div>
+
               <div className="bg-muted rounded-lg p-3 space-y-2">
                 <p className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" />Dicas para evitar banimento</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Use intervalos de 60-180 segundos entre mensagens</li>
                   <li>• Ative variações de mensagem para humanizar</li>
                   <li>• Limite envios a 200-300 contatos por dia</li>
-                  <li>• Envie apenas no horário comercial (08:00 - 20:00)</li>
+                  <li>• Ative o aquecimento gradual para números novos</li>
+                  <li>• Use pausas longas para simular comportamento humano</li>
                   <li>• Use {"{{nome}}"} para personalizar</li>
                   <li>• Use uma conexão dedicada para disparos em massa</li>
                 </ul>
@@ -763,14 +836,39 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
           {/* Metrics Tab */}
           <TabsContent value="metrics" className="space-y-6 pt-4 mt-0">
             {/* Campaign-specific stats */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-medium">Resumo</Label>
+              <Button variant="outline" size="sm" onClick={() => {
+                if (campaignContactsList.length === 0) return;
+                const headers = ["Nome","Telefone","Status","Enviada em","Respondida em","Erro"];
+                const rows = campaignContactsList.map(cc => [
+                  cc.contact_name,
+                  cc.contact_phone || "",
+                  cc.status,
+                  cc.sent_at ? new Date(cc.sent_at).toLocaleString("pt-BR") : "",
+                  cc.replied_at ? new Date(cc.replied_at).toLocaleString("pt-BR") : "",
+                  cc.last_error || "",
+                ]);
+                const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(","))].join("\n");
+                const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = `campanha-${campaign.name.replace(/\s+/g, "-")}.csv`; a.click();
+                URL.revokeObjectURL(url);
+              }}>
+                <Download className="w-4 h-4 mr-1" />Exportar CSV
+              </Button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
               {[
                 { label: "Pendentes", value: campaignContactStats.pending, color: "text-muted-foreground" },
                 { label: "Enviadas", value: campaignContactStats.sent, color: "text-primary" },
                 { label: "Entregues", value: campaignContactStats.delivered, color: "text-blue-500" },
                 { label: "Lidas", value: campaignContactStats.read, color: "text-success" },
+                { label: "Respondidas", value: campaignContactStats.replied, color: "text-emerald-600" },
                 { label: "Falhas", value: campaignContactStats.failed, color: "text-destructive" },
                 { label: "Total", value: campaignContactStats.total, color: "text-foreground" },
+                { label: "Taxa Resposta", value: campaignContactStats.total > 0 ? `${Math.round((campaignContactStats.replied / campaignContactStats.total) * 100)}%` : "0%", color: "text-emerald-600" },
               ].map((stat) => (
                 <div key={stat.label} className="border rounded-lg p-3 text-center">
                   <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -813,6 +911,9 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                           <Badge variant={cc.status === "sent" || cc.status === "delivered" || cc.status === "read" ? "default" : cc.status === "failed" ? "destructive" : "secondary"} className="text-xs">
                             {cc.status === "pending" ? "Pendente" : cc.status === "sending" ? "Enviando" : cc.status === "sent" ? "Enviada" : cc.status === "delivered" ? "Entregue" : cc.status === "read" ? "Lida" : "Falha"}
                           </Badge>
+                          {cc.replied_at && (
+                            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600 ml-1">Respondida</Badge>
+                          )}
                           {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
                         </div>
                       </div>

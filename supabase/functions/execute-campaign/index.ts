@@ -127,6 +127,17 @@ const handler = async (req: Request): Promise<Response> => {
 
       const remainingToday = dailyLimit - (sentToday || 0);
 
+      // --- Anti-ban: Warmup logic ---
+      let effectiveLimit = remainingToday;
+      if (campaign.warmup_enabled) {
+        const createdAt = new Date(campaign.created_at);
+        const daysSinceCreation = Math.floor((Date.now() - createdAt.getTime()) / (86400000));
+        const warmupIncrement = campaign.warmup_daily_increment || 50;
+        const warmupLimit = warmupIncrement * (daysSinceCreation + 1);
+        effectiveLimit = Math.min(remainingToday, warmupLimit);
+        console.log(`[execute-campaign] Warmup: day ${daysSinceCreation + 1}, limit ${warmupLimit}, effective ${effectiveLimit}`);
+      }
+
       // --- Determine connection ---
       let connectionId = campaign.connection_id;
       if (!connectionId) {
@@ -153,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("campaign_id", campaign.id)
         .or(`status.eq.pending,and(status.eq.failed,next_retry_at.lte.${now})`)
         .order("created_at", { ascending: true })
-        .limit(Math.min(50, remainingToday));
+        .limit(Math.min(50, effectiveLimit));
 
       if (pcError) {
         console.error(`[execute-campaign] Error fetching contacts for ${campaign.id}:`, pcError.message);
@@ -198,9 +209,22 @@ const handler = async (req: Request): Promise<Response> => {
       const variations = campaign.message_variations || [];
       const useVariations = campaign.use_variations && variations.length > 0;
       const maxConsecutiveFailures = campaign.max_consecutive_failures || 5;
+      const longPauseEvery = campaign.long_pause_every || 0;
+      const longPauseMinutes = campaign.long_pause_minutes || 10;
       let consecutiveFailures = 0;
+      let messagesSentInBatch = 0;
 
-      for (const pc of pendingContacts) {
+      // Shuffle contacts if enabled
+      let contactsToProcess = [...pendingContacts];
+      if (campaign.shuffle_contacts) {
+        for (let i = contactsToProcess.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [contactsToProcess[i], contactsToProcess[j]] = [contactsToProcess[j], contactsToProcess[i]];
+        }
+        console.log("[execute-campaign] Contacts shuffled");
+      }
+
+      for (const pc of contactsToProcess) {
         // --- Anti-ban: Check consecutive failures ---
         if (consecutiveFailures >= maxConsecutiveFailures) {
           console.warn(`[execute-campaign] ${consecutiveFailures} consecutive failures, auto-pausing campaign ${campaign.name}`);
@@ -279,12 +303,20 @@ const handler = async (req: Request): Promise<Response> => {
 
           campResult.sent++;
           consecutiveFailures = 0; // Reset on success
+          messagesSentInBatch++;
           console.log(`[execute-campaign] Sent to ${contact.name || contact.phone}`);
 
-          if (campResult.processed < pendingContacts.length) {
-            const waitMs = getRandomInterval(minInterval, maxInterval);
-            console.log(`[execute-campaign] Waiting ${Math.round(waitMs / 1000)}s before next send`);
-            await sleep(waitMs);
+          if (campResult.processed < contactsToProcess.length) {
+            // Long pause check
+            if (longPauseEvery > 0 && messagesSentInBatch > 0 && messagesSentInBatch % longPauseEvery === 0) {
+              const longPauseMs = longPauseMinutes * 60 * 1000;
+              console.log(`[execute-campaign] Long pause: ${longPauseMinutes} min after ${messagesSentInBatch} messages`);
+              await sleep(longPauseMs);
+            } else {
+              const waitMs = getRandomInterval(minInterval, maxInterval);
+              console.log(`[execute-campaign] Waiting ${Math.round(waitMs / 1000)}s before next send`);
+              await sleep(waitMs);
+            }
           }
         } catch (sendErr) {
           const errorMsg = sendErr instanceof Error ? sendErr.message : "Erro desconhecido";
