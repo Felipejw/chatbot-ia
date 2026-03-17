@@ -241,6 +241,11 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
         allowed_hours_end: allowedHoursEnd,
         max_consecutive_failures: maxConsecutiveFailures,
         connection_id: selectedConnectionId && selectedConnectionId !== "none" ? selectedConnectionId : null,
+        warmup_enabled: warmupEnabled,
+        warmup_daily_increment: warmupDailyIncrement,
+        long_pause_every: longPauseEvery,
+        long_pause_minutes: longPauseMinutes,
+        shuffle_contacts: shuffleContacts,
       }).eq("id", campaignId);
 
       setHasChanges(false);
