@@ -748,13 +748,67 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                   <p className="text-xs text-muted-foreground">Pausa a campanha automaticamente após {maxConsecutiveFailures} falhas seguidas.</p>
                 </div>
               </div>
+              {/* Advanced Anti-Ban */}
+              <Separator />
+              <div className="space-y-4">
+                <p className="text-sm font-medium flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Proteção Avançada</p>
+                
+                {/* Warmup */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm">Aquecimento gradual</Label>
+                    <p className="text-xs text-muted-foreground">Aumenta envios progressivamente a cada dia</p>
+                  </div>
+                  <Switch checked={warmupEnabled} onCheckedChange={(v) => { setWarmupEnabled(v); markChanged(); }} />
+                </div>
+                {warmupEnabled && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                    <Label className="text-xs">Incremento diário: {warmupDailyIncrement}</Label>
+                    <Slider value={[warmupDailyIncrement]} onValueChange={([v]) => { setWarmupDailyIncrement(v); markChanged(); }} min={10} max={500} step={10} />
+                    <p className="text-xs text-muted-foreground">Começa com {warmupDailyIncrement} envios e aumenta {warmupDailyIncrement} a cada dia.</p>
+                  </div>
+                )}
+
+                {/* Long Pause */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-4 h-4 text-muted-foreground" />
+                    <Label className="text-sm">Pausa longa a cada X mensagens</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">A cada (msgs)</Label>
+                      <Input type="number" min={0} max={500} value={longPauseEvery} onChange={(e) => { setLongPauseEvery(Number(e.target.value) || 0); markChanged(); }} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Pausa (min)</Label>
+                      <Input type="number" min={1} max={60} value={longPauseMinutes} onChange={(e) => { setLongPauseMinutes(Number(e.target.value) || 10); markChanged(); }} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{longPauseEvery > 0 ? `Pausa de ${longPauseMinutes} minutos a cada ${longPauseEvery} mensagens enviadas.` : "Desativado (defina um valor > 0)."}</p>
+                </div>
+
+                {/* Shuffle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shuffle className="w-4 h-4 text-muted-foreground" />
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Randomizar ordem</Label>
+                      <p className="text-xs text-muted-foreground">Embaralha a lista de contatos</p>
+                    </div>
+                  </div>
+                  <Switch checked={shuffleContacts} onCheckedChange={(v) => { setShuffleContacts(v); markChanged(); }} />
+                </div>
+              </div>
+
               <div className="bg-muted rounded-lg p-3 space-y-2">
                 <p className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" />Dicas para evitar banimento</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Use intervalos de 60-180 segundos entre mensagens</li>
                   <li>• Ative variações de mensagem para humanizar</li>
                   <li>• Limite envios a 200-300 contatos por dia</li>
-                  <li>• Envie apenas no horário comercial (08:00 - 20:00)</li>
+                  <li>• Ative o aquecimento gradual para números novos</li>
+                  <li>• Use pausas longas para simular comportamento humano</li>
                   <li>• Use {"{{nome}}"} para personalizar</li>
                   <li>• Use uma conexão dedicada para disparos em massa</li>
                 </ul>
