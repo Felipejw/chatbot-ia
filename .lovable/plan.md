@@ -1,29 +1,19 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Fix: Erro RLS ao criar campanha na VPS
 
-## ✅ Concluído
+## Problema
+O erro `new row violates row-level security policy for table "campaigns"` ocorre porque a política RLS da tabela `campaigns` exige role `admin/manager` para INSERT (via política ALL). Na VPS, o `auth.uid()` pode não estar sendo reconhecido corretamente pela função `is_admin_or_manager()`.
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+## Solução
+Adicionar uma política RLS específica de INSERT para usuários autenticados na tabela `campaigns`, similar ao padrão usado em outras tabelas do sistema (contacts, conversations, messages). A política ALL existente para admins continuará controlando UPDATE e DELETE.
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+Também vamos atualizar o `useCreateCampaign` para usar o helper `adminWrite` como fallback (mesmo padrão já usado em outras partes do sistema), garantindo que funcione tanto no Cloud quanto na VPS.
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+## Mudanças
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+| Arquivo | Mudança |
+|---|---|
+| DB Migration | `CREATE POLICY "Authenticated users can create campaigns" ON campaigns FOR INSERT WITH CHECK (auth.uid() IS NOT NULL)` |
+| `src/hooks/useCampaigns.ts` | Alterar `useCreateCampaign` para usar `adminWrite` com fallback, igual ao padrão do projeto |
+
