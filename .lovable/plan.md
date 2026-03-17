@@ -1,29 +1,39 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Fix: Follow-up ignora intervalo configurado nas etapas (sempre usa 60 min)
 
-## ✅ Concluído
+## Diagnóstico
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+Analisei os logs e o código em detalhe. O follow-up **está sendo criado** (Pendentes: 1 na tela), mas **não é enviado** no tempo configurado (2 minutos).
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+### Causa raiz
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+No `execute-flow/index.ts`, ao calcular o intervalo do follow-up, a prioridade está invertida:
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+```typescript
+// BUG — linha 1963, 2193
+let intervalMinutes = cfg.followUpIntervalMinutes || firstStepInterval || 60;
+```
+
+`cfg.followUpIntervalMinutes` tem valor padrão **60** (definido no AgentConfigPanel linha 224). Como `60` é truthy, ele **sempre vence** o `firstStepInterval` (que seria 2, do stepConfig configurado na UI). Resultado: o follow-up é agendado para 60 minutos no futuro, não 2.
+
+## Correção
+
+Inverter a prioridade em **3 ocorrências** no `execute-flow/index.ts`:
+
+```typescript
+// ANTES
+let intervalMinutes = cfg.followUpIntervalMinutes || firstStepInterval || 60;
+
+// DEPOIS
+let intervalMinutes = firstStepInterval || cfg.followUpIntervalMinutes || 60;
+```
+
+Isso garante que o intervalo da etapa 1 (configurado na UI) tenha prioridade sobre o campo legado.
+
+| Arquivo | Mudança |
+|---|---|
+| `supabase/functions/execute-flow/index.ts` | Inverter prioridade em 3 pontos: linhas ~1963, ~2193, e path de resume (~1959 se existir) |
+
+Após deploy, o follow-up de 2 minutos será respeitado corretamente.
+
