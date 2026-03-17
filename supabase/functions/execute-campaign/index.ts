@@ -209,7 +209,20 @@ const handler = async (req: Request): Promise<Response> => {
       const variations = campaign.message_variations || [];
       const useVariations = campaign.use_variations && variations.length > 0;
       const maxConsecutiveFailures = campaign.max_consecutive_failures || 5;
+      const longPauseEvery = campaign.long_pause_every || 0;
+      const longPauseMinutes = campaign.long_pause_minutes || 10;
       let consecutiveFailures = 0;
+      let messagesSentInBatch = 0;
+
+      // Shuffle contacts if enabled
+      let contactsToProcess = [...pendingContacts];
+      if (campaign.shuffle_contacts) {
+        for (let i = contactsToProcess.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [contactsToProcess[i], contactsToProcess[j]] = [contactsToProcess[j], contactsToProcess[i]];
+        }
+        console.log("[execute-campaign] Contacts shuffled");
+      }
 
       for (const pc of pendingContacts) {
         // --- Anti-ban: Check consecutive failures ---
