@@ -911,6 +911,10 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                           <Badge variant={cc.status === "sent" || cc.status === "delivered" || cc.status === "read" ? "default" : cc.status === "failed" ? "destructive" : "secondary"} className="text-xs">
                             {cc.status === "pending" ? "Pendente" : cc.status === "sending" ? "Enviando" : cc.status === "sent" ? "Enviada" : cc.status === "delivered" ? "Entregue" : cc.status === "read" ? "Lida" : "Falha"}
                           </Badge>
+                          {cc.replied_at && (
+                            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600 ml-1">Respondida</Badge>
+                          )}
+                          </Badge>
                           {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
                         </div>
                       </div>
