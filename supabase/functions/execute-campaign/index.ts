@@ -224,7 +224,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("[execute-campaign] Contacts shuffled");
       }
 
-      for (const pc of pendingContacts) {
+      for (const pc of contactsToProcess) {
         // --- Anti-ban: Check consecutive failures ---
         if (consecutiveFailures >= maxConsecutiveFailures) {
           console.warn(`[execute-campaign] ${consecutiveFailures} consecutive failures, auto-pausing campaign ${campaign.name}`);
