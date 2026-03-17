@@ -303,12 +303,20 @@ const handler = async (req: Request): Promise<Response> => {
 
           campResult.sent++;
           consecutiveFailures = 0; // Reset on success
+          messagesSentInBatch++;
           console.log(`[execute-campaign] Sent to ${contact.name || contact.phone}`);
 
-          if (campResult.processed < pendingContacts.length) {
-            const waitMs = getRandomInterval(minInterval, maxInterval);
-            console.log(`[execute-campaign] Waiting ${Math.round(waitMs / 1000)}s before next send`);
-            await sleep(waitMs);
+          if (campResult.processed < contactsToProcess.length) {
+            // Long pause check
+            if (longPauseEvery > 0 && messagesSentInBatch > 0 && messagesSentInBatch % longPauseEvery === 0) {
+              const longPauseMs = longPauseMinutes * 60 * 1000;
+              console.log(`[execute-campaign] Long pause: ${longPauseMinutes} min after ${messagesSentInBatch} messages`);
+              await sleep(longPauseMs);
+            } else {
+              const waitMs = getRandomInterval(minInterval, maxInterval);
+              console.log(`[execute-campaign] Waiting ${Math.round(waitMs / 1000)}s before next send`);
+              await sleep(waitMs);
+            }
           }
         } catch (sendErr) {
           const errorMsg = sendErr instanceof Error ? sendErr.message : "Erro desconhecido";
