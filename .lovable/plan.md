@@ -1,26 +1,26 @@
 
 
-# Diagnóstico: Follow-up só envia ao clicar "Processar agora"
+# Fix: Follow-up não processa automaticamente na VPS + Envio pela conexão errada
 
-## O que está acontecendo
+## Diagnóstico
 
-O cron job **está funcionando corretamente** — os logs mostram que `process-follow-ups` executa a cada minuto. Porém, ele encontra **0 follow-ups pendentes** porque os follow-ups criados antes da correção de intervalo tinham `scheduled_at` configurado para **60 minutos** no futuro (o bug que acabamos de corrigir).
+Existem **dois problemas**:
 
-O fluxo é:
-1. Contato envia mensagem → `execute-flow` cria follow-up com `scheduled_at = now + 60min` (bug antigo)
-2. Cron roda a cada minuto → verifica `scheduled_at <= now()` → encontra 0 (ainda não chegou a hora)
-3. Usuário clica "Processar agora" depois de ~60min → agora `scheduled_at` já passou → processa
+### 1. Follow-up não processa sozinho na VPS
+O cron do Lovable Cloud roda a cada minuto, mas encontra **0 dados** (os dados estão no banco da VPS). Na VPS, o `setup-cron.sh` precisa ter sido executado manualmente para configurar `pg_cron`. Se não foi executado (ou se `pg_cron`/`pg_net` não estão disponíveis), o follow-up só processa quando você clica "Processar agora".
 
-## A correção já foi aplicada
+**Solução**: Adicionar um **polling automático no frontend** como fallback. Quando o usuário está logado, a página de Atendimento (que fica aberta) vai chamar `process-follow-ups` a cada 60 segundos automaticamente. Isso garante o processamento independente de `pg_cron`.
 
-A mudança de prioridade no `execute-flow/index.ts` (`firstStepInterval || cfg.followUpIntervalMinutes || 60`) já foi feita. **Novos** follow-ups serão agendados com o intervalo correto (2 minutos).
+### 2. Follow-up envia pela conexão errada
+O `process-follow-ups` busca a conexão via `conversations(*, connections(*))`. Se a conversa não tem `connection_id` ou se a conexão original está offline, ele usa a conexão padrão (`is_default = true`). Quando você tem múltiplos WhatsApps conectados, isso faz o follow-up ser enviado pelo WhatsApp errado.
 
-## O que falta
+**Solução**: O follow-up já salva `connection_id` no registro. Priorizar usar a `connection_id` do follow-up em vez da conexão da conversa, para garantir que a mensagem saia pelo mesmo WhatsApp que originou o atendimento.
 
-Nenhuma mudança de código é necessária. O sistema já está corrigido. O usuário precisa:
+## Mudanças
 
-1. **Testar com uma nova conversa** — enviar uma mensagem para o agente e aguardar 2 minutos
-2. Os follow-ups antigos (criados com o bug de 60min) já foram processados ou cancelados
-
-**Não há mudanças de código a implementar.** A correção anterior já resolve este problema para novos follow-ups.
+| Arquivo | Mudança |
+|---|---|
+| `src/hooks/useFollowUpPoller.ts` | **Novo**: Hook que chama `process-follow-ups` a cada 60s enquanto o usuário está logado |
+| `src/components/layout/AppLayout.tsx` | Adicionar o hook de polling |
+| `supabase/functions/process-follow-ups/index.ts` | Priorizar `followUp.connection_id` sobre `conversation.connections` para garantir envio pela conexão correta |
 
