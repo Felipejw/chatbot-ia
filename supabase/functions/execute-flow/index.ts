@@ -1960,7 +1960,7 @@ const handler = async (req: Request): Promise<Response> => {
             const stepConfigs = cfg.followUpStepConfigs as any[] | null;
             const firstStepInterval = stepConfigs?.[0]?.intervalMinutes || stepConfigs?.[0]?.interval;
             const firstStepUnit = stepConfigs?.[0]?.unit || "minutes";
-            let intervalMinutes = cfg.followUpIntervalMinutes || firstStepInterval || 60;
+            let intervalMinutes = firstStepInterval || cfg.followUpIntervalMinutes || 60;
             if (firstStepInterval && firstStepUnit === "hours") intervalMinutes = firstStepInterval * 60;
             if (firstStepInterval && firstStepUnit === "days") intervalMinutes = firstStepInterval * 1440;
 
