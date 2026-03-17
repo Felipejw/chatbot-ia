@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Trash2, Play, Pause, ChevronLeft, ChevronRight, Send } from "lucide-react";
+import { Plus, Search, Trash2, Play, Pause, ChevronLeft, ChevronRight, Send, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
