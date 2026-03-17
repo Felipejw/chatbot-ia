@@ -579,6 +579,7 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
     delivered_count integer DEFAULT 0,
     read_count integer DEFAULT 0,
     failed_count integer DEFAULT 0,
+    replied_count integer DEFAULT 0,
     use_variations boolean DEFAULT false,
     use_buttons boolean DEFAULT false,
     buttons jsonb DEFAULT '[]'::jsonb,
@@ -586,6 +587,17 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
     max_interval integer DEFAULT 60,
     message_variations text[] DEFAULT '{}'::text[],
     template_id uuid REFERENCES public.message_templates(id),
+    flow_id uuid REFERENCES public.chatbot_flows(id) ON DELETE SET NULL,
+    connection_id uuid REFERENCES public.connections(id) ON DELETE SET NULL,
+    daily_limit integer DEFAULT 200,
+    allowed_hours_start text DEFAULT '08:00',
+    allowed_hours_end text DEFAULT '20:00',
+    max_consecutive_failures integer DEFAULT 5,
+    warmup_enabled boolean DEFAULT false,
+    warmup_daily_increment integer DEFAULT 50,
+    long_pause_every integer DEFAULT 0,
+    long_pause_minutes integer DEFAULT 10,
+    shuffle_contacts boolean DEFAULT false,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -599,6 +611,7 @@ CREATE TABLE IF NOT EXISTS public.campaign_contacts (
     sent_at timestamp with time zone,
     delivered_at timestamp with time zone,
     read_at timestamp with time zone,
+    replied_at timestamp with time zone,
     retry_count integer DEFAULT 0,
     next_retry_at timestamp with time zone,
     last_error text,
@@ -919,10 +932,16 @@ CREATE POLICY "Authenticated users can manage flow edges" ON public.flow_edges F
 -- ---- campaigns ----
 CREATE POLICY "Authenticated users can view campaigns" ON public.campaigns FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "Admins can manage campaigns" ON public.campaigns FOR ALL USING (is_admin_or_manager(auth.uid())) WITH CHECK (is_admin_or_manager(auth.uid()));
+CREATE POLICY "Authenticated users can create campaigns" ON public.campaigns FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update campaigns" ON public.campaigns FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete campaigns" ON public.campaigns FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ---- campaign_contacts ----
 CREATE POLICY "Authenticated users can view campaign contacts" ON public.campaign_contacts FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "Admins can manage campaign contacts" ON public.campaign_contacts FOR ALL USING (is_admin_or_manager(auth.uid())) WITH CHECK (is_admin_or_manager(auth.uid()));
+CREATE POLICY "Authenticated users can insert campaign contacts" ON public.campaign_contacts FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update campaign contacts" ON public.campaign_contacts FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete campaign contacts" ON public.campaign_contacts FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ---- schedules ----
 CREATE POLICY "Authenticated users can view schedules" ON public.schedules FOR SELECT USING (auth.uid() IS NOT NULL);
