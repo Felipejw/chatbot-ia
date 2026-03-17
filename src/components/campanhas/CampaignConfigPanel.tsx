@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Plus, X, Upload, ClipboardPaste, Users, Tag, Image, FileVideo, FileText,
-  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3, Download, Shuffle, Timer, TrendingUp
+  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3, Download, Shuffle, Timer, TrendingUp, Eye, CheckCircle2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -404,11 +404,12 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
       {/* Tabs Content */}
       <Tabs defaultValue="message" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-4 mt-3 grid grid-cols-5 w-auto">
+        <TabsList className="mx-4 mt-3 grid grid-cols-6 w-auto">
           <TabsTrigger value="message" className="text-xs">Mensagem</TabsTrigger>
           <TabsTrigger value="media" className="text-xs">Mídia</TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs">Contatos</TabsTrigger>
           <TabsTrigger value="settings" className="text-xs">Config</TabsTrigger>
+          <TabsTrigger value="review" className="text-xs">Revisão</TabsTrigger>
           <TabsTrigger value="metrics" className="text-xs">Métricas</TabsTrigger>
         </TabsList>
 
@@ -831,6 +832,164 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* Review Tab */}
+          <TabsContent value="review" className="space-y-6 pt-4 mt-0">
+            {/* Message Preview */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-primary" />
+                <Label className="font-medium">Preview da Mensagem</Label>
+              </div>
+              {(() => {
+                const exampleContact = campaignContactsList[0] || { contact_name: "João Silva", contact_phone: "5511999999999" };
+                const substituteVars = (text: string) =>
+                  text.replace(/\{\{nome\}\}/gi, exampleContact.contact_name).replace(/\{\{telefone\}\}/gi, exampleContact.contact_phone || "5511999999999");
+                const mainPreview = substituteVars(message || "(mensagem vazia)");
+                const activeVariations = useVariations ? variations.filter(Boolean) : [];
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-muted rounded-lg p-4 border">
+                      <p className="text-xs text-muted-foreground mb-1">Mensagem principal:</p>
+                      <p className="text-sm whitespace-pre-wrap">{mainPreview}</p>
+                    </div>
+                    {activeVariations.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Variações ativas ({activeVariations.length}):</p>
+                        {activeVariations.slice(0, 3).map((v, i) => (
+                          <div key={i} className="bg-muted/60 rounded-lg p-3 border border-dashed">
+                            <p className="text-xs text-muted-foreground mb-1">Variação {i + 1}:</p>
+                            <p className="text-sm whitespace-pre-wrap">{substituteVars(v)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {mediaType !== "none" && mediaUrl && (
+                      <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3 border">
+                        {mediaType === "image" ? <Image className="w-5 h-5 text-primary" /> : mediaType === "video" ? <FileVideo className="w-5 h-5 text-primary" /> : <FileText className="w-5 h-5 text-primary" />}
+                        <div>
+                          <p className="text-xs text-muted-foreground">Mídia anexada ({mediaType})</p>
+                          <p className="text-xs truncate max-w-[300px]">{mediaUrl}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <Separator />
+
+            {/* Config Summary */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <Label className="font-medium">Resumo da Configuração</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Contatos</p>
+                  <p className="text-lg font-bold">{campaignContactStats.total || contactCount}</p>
+                </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Conexão</p>
+                  <p className="text-sm font-medium truncate">{connections.find(c => c.id === selectedConnectionId)?.name || "Padrão"}</p>
+                </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Intervalo</p>
+                  <p className="text-sm font-medium">{minInterval}s – {maxInterval}s</p>
+                </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Limite Diário</p>
+                  <p className="text-sm font-medium">{dailyLimit} mensagens</p>
+                </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Horário Permitido</p>
+                  <p className="text-sm font-medium">{allowedHoursStart} – {allowedHoursEnd}</p>
+                </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Nível de Risco</p>
+                  <div className="mt-1">{getRiskBadge()}</div>
+                </div>
+              </div>
+
+              {/* Anti-ban summary */}
+              <div className="border rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium">Proteção Anti-Ban</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${useVariations ? "bg-success" : "bg-muted-foreground"}`} />
+                    <span className={useVariations ? "" : "text-muted-foreground"}>Variações de mensagem</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${warmupEnabled ? "bg-success" : "bg-muted-foreground"}`} />
+                    <span className={warmupEnabled ? "" : "text-muted-foreground"}>Aquecimento gradual</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${shuffleContacts ? "bg-success" : "bg-muted-foreground"}`} />
+                    <span className={shuffleContacts ? "" : "text-muted-foreground"}>Ordem aleatória</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${longPauseEvery > 0 ? "bg-success" : "bg-muted-foreground"}`} />
+                    <span className={longPauseEvery > 0 ? "" : "text-muted-foreground"}>Pausas longas</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Time estimate */}
+            {(() => {
+              const total = campaignContactStats.total || contactCount;
+              if (total === 0) return null;
+              const avgInterval = (minInterval + maxInterval) / 2;
+              const totalSeconds = avgInterval * total;
+              const hours = Math.floor(totalSeconds / 3600);
+              const minutes = Math.ceil((totalSeconds % 3600) / 60);
+              const dailyEstimate = dailyLimit > 0 ? Math.ceil(total / dailyLimit) : 1;
+              return (
+                <div className="bg-muted rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <Label className="font-medium">Tempo Estimado</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Tempo de envio</p>
+                      <p className="font-medium">{hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Dias necessários</p>
+                      <p className="font-medium">{dailyEstimate} {dailyEstimate === 1 ? "dia" : "dias"}</p>
+                    </div>
+                  </div>
+                  {scheduleEnabled && scheduledAt && (
+                    <p className="text-xs text-muted-foreground">Agendado para: {new Date(scheduledAt).toLocaleString("pt-BR")}</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Flow / Agent */}
+            {selectedFlowId && selectedFlowId !== "none" && (
+              <div className="border rounded-lg p-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Agente de IA</p>
+                  <p className="text-sm font-medium">{activeFlows.find(f => f.id === selectedFlowId)?.name || "—"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Start button */}
+            {campaign.status === "draft" && (
+              <Button className="w-full" size="lg" onClick={handleStartCampaign} disabled={!message.trim()}>
+                <Play className="w-5 h-5 mr-2" />
+                Iniciar Disparo
+              </Button>
+            )}
           </TabsContent>
 
           {/* Metrics Tab */}
