@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Plus, X, Upload, ClipboardPaste, Users, Tag, Image, FileVideo, FileText,
-  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3, Download, Shuffle, Timer, TrendingUp
+  AlertTriangle, Shield, ShieldCheck, Clock, Save, Loader2, Sparkles, Send, Play, BarChart3, Download, Shuffle, Timer, TrendingUp, Eye, CheckCircle2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
