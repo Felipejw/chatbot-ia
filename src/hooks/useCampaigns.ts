@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { adminWrite } from '@/lib/adminWrite';
 import { toast } from 'sonner';
 
 export interface Campaign {
@@ -152,9 +153,9 @@ export function useCreateCampaign() {
       use_buttons?: boolean; buttons?: Array<{ id: string; text: string }>; min_interval?: number;
       max_interval?: number; template_id?: string; flow_id?: string;
     }) => {
-      const { data, error } = await supabase.from('campaigns').insert(input).select().single();
-      if (error) throw error;
-      return data;
+      const result = await adminWrite({ table: 'campaigns', operation: 'insert', data: input });
+      if (!result || result.length === 0) throw new Error('Falha ao criar campanha');
+      return result[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
