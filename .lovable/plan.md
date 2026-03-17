@@ -1,29 +1,30 @@
 
 
-# Transcrição de áudio para IA + Correção do Follow-Up
+# Preview da Mensagem e Resumo antes de Iniciar o Disparo
 
-## ✅ Concluído
+## Mudanças
 
-### 1. Transcrição de áudio via Gemini
-- **`baileys-webhook`**: Agora passa `messageType` e `mediaUrl` ao `execute-flow`
-- **`execute-flow`**: Nova função `transcribeAudio()` que:
-  1. Baixa o áudio do storage
-  2. Converte para base64
-  3. Envia ao Gemini como input multimodal para transcrição
-  4. Fallback para Lovable AI Gateway
-  5. Se falhar, usa "[O contato enviou um áudio que não pôde ser transcrito]"
+### Nova aba "Revisão" (ou substituir o botão "Iniciar" por um fluxo de revisão)
 
-### 2. Correção do Follow-Up na VPS
-- **`process-follow-ups`**: Logs detalhados (total pending, URL do Supabase)
-- **`deploy/scripts/setup-cron.sh`** (novo): Configura pg_cron na VPS apontando para a URL local
-- **`update-remote.sh`**: Agora chama `setup-cron.sh` automaticamente após deploy
+Adicionar uma **6ª aba "Revisão"** no TabsList que mostra um resumo completo antes de iniciar o disparo:
 
-### 3. Correção: IA ignora prompt atualizado
-- **RESUME path**: Agora relê `chatbot_flows.config` em vez de usar cache do `flow_state`
-- Qualquer edição no prompt aplica imediatamente em conversas ativas
+**Conteúdo da aba Revisão:**
+1. **Preview da mensagem** com variáveis substituídas (`{{nome}}`, `{{telefone}}`) usando dados de um contato exemplo da lista
+2. Se houver variações ativas, mostrar 2-3 exemplos aleatórios de como as mensagens ficariam
+3. Se houver mídia, mostrar thumbnail/nome do arquivo
+4. **Resumo da configuração:**
+   - Total de contatos selecionados
+   - Conexão de envio escolhida
+   - Intervalo entre mensagens
+   - Limite diário / Horário permitido
+   - Aquecimento ativo? Shuffle? Pausas longas?
+   - Nível de risco (badge colorido)
+5. **Tempo estimado** de conclusão baseado no intervalo médio × quantidade de contatos
+6. **Botão "Iniciar Disparo"** no final da revisão (em vez de ficar no header)
 
-### 4. Prevenção de problemas recorrentes
-- **`test-agent`** (nova edge function): Testa agente sem WhatsApp, mostra diagnósticos
-- **`AgentConfigPanel`**: Botão "Testar" abre mini-chat com diagnóstico de config
-- **`execute-flow` RESUME**: Fetch duplicado consolidado (1 query em vez de 3), logs de diagnóstico
-- **Routers**: `test-agent` registrado em `main/index.ts` e `index.ts`
+### Arquivos alterados
+
+| Arquivo | Mudança |
+|---|---|
+| `src/components/campanhas/CampaignConfigPanel.tsx` | Adicionar aba "Revisão" com grid-cols-6, conteúdo de preview com substituição de variáveis, resumo de configs, tempo estimado, e botão de início |
+
