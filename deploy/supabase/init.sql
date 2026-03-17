@@ -932,10 +932,16 @@ CREATE POLICY "Authenticated users can manage flow edges" ON public.flow_edges F
 -- ---- campaigns ----
 CREATE POLICY "Authenticated users can view campaigns" ON public.campaigns FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "Admins can manage campaigns" ON public.campaigns FOR ALL USING (is_admin_or_manager(auth.uid())) WITH CHECK (is_admin_or_manager(auth.uid()));
+CREATE POLICY "Authenticated users can create campaigns" ON public.campaigns FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update campaigns" ON public.campaigns FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete campaigns" ON public.campaigns FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ---- campaign_contacts ----
 CREATE POLICY "Authenticated users can view campaign contacts" ON public.campaign_contacts FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "Admins can manage campaign contacts" ON public.campaign_contacts FOR ALL USING (is_admin_or_manager(auth.uid())) WITH CHECK (is_admin_or_manager(auth.uid()));
+CREATE POLICY "Authenticated users can insert campaign contacts" ON public.campaign_contacts FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update campaign contacts" ON public.campaign_contacts FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete campaign contacts" ON public.campaign_contacts FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- ---- schedules ----
 CREATE POLICY "Authenticated users can view schedules" ON public.schedules FOR SELECT USING (auth.uid() IS NOT NULL);
