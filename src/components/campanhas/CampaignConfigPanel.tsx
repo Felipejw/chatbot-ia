@@ -175,20 +175,21 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
     const loadStats = async () => {
       const { data } = await supabase
         .from("campaign_contacts")
-        .select("id, status, sent_at, last_error, contact:contacts(name, phone)")
+        .select("id, status, sent_at, replied_at, last_error, contact:contacts(name, phone)")
         .eq("campaign_id", campaignId);
       if (!data) return;
-      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,total:data.length};
+      const stats = {pending:0,sent:0,delivered:0,read:0,failed:0,replied:0,total:data.length};
       const list: typeof campaignContactsList = [];
       for (const row of data) {
-        const s = row.status || "pending";
+        const s = (row as any).status || "pending";
         if (s === "pending") stats.pending++;
         else if (s === "sent" || s === "sending") stats.sent++;
         else if (s === "delivered") stats.delivered++;
         else if (s === "read") stats.read++;
         else if (s === "failed") stats.failed++;
-        const c = row.contact as any;
-        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, last_error: row.last_error});
+        if ((row as any).replied_at) stats.replied++;
+        const c = (row as any).contact as any;
+        list.push({id: row.id, contact_name: c?.name || "—", contact_phone: c?.phone, status: s, sent_at: row.sent_at, replied_at: (row as any).replied_at, last_error: row.last_error});
       }
       setCampaignContactStats(stats);
       setCampaignContactsList(list);
