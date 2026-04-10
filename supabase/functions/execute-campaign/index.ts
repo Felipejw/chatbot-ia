@@ -270,14 +270,57 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (existingConv) {
             conversationId = existingConv.id;
+            // Link existing conversation to campaign and activate bot with agent
+            const convUpdate: Record<string, unknown> = { campaign_id: campaign.id };
+            if (campaign.flow_id) {
+              convUpdate.active_flow_id = campaign.flow_id;
+              convUpdate.is_bot_active = true;
+            }
+            await supabase.from("conversations").update(convUpdate).eq("id", conversationId);
           } else {
+            const newConvData: Record<string, unknown> = {
+              contact_id: contact.id,
+              connection_id: connectionId,
+              status: "in_progress",
+              channel: "whatsapp",
+              campaign_id: campaign.id,
+              is_bot_active: !!campaign.flow_id,
+              active_flow_id: campaign.flow_id || null,
+            };
             const { data: newConv, error: newConvError } = await supabase
               .from("conversations")
-              .insert({ contact_id: contact.id, connection_id: connectionId, status: "in_progress", channel: "whatsapp", is_bot_active: false })
+              .insert(newConvData)
               .select("id")
               .single();
             if (newConvError) throw new Error(`Erro ao criar conversa: ${newConvError.message}`);
             conversationId = newConv.id;
+          }
+
+          // If agent is linked, set flow_state so replies go to the agent
+          if (campaign.flow_id) {
+            const { data: agentFlow } = await supabase
+              .from("chatbot_flows")
+              .select("config")
+              .eq("id", campaign.flow_id)
+              .single();
+
+            const agentCfg = agentFlow?.config as any;
+            if (agentCfg?.aiEnabled) {
+              await supabase.from("conversations").update({
+                flow_state: {
+                  flowId: campaign.flow_id,
+                  awaitingAIResponse: true,
+                  currentNodeId: "config-agent",
+                  awaitingMenuResponse: false,
+                  aiNodeData: {
+                    systemPrompt: agentCfg.systemPrompt || "Você é um assistente virtual amigável.",
+                    model: agentCfg.model || "google/gemini-2.5-flash",
+                    temperature: agentCfg.temperature ?? 0.7,
+                    maxTokens: agentCfg.maxTokens || 4096,
+                  },
+                },
+              }).eq("id", conversationId);
+            }
           }
 
           const { error: sendError } = await supabase.functions.invoke("send-whatsapp", {
@@ -286,6 +329,7 @@ const handler = async (req: Request): Promise<Response> => {
               content: messageContent,
               messageType: campaign.media_type && campaign.media_type !== "none" ? campaign.media_type : "text",
               mediaUrl: campaign.media_url || undefined,
+              preserveBotState: true,
             },
           });
 
