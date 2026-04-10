@@ -18,6 +18,7 @@ export function AppLayout() {
   const { theme, setTheme } = useTheme();
   usePresence();
   useFollowUpPoller();
+  useCampaignPoller();
   
   const platformName = getSetting("platform_name") || "WhatzApp IA";
 
