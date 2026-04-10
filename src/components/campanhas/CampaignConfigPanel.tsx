@@ -27,6 +27,7 @@ import { useTags } from "@/hooks/useTags";
 import { useFlows } from "@/hooks/useFlows";
 import { useAuth } from "@/contexts/AuthContext";
 import { CampaignMetricsDashboard } from "./CampaignMetricsDashboard";
+import { CampaignExecutionLog } from "./CampaignExecutionLog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
