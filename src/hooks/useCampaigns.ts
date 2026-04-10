@@ -185,6 +185,21 @@ export function useUpdateCampaign() {
       warmup_daily_increment?: number; long_pause_every?: number; long_pause_minutes?: number; shuffle_contacts?: boolean;
     }) => {
       const result = await adminWrite({ table: 'campaigns', operation: 'update', data: input, filters: { id } });
+
+      // When pausing or completing a campaign, cancel linked pending follow-ups
+      if (input.status === 'paused' || input.status === 'completed') {
+        try {
+          await adminWrite({
+            table: 'follow_ups',
+            operation: 'update',
+            data: { status: 'cancelled', updated_at: new Date().toISOString() },
+            filters: { campaign_id: id, status: 'pending' },
+          });
+        } catch (e) {
+          console.warn('[useCampaigns] Failed to cancel follow-ups on campaign pause:', e);
+        }
+      }
+
       return result;
     },
     onSuccess: () => {

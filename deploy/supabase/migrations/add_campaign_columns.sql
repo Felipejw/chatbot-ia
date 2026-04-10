@@ -61,3 +61,10 @@ END $$;
 -- Índices úteis
 CREATE INDEX IF NOT EXISTS idx_campaigns_connection_id ON public.campaigns USING btree (connection_id);
 CREATE INDEX IF NOT EXISTS idx_campaigns_flow_id ON public.campaigns USING btree (flow_id);
+
+-- Vínculo campanha-conversa e campanha-follow_up
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS campaign_id uuid REFERENCES public.campaigns(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_conversations_campaign_id ON public.conversations USING btree (campaign_id);
+
+ALTER TABLE public.follow_ups ADD COLUMN IF NOT EXISTS campaign_id uuid REFERENCES public.campaigns(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_follow_ups_campaign_id ON public.follow_ups USING btree (campaign_id);
