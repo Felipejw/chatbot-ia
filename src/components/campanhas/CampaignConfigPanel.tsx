@@ -991,9 +991,12 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
 
           {/* Metrics Tab */}
           <TabsContent value="metrics" className="space-y-6 pt-4 mt-0">
-            {/* Campaign-specific stats */}
+            {/* Real-time execution log */}
+            <CampaignExecutionLog campaignId={campaignId} campaignStatus={campaign.status} />
+
+            {/* CSV Export */}
             <div className="flex items-center justify-between">
-              <Label className="font-medium">Resumo</Label>
+              <Label className="font-medium">Contatos ({campaignContactsList.length})</Label>
               <Button variant="outline" size="sm" onClick={() => {
                 if (campaignContactsList.length === 0) return;
                 const headers = ["Nome","Telefone","Status","Enviada em","Respondida em","Erro"];
@@ -1015,69 +1018,36 @@ export function CampaignConfigPanel({ campaignId }: CampaignConfigPanelProps) {
                 <Download className="w-4 h-4 mr-1" />Exportar CSV
               </Button>
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: "Pendentes", value: campaignContactStats.pending, color: "text-muted-foreground" },
-                { label: "Enviadas", value: campaignContactStats.sent, color: "text-primary" },
-                { label: "Entregues", value: campaignContactStats.delivered, color: "text-blue-500" },
-                { label: "Lidas", value: campaignContactStats.read, color: "text-success" },
-                { label: "Respondidas", value: campaignContactStats.replied, color: "text-emerald-600" },
-                { label: "Falhas", value: campaignContactStats.failed, color: "text-destructive" },
-                { label: "Total", value: campaignContactStats.total, color: "text-foreground" },
-                { label: "Taxa Resposta", value: campaignContactStats.total > 0 ? `${Math.round((campaignContactStats.replied / campaignContactStats.total) * 100)}%` : "0%", color: "text-emerald-600" },
-              ].map((stat) => (
-                <div key={stat.label} className="border rounded-lg p-3 text-center">
-                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Progress bar */}
-            {campaignContactStats.total > 0 && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progresso</span>
-                  <span>{Math.round(((campaignContactStats.sent + campaignContactStats.delivered + campaignContactStats.read) / campaignContactStats.total) * 100)}%</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
-                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${((campaignContactStats.sent + campaignContactStats.delivered + campaignContactStats.read) / campaignContactStats.total) * 100}%` }} />
-                </div>
-              </div>
-            )}
 
             {/* Contact list with status */}
-            <div className="space-y-2">
-              <Label className="font-medium">Contatos ({campaignContactsList.length})</Label>
-              {campaignContactsList.length === 0 ? (
-                <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Nenhum contato adicionado ainda</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[300px] border rounded-lg">
-                  <div className="divide-y">
-                    {campaignContactsList.map((cc) => (
-                      <div key={cc.id} className="flex items-center justify-between p-3">
-                        <div>
-                          <p className="text-sm font-medium">{cc.contact_name}</p>
-                          <p className="text-xs text-muted-foreground">{cc.contact_phone || "—"}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={cc.status === "sent" || cc.status === "delivered" || cc.status === "read" ? "default" : cc.status === "failed" ? "destructive" : "secondary"} className="text-xs">
-                            {cc.status === "pending" ? "Pendente" : cc.status === "sending" ? "Enviando" : cc.status === "sent" ? "Enviada" : cc.status === "delivered" ? "Entregue" : cc.status === "read" ? "Lida" : "Falha"}
-                          </Badge>
-                          {cc.replied_at && (
-                            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600 ml-1">Respondida</Badge>
-                          )}
-                          {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
-                        </div>
+            {campaignContactsList.length === 0 ? (
+              <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum contato adicionado ainda</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[300px] border rounded-lg">
+                <div className="divide-y">
+                  {campaignContactsList.map((cc) => (
+                    <div key={cc.id} className="flex items-center justify-between p-3">
+                      <div>
+                        <p className="text-sm font-medium">{cc.contact_name}</p>
+                        <p className="text-xs text-muted-foreground">{cc.contact_phone || "—"}</p>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </div>
+                      <div className="text-right">
+                        <Badge variant={cc.status === "sent" || cc.status === "delivered" || cc.status === "read" ? "default" : cc.status === "failed" ? "destructive" : "secondary"} className="text-xs">
+                          {cc.status === "pending" ? "Pendente" : cc.status === "sending" ? "Enviando" : cc.status === "sent" ? "Enviada" : cc.status === "delivered" ? "Entregue" : cc.status === "read" ? "Lida" : "Falha"}
+                        </Badge>
+                        {cc.replied_at && (
+                          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-600 ml-1">Respondida</Badge>
+                        )}
+                        {cc.last_error && <p className="text-xs text-destructive mt-1 max-w-[200px] truncate">{cc.last_error}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </TabsContent>
         </ScrollArea>
       </Tabs>
