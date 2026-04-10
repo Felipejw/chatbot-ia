@@ -44,7 +44,7 @@ export interface CampaignContact {
   id: string;
   campaign_id: string;
   contact_id: string;
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed' | 'replied';
+  status: 'pending' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | 'replied';
   sent_at: string | null;
   delivered_at: string | null;
   read_at: string | null;

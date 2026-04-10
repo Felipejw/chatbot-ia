@@ -96,12 +96,15 @@ export function useUpdateFlow() {
       description?: string;
       is_active?: boolean;
     }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("chatbot_flows" as any)
         .update(data)
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
+      return updated as unknown as ChatbotFlow;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["chatbot-flows"] });
