@@ -786,7 +786,7 @@ const handler = async (req: Request): Promise<Response> => {
                 isNewConversation,
                 baileysMessageId: messageId,
               }),
-            });
+            }).finally(() => clearTimeout(flowTimeout));
           } catch (flowError) {
             console.error("[Baileys Webhook] Error triggering flow:", flowError);
           }
