@@ -1476,11 +1476,19 @@ export type Database = {
         Args: { campaign_id: string }
         Returns: undefined
       }
+      increment_campaign_failed: {
+        Args: { campaign_id: string }
+        Returns: undefined
+      }
       increment_campaign_read: {
         Args: { campaign_id: string; was_delivered?: boolean }
         Returns: undefined
       }
       increment_campaign_replied: {
+        Args: { campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_sent: {
         Args: { campaign_id: string }
         Returns: undefined
       }
