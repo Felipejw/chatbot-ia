@@ -566,6 +566,7 @@ const handler = async (req: Request): Promise<Response> => {
               closing_message: followUp.closing_message,
               step_intervals: followUp.step_intervals,
               stop_on_human_assign: followUp.stop_on_human_assign,
+              campaign_id: (followUp as any).campaign_id || null,
             });
           } else {
             // Last step — execute final action
