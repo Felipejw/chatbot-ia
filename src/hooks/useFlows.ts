@@ -103,8 +103,9 @@ export function useUpdateFlow() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["chatbot-flows"] });
+      queryClient.invalidateQueries({ queryKey: ["chatbot-flow", variables.id] });
     },
     onError: (error: Error) => {
       toast.error("Erro ao atualizar agente: " + error.message);

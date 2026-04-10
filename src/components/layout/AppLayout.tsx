@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { usePresence } from "@/hooks/usePresence";
 import { useFollowUpPoller } from "@/hooks/useFollowUpPoller";
+import { useCampaignPoller } from "@/hooks/useCampaignPoller";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
