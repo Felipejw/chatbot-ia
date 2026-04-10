@@ -744,29 +744,49 @@ const handler = async (req: Request): Promise<Response> => {
 
       // ---- Trigger chatbot flow (only for incoming messages, not fromMe) ----
       if (!isFromMe && conversation.is_bot_active) {
-        try {
-          console.log("[Baileys Webhook] Triggering execute-flow for conversation:", conversation.id);
-          const flowUrl = `${supabaseUrl}/functions/v1/execute-flow`;
-          await fetch(flowUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${supabaseKey}`,
-            },
-            body: JSON.stringify({
-              conversationId: conversation.id,
-              contactId: contact.id,
-              message: messageContent,
-              messageType: msgType,
-              mediaUrl: mediaUrl || null,
-              connectionId: connection.id,
-              isNewConversation,
-              baileysMessageId: messageId,
-            }),
-          });
-        } catch (flowError) {
-          console.error("[Baileys Webhook] Error triggering flow:", flowError);
-          // Don't fail the webhook because of flow errors
+        // Check if the linked agent is still active before calling execute-flow
+        let shouldTrigger = true;
+        if (conversation.active_flow_id) {
+          const { data: agentCheck } = await supabaseClient
+            .from("chatbot_flows")
+            .select("is_active")
+            .eq("id", conversation.active_flow_id)
+            .single();
+          if (agentCheck && agentCheck.is_active === false) {
+            console.log("[Baileys Webhook] Agent", conversation.active_flow_id, "is deactivated, clearing state");
+            await supabaseClient.from("conversations").update({
+              flow_state: null,
+              active_flow_id: null,
+              is_bot_active: false,
+            }).eq("id", conversation.id);
+            shouldTrigger = false;
+          }
+        }
+
+        if (shouldTrigger) {
+          try {
+            console.log("[Baileys Webhook] Triggering execute-flow for conversation:", conversation.id);
+            const flowUrl = `${supabaseUrl}/functions/v1/execute-flow`;
+            await fetch(flowUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                conversationId: conversation.id,
+                contactId: contact.id,
+                message: messageContent,
+                messageType: msgType,
+                mediaUrl: mediaUrl || null,
+                connectionId: connection.id,
+                isNewConversation,
+                baileysMessageId: messageId,
+              }),
+            });
+          } catch (flowError) {
+            console.error("[Baileys Webhook] Error triggering flow:", flowError);
+          }
         }
       }
 

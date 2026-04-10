@@ -365,14 +365,18 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`[send-whatsapp] Message saved: ${savedMessage.id}`);
     }
 
-    // 8. Update conversation
+    // 8. Update conversation (preserve bot state if called from campaign/bot context)
+    const preserveBotState = payload.preserveBotState === true;
+    const convUpdate: Record<string, unknown> = {
+      last_message_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (!preserveBotState) {
+      convUpdate.is_bot_active = false;
+    }
     await supabaseAdmin
       .from("conversations")
-      .update({
-        last_message_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_bot_active: false,
-      })
+      .update(convUpdate)
       .eq("id", conversationId);
 
     return new Response(

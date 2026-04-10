@@ -395,6 +395,22 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        // Check campaign status — cancel if campaign is paused/completed
+        const campaignId = (followUp as any).campaign_id || conversation.campaign_id;
+        if (campaignId) {
+          const { data: campaign } = await supabase
+            .from("campaigns")
+            .select("status")
+            .eq("id", campaignId)
+            .single();
+
+          if (campaign && (campaign.status === "paused" || campaign.status === "completed")) {
+            console.log(`[FollowUp] Campaign ${campaignId} is ${campaign.status}, cancelling follow-up ${followUp.id}`);
+            await supabase.from("follow_ups").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", followUp.id);
+            continue;
+          }
+        }
+
         // Check stop_on_human_assign
         if (followUp.stop_on_human_assign && conversation.assigned_to && !conversation.is_bot_active) {
           await supabase.from("follow_ups").update({ status: "cancelled" }).eq("id", followUp.id);
@@ -550,6 +566,7 @@ const handler = async (req: Request): Promise<Response> => {
               closing_message: followUp.closing_message,
               step_intervals: followUp.step_intervals,
               stop_on_human_assign: followUp.stop_on_human_assign,
+              campaign_id: (followUp as any).campaign_id || null,
             });
           } else {
             // Last step — execute final action

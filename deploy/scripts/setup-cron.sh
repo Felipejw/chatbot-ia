@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # ============================================
-# Configuração do Cron Job para Follow-Ups
-# Executa process-follow-ups a cada minuto via pg_cron
+# Configuração dos Cron Jobs
+# 1. process-follow-ups - a cada minuto
+# 2. execute-campaign - a cada minuto
 # ============================================
 
 set -e
@@ -47,27 +48,40 @@ if [ -z "$POSTGRES_PASSWORD" ]; then
     exit 1
 fi
 
-log_info "Configurando cron job para follow-ups..."
-log_info "URL interna: ${INTERNAL_URL}/functions/v1/process-follow-ups"
+log_info "Configurando cron jobs..."
+log_info "URL interna: ${INTERNAL_URL}/functions/v1/..."
 
-# SQL para criar/atualizar o cron job
+# SQL para criar/atualizar os cron jobs
 CRON_SQL="
 -- Habilitar extensões necessárias
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- Remover job anterior se existir
+-- Remover jobs anteriores se existirem
 SELECT cron.unschedule(jobid)
 FROM cron.job
-WHERE jobname = 'process-follow-ups';
+WHERE jobname IN ('process-follow-ups', 'execute-campaign');
 
--- Criar novo job: a cada minuto (usa URL interna Docker + service_role_key)
+-- Job 1: process-follow-ups a cada minuto
 SELECT cron.schedule(
   'process-follow-ups',
   '* * * * *',
   \$\$
   SELECT net.http_post(
     url := '${INTERNAL_URL}/functions/v1/process-follow-ups',
+    headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${SERVICE_ROLE_KEY}\"}'::jsonb,
+    body := concat('{\"time\": \"', now(), '\"}')::jsonb
+  ) AS request_id;
+  \$\$
+);
+
+-- Job 2: execute-campaign a cada minuto
+SELECT cron.schedule(
+  'execute-campaign',
+  '* * * * *',
+  \$\$
+  SELECT net.http_post(
+    url := '${INTERNAL_URL}/functions/v1/execute-campaign',
     headers := '{\"Content-Type\": \"application/json\", \"Authorization\": \"Bearer ${SERVICE_ROLE_KEY}\"}'::jsonb,
     body := concat('{\"time\": \"', now(), '\"}')::jsonb
   ) AS request_id;
@@ -93,4 +107,5 @@ else
 fi
 
 log_success "Cron job 'process-follow-ups' configurado (a cada minuto)"
-log_info "URL: ${INTERNAL_URL}/functions/v1/process-follow-ups (rede interna Docker)"
+log_success "Cron job 'execute-campaign' configurado (a cada minuto)"
+log_info "URL: ${INTERNAL_URL}/functions/v1/... (rede interna Docker)"

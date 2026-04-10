@@ -1840,6 +1840,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     // === CASE 1: Resume from pending state ===
     if (flowState) {
+      // Check if the referenced agent is still active before resuming
+      const { data: agentFlow } = await supabase
+        .from("chatbot_flows")
+        .select("is_active")
+        .eq("id", flowState.flowId)
+        .single();
+
+      if (agentFlow && agentFlow.is_active === false) {
+        console.log("[FlowExecutor] Agent", flowState.flowId, "was deactivated. Clearing flow state.");
+        await supabase.from("conversations").update({
+          flow_state: null,
+          active_flow_id: null,
+          is_bot_active: false,
+        }).eq("id", conversationId);
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "agent_deactivated" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       console.log("[FlowExecutor] Resuming from flow state:", { flowId: flowState.flowId, awaitingMenu: flowState.awaitingMenuResponse, awaitingAI: flowState.awaitingAIResponse, awaitingSchedule: flowState.awaitingScheduleResponse });
 
       // Load flow nodes and edges
@@ -1988,6 +2007,7 @@ const handler = async (req: Request): Promise<Response> => {
               follow_up_temperature: cfg.followUpTemperature ?? 0.8,
               stop_on_human_assign: cfg.followUpStopOnHumanAssign ?? true,
               closing_message: cfg.followUpClosingMessage || null,
+              campaign_id: conversation.campaign_id || null,
             });
             if (fuInsertErr) {
               console.error("[FlowExecutor] Error inserting follow-up:", fuInsertErr);
@@ -2218,6 +2238,7 @@ const handler = async (req: Request): Promise<Response> => {
               follow_up_temperature: cfg.followUpTemperature ?? 0.8,
               stop_on_human_assign: cfg.followUpStopOnHumanAssign ?? true,
               closing_message: cfg.followUpClosingMessage || null,
+              campaign_id: conversation.campaign_id || null,
             });
             if (fuInsertErr) {
               console.error("[FlowExecutor] Error inserting follow-up:", fuInsertErr);
