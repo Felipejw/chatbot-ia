@@ -606,6 +606,7 @@ export type Database = {
         Row: {
           active_flow_id: string | null
           assigned_to: string | null
+          campaign_id: string | null
           channel: string | null
           connection_id: string | null
           contact_id: string
@@ -625,6 +626,7 @@ export type Database = {
         Insert: {
           active_flow_id?: string | null
           assigned_to?: string | null
+          campaign_id?: string | null
           channel?: string | null
           connection_id?: string | null
           contact_id: string
@@ -644,6 +646,7 @@ export type Database = {
         Update: {
           active_flow_id?: string | null
           assigned_to?: string | null
+          campaign_id?: string | null
           channel?: string | null
           connection_id?: string | null
           contact_id?: string
@@ -666,6 +669,13 @@ export type Database = {
             columns: ["active_flow_id"]
             isOneToOne: false
             referencedRelation: "chatbot_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
           {
@@ -790,6 +800,7 @@ export type Database = {
           allowed_days: string[] | null
           allowed_hours_end: string | null
           allowed_hours_start: string | null
+          campaign_id: string | null
           closing_message: string | null
           connection_id: string | null
           contact_id: string
@@ -821,6 +832,7 @@ export type Database = {
           allowed_days?: string[] | null
           allowed_hours_end?: string | null
           allowed_hours_start?: string | null
+          campaign_id?: string | null
           closing_message?: string | null
           connection_id?: string | null
           contact_id: string
@@ -852,6 +864,7 @@ export type Database = {
           allowed_days?: string[] | null
           allowed_hours_end?: string | null
           allowed_hours_start?: string | null
+          campaign_id?: string | null
           closing_message?: string | null
           connection_id?: string | null
           contact_id?: string
@@ -880,6 +893,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "follow_ups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "follow_ups_connection_id_fkey"
             columns: ["connection_id"]
