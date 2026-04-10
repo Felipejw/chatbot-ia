@@ -2007,6 +2007,7 @@ const handler = async (req: Request): Promise<Response> => {
               follow_up_temperature: cfg.followUpTemperature ?? 0.8,
               stop_on_human_assign: cfg.followUpStopOnHumanAssign ?? true,
               closing_message: cfg.followUpClosingMessage || null,
+              campaign_id: conversation.campaign_id || null,
             });
             if (fuInsertErr) {
               console.error("[FlowExecutor] Error inserting follow-up:", fuInsertErr);
