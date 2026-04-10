@@ -553,7 +553,14 @@ const handler = async (req: Request): Promise<Response> => {
             if (followUp.final_action === "close") {
               // Send closing message if configured
               if (followUp.closing_message) {
-                await sendWhatsAppMessage(baileysConfig, formattedPhone, followUp.closing_message);
+                await sendMessage({
+                  connection: activeConnection,
+                  phoneToSend,
+                  content: followUp.closing_message,
+                  messageType: "text",
+                  supabaseAdmin: supabase,
+                  isLidSend,
+                });
                 await supabase.from("messages").insert({
                   conversation_id: followUp.conversation_id,
                   content: followUp.closing_message,
