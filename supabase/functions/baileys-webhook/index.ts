@@ -767,7 +767,10 @@ const handler = async (req: Request): Promise<Response> => {
           try {
             console.log("[Baileys Webhook] Triggering execute-flow for conversation:", conversation.id);
             const flowUrl = `${supabaseUrl}/functions/v1/execute-flow`;
+            const flowAbort = new AbortController();
+            const flowTimeout = setTimeout(() => flowAbort.abort(), 25000);
             await fetch(flowUrl, {
+              signal: flowAbort.signal,
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -783,7 +786,7 @@ const handler = async (req: Request): Promise<Response> => {
                 isNewConversation,
                 baileysMessageId: messageId,
               }),
-            });
+            }).finally(() => clearTimeout(flowTimeout));
           } catch (flowError) {
             console.error("[Baileys Webhook] Error triggering flow:", flowError);
           }

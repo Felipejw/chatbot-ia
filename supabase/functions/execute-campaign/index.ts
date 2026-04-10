@@ -25,6 +25,13 @@ interface CampaignResult {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Get current time in Brazil timezone (BRT = UTC-3)
+function getBrazilTime(): Date {
+  const now = new Date();
+  const brasilOffset = -3 * 60; // -3 hours in minutes
+  return new Date(now.getTime() + (brasilOffset + now.getTimezoneOffset()) * 60000);
+}
+
 function substituteVariables(message: string, contact: { name?: string; phone?: string }): string {
   let result = message;
   result = result.replace(/\{\{nome\}\}/gi, contact.name || "Cliente");
@@ -54,7 +61,7 @@ function normalizeDestination(value: string | null | undefined): string | null {
 }
 
 function isWithinAllowedHours(start: string, end: string): boolean {
-  const now = new Date();
+  const now = getBrazilTime();
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   return currentTime >= start && currentTime <= end;
 }
@@ -70,6 +77,19 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("[execute-campaign] Starting campaign execution...");
+
+    // --- Recovery: Reset stuck "sending" contacts (older than 10 minutes) ---
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: stuckContacts } = await supabase
+      .from("campaign_contacts")
+      .update({ status: "pending", last_error: "Recuperado de status sending travado" })
+      .eq("status", "sending")
+      .lt("created_at", tenMinutesAgo)
+      .select("id");
+    
+    if (stuckContacts && stuckContacts.length > 0) {
+      console.log(`[execute-campaign] Recovered ${stuckContacts.length} stuck contacts from 'sending' status`);
+    }
 
     const { data: campaigns, error: campError } = await supabase
       .from("campaigns")
@@ -107,26 +127,31 @@ const handler = async (req: Request): Promise<Response> => {
         completed: false,
       };
 
-      // --- Anti-ban: Check allowed hours ---
+      // --- Anti-ban: Check allowed hours (using Brazil time) ---
       const hoursStart = campaign.allowed_hours_start || "08:00";
       const hoursEnd = campaign.allowed_hours_end || "20:00";
       if (!isWithinAllowedHours(hoursStart, hoursEnd)) {
-        console.log(`[execute-campaign] Campaign ${campaign.name} outside allowed hours (${hoursStart}-${hoursEnd}), skipping`);
-        campResult.skipped_reason = `Fora do horário permitido (${hoursStart}-${hoursEnd})`;
+        console.log(`[execute-campaign] Campaign ${campaign.name} outside allowed hours (${hoursStart}-${hoursEnd} BRT), skipping`);
+        campResult.skipped_reason = `Fora do horário permitido (${hoursStart}-${hoursEnd} BRT)`;
         results.push(campResult);
         continue;
       }
 
-      // --- Anti-ban: Check daily limit ---
+      // --- Anti-ban: Check daily limit (using Brazil date) ---
       const dailyLimit = campaign.daily_limit || 200;
-      const todayStart = new Date();
+      const brazilNow = getBrazilTime();
+      const todayStart = new Date(brazilNow);
       todayStart.setHours(0, 0, 0, 0);
+      // Convert BRT midnight back to UTC for query
+      const brasilOffset = -3 * 60;
+      const todayStartUTC = new Date(todayStart.getTime() - (brasilOffset + new Date().getTimezoneOffset()) * 60000);
+      
       const { count: sentToday } = await supabase
         .from("campaign_contacts")
         .select("id", { count: "exact", head: true })
         .eq("campaign_id", campaign.id)
         .in("status", ["sent", "delivered", "read"])
-        .gte("sent_at", todayStart.toISOString());
+        .gte("sent_at", todayStartUTC.toISOString());
 
       if ((sentToday || 0) >= dailyLimit) {
         console.log(`[execute-campaign] Campaign ${campaign.name} reached daily limit (${sentToday}/${dailyLimit}), skipping`);
@@ -392,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
             throw new Error(sendResult.error || "Erro ao enviar mensagem");
           }
 
-          // --- Save message to DB (like send-whatsapp does) ---
+          // --- Save message to DB ---
           await supabase.from("messages").insert({
             conversation_id: conversationId,
             content: messageContent,
@@ -402,7 +427,7 @@ const handler = async (req: Request): Promise<Response> => {
             is_read: true,
           });
 
-          // --- Update conversation timestamp (preserve bot state) ---
+          // --- Update conversation timestamp ---
           await supabase.from("conversations").update({
             last_message_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -413,10 +438,8 @@ const handler = async (req: Request): Promise<Response> => {
             .update({ status: "sent", sent_at: new Date().toISOString(), last_error: null })
             .eq("id", pc.id);
 
-          await supabase
-            .from("campaigns")
-            .update({ sent_count: (campaign.sent_count || 0) + campResult.sent + 1, updated_at: new Date().toISOString() })
-            .eq("id", campaign.id);
+          // --- Atomic counter increment (no race condition) ---
+          await supabase.rpc("increment_campaign_sent", { campaign_id: campaign.id });
 
           campResult.sent++;
           consecutiveFailures = 0;
@@ -454,10 +477,8 @@ const handler = async (req: Request): Promise<Response> => {
               .from("campaign_contacts")
               .update({ status: "failed", retry_count: retryCount, next_retry_at: null, last_error: `Falha após ${maxRetries} tentativas: ${errorMsg}` })
               .eq("id", pc.id);
-            await supabase
-              .from("campaigns")
-              .update({ failed_count: (campaign.failed_count || 0) + 1, updated_at: new Date().toISOString() })
-              .eq("id", campaign.id);
+            // --- Atomic counter increment for failures ---
+            await supabase.rpc("increment_campaign_failed", { campaign_id: campaign.id });
             campResult.failed++;
           }
         }

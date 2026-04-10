@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { sendMessage, resolveConnection } from "../_shared/send-message.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -432,47 +432,23 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Priority: followUp.connection_id > conversation.connections > default connection
-        let activeConnection = null;
-        
-        // 1. Try the connection saved directly on the follow-up record
-        if (followUp.connection_id) {
-          const { data: fuConn } = await supabase
-            .from("connections")
-            .select("*")
-            .eq("id", followUp.connection_id)
-            .maybeSingle();
-          if (fuConn && fuConn.status === "connected") {
-            activeConnection = fuConn;
-            console.log(`[FollowUp] Using follow-up's own connection: ${fuConn.name} (${fuConn.id})`);
-          }
-        }
-        
-        // 2. Fallback to conversation's connection
-        if (!activeConnection && connection) {
-          activeConnection = connection;
-          console.log(`[FollowUp] Using conversation's connection: ${connection.name} (${connection.id})`);
-        }
-        
-        // 3. Last resort: default connection
+        // Resolve connection: followUp.connection_id > conversation connection > default
+        const activeConnection = await resolveConnection(
+          supabase,
+          followUp.connection_id || conversation?.connection_id || null
+        );
+
         if (!activeConnection) {
-          const { data: defaultConn } = await supabase
-            .from("connections")
-            .select("*")
-            .eq("is_default", true)
-            .eq("status", "connected")
-            .maybeSingle();
-          activeConnection = defaultConn;
-          if (defaultConn) console.log(`[FollowUp] Using default connection: ${defaultConn.name} (${defaultConn.id})`);
+          console.warn(`[FollowUp] No active connection for follow-up ${followUp.id}`);
+          continue;
         }
 
-        if (!activeConnection) continue;
+        const contactPhone = contact.phone;
+        const contactLid = contact.whatsapp_lid;
+        const isLidSend = !contactPhone && !!contactLid;
+        const phoneToSend = contactPhone || contactLid;
 
-        const baileysConfig = await loadBaileysConfig(supabase, activeConnection);
-        if (!baileysConfig) continue;
-
-        const { formattedPhone } = formatPhoneForBaileys(contact.phone, contact.whatsapp_lid);
-        if (!formattedPhone) {
+        if (!phoneToSend) {
           await supabase.from("follow_ups").update({ status: "cancelled" }).eq("id", followUp.id);
           continue;
         }
@@ -510,15 +486,19 @@ const handler = async (req: Request): Promise<Response> => {
         const stepMediaUrl = stepConfig?.mediaUrl;
         const stepMediaType = stepConfig?.mediaType;
         const hasMedia = stepMode === "fixed" && stepMediaUrl && stepMediaType && stepMediaType !== "none";
-
-        let sent: boolean;
-        if (hasMedia) {
-          sent = await sendWhatsAppMedia(baileysConfig, formattedPhone, stepMediaUrl, stepMediaType, messageContent);
-        } else {
-          sent = await sendWhatsAppMessage(baileysConfig, formattedPhone, messageContent);
-        }
-
         const msgType = hasMedia ? stepMediaType : "text";
+
+        const sendResult = await sendMessage({
+          connection: activeConnection,
+          phoneToSend,
+          content: messageContent,
+          messageType: msgType,
+          mediaUrl: hasMedia ? stepMediaUrl : undefined,
+          supabaseAdmin: supabase,
+          isLidSend,
+        });
+
+        const sent = sendResult.success;
 
         if (sent) {
           await supabase.from("messages").insert({
@@ -573,7 +553,14 @@ const handler = async (req: Request): Promise<Response> => {
             if (followUp.final_action === "close") {
               // Send closing message if configured
               if (followUp.closing_message) {
-                await sendWhatsAppMessage(baileysConfig, formattedPhone, followUp.closing_message);
+                await sendMessage({
+                  connection: activeConnection,
+                  phoneToSend,
+                  content: followUp.closing_message,
+                  messageType: "text",
+                  supabaseAdmin: supabase,
+                  isLidSend,
+                });
                 await supabase.from("messages").insert({
                   conversation_id: followUp.conversation_id,
                   content: followUp.closing_message,
