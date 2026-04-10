@@ -1,10 +1,10 @@
 // ===========================================
 // Execute Campaign - Disparo de campanhas em massa
-// Suporta variações, intervalos, retry com backoff
-// Anti-ban: daily_limit, allowed_hours, consecutive failures
+// Usa envio direto (sem HTTP loopback) para evitar deadlock na VPS
 // ===========================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendMessage, resolveConnection } from "../_shared/send-message.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,23 +138,16 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`[execute-campaign] Warmup: day ${daysSinceCreation + 1}, limit ${warmupLimit}, effective ${effectiveLimit}`);
       }
 
-      // --- Determine connection ---
-      let connectionId = campaign.connection_id;
-      if (!connectionId) {
-        const { data: connections } = await supabase
-          .from("connections")
-          .select("id")
-          .eq("status", "connected")
-          .limit(1);
-        if (!connections || connections.length === 0) {
-          console.warn("[execute-campaign] No active WhatsApp connections");
-          campResult.skipped_reason = "Nenhuma conexão WhatsApp ativa";
-          results.push(campResult);
-          continue;
-        }
-        connectionId = connections[0].id;
+      // --- Determine connection (direct, no HTTP) ---
+      const connection = await resolveConnection(supabase, campaign.connection_id);
+      if (!connection) {
+        console.warn("[execute-campaign] No active WhatsApp connections");
+        campResult.skipped_reason = "Nenhuma conexão WhatsApp ativa";
+        results.push(campResult);
+        continue;
       }
 
+      console.log(`[execute-campaign] Using connection: ${connection.id} (${connection.name})`);
       console.log(`[execute-campaign] Processing campaign: ${campaign.name} (${campaign.id})`);
 
       const now = new Date().toISOString();
@@ -237,6 +230,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         campResult.processed++;
+        // deno-lint-ignore no-explicit-any
         const contact = pc.contacts as any;
         if (!contact || (!contact.phone && !contact.whatsapp_lid)) {
           console.warn(`[execute-campaign] Contact ${pc.contact_id} has no phone`);
@@ -259,6 +253,7 @@ const handler = async (req: Request): Promise<Response> => {
         try {
           await supabase.from("campaign_contacts").update({ status: "sending" }).eq("id", pc.id);
 
+          // --- Resolve or create conversation ---
           let conversationId: string | null = null;
           const { data: existingConv } = await supabase
             .from("conversations")
@@ -270,7 +265,6 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (existingConv) {
             conversationId = existingConv.id;
-            // Link existing conversation to campaign and activate bot with agent
             const convUpdate: Record<string, unknown> = { campaign_id: campaign.id };
             if (campaign.flow_id) {
               convUpdate.active_flow_id = campaign.flow_id;
@@ -280,7 +274,7 @@ const handler = async (req: Request): Promise<Response> => {
           } else {
             const newConvData: Record<string, unknown> = {
               contact_id: contact.id,
-              connection_id: connectionId,
+              connection_id: connection.id,
               status: "in_progress",
               channel: "whatsapp",
               campaign_id: campaign.id,
@@ -296,7 +290,7 @@ const handler = async (req: Request): Promise<Response> => {
             conversationId = newConv.id;
           }
 
-          // If agent is linked, set flow_state so replies go to the agent
+          // If agent is linked, set flow_state
           if (campaign.flow_id) {
             const { data: agentFlow } = await supabase
               .from("chatbot_flows")
@@ -304,6 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
               .eq("id", campaign.flow_id)
               .single();
 
+            // deno-lint-ignore no-explicit-any
             const agentCfg = agentFlow?.config as any;
             if (agentCfg?.aiEnabled) {
               await supabase.from("conversations").update({
@@ -323,17 +318,47 @@ const handler = async (req: Request): Promise<Response> => {
             }
           }
 
-          const { error: sendError } = await supabase.functions.invoke("send-whatsapp", {
-            body: {
-              conversationId,
-              content: messageContent,
-              messageType: campaign.media_type && campaign.media_type !== "none" ? campaign.media_type : "text",
-              mediaUrl: campaign.media_url || undefined,
-              preserveBotState: true,
-            },
+          // --- DIRECT SEND (no HTTP loopback) ---
+          const contactPhone = contact.phone;
+          const contactLid = contact.whatsapp_lid;
+          const isLidSend = !contactPhone && !!contactLid;
+          const phoneToSend = contactPhone || contactLid;
+
+          if (!phoneToSend) {
+            throw new Error("Contato sem telefone ou LID");
+          }
+
+          const msgType = campaign.media_type && campaign.media_type !== "none" ? campaign.media_type : "text";
+
+          const sendResult = await sendMessage({
+            connection,
+            phoneToSend,
+            content: messageContent,
+            messageType: msgType,
+            mediaUrl: campaign.media_url || undefined,
+            supabaseAdmin: supabase,
+            isLidSend,
           });
 
-          if (sendError) throw new Error(sendError.message || "Erro ao enviar mensagem");
+          if (!sendResult.success) {
+            throw new Error(sendResult.error || "Erro ao enviar mensagem");
+          }
+
+          // --- Save message to DB (like send-whatsapp does) ---
+          await supabase.from("messages").insert({
+            conversation_id: conversationId,
+            content: messageContent,
+            sender_type: "agent",
+            message_type: msgType,
+            media_url: campaign.media_url || null,
+            is_read: true,
+          });
+
+          // --- Update conversation timestamp (preserve bot state) ---
+          await supabase.from("conversations").update({
+            last_message_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", conversationId);
 
           await supabase
             .from("campaign_contacts")
@@ -346,12 +371,11 @@ const handler = async (req: Request): Promise<Response> => {
             .eq("id", campaign.id);
 
           campResult.sent++;
-          consecutiveFailures = 0; // Reset on success
+          consecutiveFailures = 0;
           messagesSentInBatch++;
-          console.log(`[execute-campaign] Sent to ${contact.name || contact.phone}`);
+          console.log(`[execute-campaign] ✅ Sent to ${contact.name || contact.phone}`);
 
           if (campResult.processed < contactsToProcess.length) {
-            // Long pause check
             if (longPauseEvery > 0 && messagesSentInBatch > 0 && messagesSentInBatch % longPauseEvery === 0) {
               const longPauseMs = longPauseMinutes * 60 * 1000;
               console.log(`[execute-campaign] Long pause: ${longPauseMinutes} min after ${messagesSentInBatch} messages`);
@@ -364,7 +388,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
         } catch (sendErr) {
           const errorMsg = sendErr instanceof Error ? sendErr.message : "Erro desconhecido";
-          console.error(`[execute-campaign] Error sending to ${contact.phone}: ${errorMsg}`);
+          console.error(`[execute-campaign] ❌ Error sending to ${contact.phone}: ${errorMsg}`);
           consecutiveFailures++;
 
           const retryCount = (pc.retry_count || 0) + 1;
