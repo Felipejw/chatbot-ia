@@ -43,6 +43,16 @@ function getRandomInterval(minMs: number, maxMs: number): number {
   return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
 }
 
+function normalizeDestination(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+  if (trimmed.includes("@")) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, "");
+  return digits || null;
+}
+
 function isWithinAllowedHours(start: string, end: string): boolean {
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -195,7 +205,31 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      console.log(`[execute-campaign] ${pendingContacts.length} contacts to process`);
+      const pendingIds = pendingContacts.map((pc) => pc.id);
+      const { data: claimedContacts, error: claimError } = await supabase
+        .from("campaign_contacts")
+        .update({ status: "sending" })
+        .in("id", pendingIds)
+        .in("status", ["pending", "failed"])
+        .select("id");
+
+      if (claimError) {
+        console.error(`[execute-campaign] Error claiming contacts for ${campaign.id}:`, claimError.message);
+        campResult.failed++;
+        results.push(campResult);
+        continue;
+      }
+
+      const claimedIds = new Set((claimedContacts || []).map((row) => row.id));
+      let contactsToProcess = pendingContacts.filter((pc) => claimedIds.has(pc.id));
+
+      if (contactsToProcess.length === 0) {
+        console.log(`[execute-campaign] No contacts claimed for campaign ${campaign.name}; another worker may be processing them`);
+        results.push(campResult);
+        continue;
+      }
+
+      console.log(`[execute-campaign] ${contactsToProcess.length} contacts claimed for processing`);
 
       const minInterval = (campaign.min_interval || 30) * 1000;
       const maxInterval = (campaign.max_interval || 60) * 1000;
@@ -206,9 +240,9 @@ const handler = async (req: Request): Promise<Response> => {
       const longPauseMinutes = campaign.long_pause_minutes || 10;
       let consecutiveFailures = 0;
       let messagesSentInBatch = 0;
+      const processedDestinations = new Set<string>();
 
       // Shuffle contacts if enabled
-      let contactsToProcess = [...pendingContacts];
       if (campaign.shuffle_contacts) {
         for (let i = contactsToProcess.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -243,6 +277,22 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        const destinationKey = normalizeDestination(contact.phone) || normalizeDestination(contact.whatsapp_lid) || `contact:${pc.contact_id}`;
+        if (processedDestinations.has(destinationKey)) {
+          console.warn(`[execute-campaign] Duplicate destination skipped for campaign ${campaign.name}: ${destinationKey}`);
+          await supabase
+            .from("campaign_contacts")
+            .update({
+              status: "failed",
+              next_retry_at: null,
+              last_error: "Destino duplicado na campanha",
+            })
+            .eq("id", pc.id);
+          campResult.failed++;
+          continue;
+        }
+        processedDestinations.add(destinationKey);
+
         let messageContent = campaign.message;
         if (useVariations) {
           const allMessages = [campaign.message, ...variations];
@@ -251,8 +301,6 @@ const handler = async (req: Request): Promise<Response> => {
         messageContent = substituteVariables(messageContent, { name: contact.name, phone: contact.phone });
 
         try {
-          await supabase.from("campaign_contacts").update({ status: "sending" }).eq("id", pc.id);
-
           // --- Resolve or create conversation ---
           let conversationId: string | null = null;
           const { data: existingConv } = await supabase
